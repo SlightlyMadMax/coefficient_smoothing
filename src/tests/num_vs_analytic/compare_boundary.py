@@ -50,22 +50,28 @@ abs_error = [abs(exact[i] - num[i]) for i in range(n)]
 fig = plt.figure()
 ax = plt.axes()
 
-# plt.plot(time, exact, linewidth=1, color='r', label='Analytic solution')
-# plt.plot(time, num, linewidth=1, color='k', label='Numerical solution')
 plt.plot(time, relative_error, linewidth=1, color='r', label=f'Relative error, delta={delta}\n{method}')
-# plt.plot(time, abs_error, linewidth=1, color='r', label=f'Abs error, delta={delta}')
-
-
 ax.set_xlabel("time, s")
 ax.set_ylabel("relative error, %")
-# ax.set_ylabel("abs error, m")
-# ax.set_ylabel("free boundary position, m")
 ax.legend()
-
-# plt.savefig(f"./results/{dir_name}/1d_2f_boundary.png")
-
 plt.savefig(f"./results/{dir_name}/1d_2f_boundary_rel_error.png")
+plt.show()
+plt.clf()
 
-# plt.savefig(f"./results/{dir_name}/1d_2f_boundary_abs_error.png")
+ax = plt.axes()
+plt.plot(time, abs_error, linewidth=1, color='r', label=f'Abs error, delta={delta}')
+ax.set_xlabel("time, s")
+ax.set_ylabel("abs error, m")
+ax.legend()
+plt.savefig(f"./results/{dir_name}/1d_2f_boundary_abs_error.png")
+plt.show()
+plt.clf()
 
+ax = plt.axes()
+plt.plot(time, exact, linewidth=1, color='r', label='Analytic solution')
+plt.plot(time, num, linewidth=1, color='k', label='Numerical solution')
+ax.set_xlabel("time, s")
+ax.set_ylabel("free boundary position, m")
+ax.legend()
+plt.savefig(f"./results/{dir_name}/1d_2f_boundary.png")
 plt.show()
