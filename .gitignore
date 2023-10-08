@@ -43,5 +43,3 @@ pip-delete-this-directory.txt
 # idea
 .idea/
 */logs/
-
-./data/*
