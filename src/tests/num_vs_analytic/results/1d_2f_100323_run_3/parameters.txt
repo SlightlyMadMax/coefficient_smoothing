@@ -1,0 +1,51 @@
+# Число узлов по оси X
+N_X = 100
+
+# Шаг равномерной координатной сетки по координате X
+dx = 1.0 / (N_X - 1)
+inv_dx = N_X - 1
+
+# Число узлов по оси Y
+N_Y = 1000
+
+HEIGHT = 8.0
+
+# Шаг равномерной координатной сетки по координате Y
+dy = HEIGHT / (N_Y - 1)
+inv_dy = (N_Y - 1) / HEIGHT
+
+# Параметр для аппроксимации дельта-функции
+epsilon = 0.2
+
+T_ICE_MIN = -5.0
+
+T_WATER_MAX = 5.0
+
+T_0 = 0.0
+
+C_WATER = 4120.7  # at 0 C
+
+C_ICE = 2056.8  # at -10 C
+
+RHO_WATER = 999.84  # at 0 C
+
+RHO_ICE = 918.9  # at -10 C
+
+C_ICE_VOL = C_ICE * RHO_ICE
+
+C_WATER_VOL = C_WATER * RHO_WATER
+
+L = 333000.0
+
+L_VOL = L * RHO_WATER
+
+K_WATER = 0.59
+
+# Коэффициент теплопроводности льда при -10°C [W/(m*K)]
+K_ICE = 2.21
+
+dt = 3600.0
+
+FULL_TIME = 60.0 * 60.0 * 24.0 * 100.0
+
+N_T = int(FULL_TIME / dt)
