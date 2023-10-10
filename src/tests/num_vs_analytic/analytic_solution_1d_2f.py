@@ -12,6 +12,8 @@ u_0 = 5.0
 a_ice = (K_ICE / C_ICE_VOL) ** 0.5
 a_water = (K_WATER / C_WATER_VOL) ** 0.5
 
+s_0 = float(input("Enter the initial position of free boundary (in meters): "))
+
 
 def trans_eq(_gamma: float):
     lhs = K_ICE * g * math.exp(-(_gamma / (2.0 * a_ice)) ** 2) / (a_ice * erf(_gamma / (2.0 * a_ice)))
@@ -24,8 +26,6 @@ def trans_eq(_gamma: float):
 gamma = fsolve(trans_eq, 0.0002)[0]
 
 print(f"GAMMA: gamma")
-
-s_0 = 0.3
 
 t_0 = (s_0 / gamma)**2
 
