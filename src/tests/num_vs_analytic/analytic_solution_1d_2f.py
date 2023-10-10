@@ -5,6 +5,7 @@ from scipy.optimize import fsolve
 from scipy.special import erf
 
 from src.parameters import K_ICE, K_WATER, C_ICE_VOL, C_WATER_VOL, L_VOL, N_X, N_Y, dy
+from src.plotting import plot_temperature
 
 g = -5.0
 u_0 = 5.0
@@ -29,7 +30,7 @@ print(f"GAMMA: gamma")
 
 t_0 = (s_0 / gamma)**2
 
-print(f"STARTING TIME (S = 0.3 m): {t_0} s")
+print(f"STARTING TIME (S = {s_0} m): {int(t_0/3600)} hours")
 
 
 def get_t_ice(y: float):
@@ -49,7 +50,5 @@ for j in range(N_Y):
     analytic_T[j, :] = get_t_ice(j * dy) if j * dy <= s_0 else get_t_water(j * dy)
 
 np.savez_compressed("./data/analytic_1d_2f_at_0_3", T=analytic_T)
-
-from src.plotting import plot_temperature
 
 plot_temperature(analytic_T, t_0, 0, True)
