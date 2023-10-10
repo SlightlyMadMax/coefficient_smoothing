@@ -13,7 +13,7 @@ u_0 = 5.0
 a_ice = (K_ICE / C_ICE_VOL) ** 0.5
 a_water = (K_WATER / C_WATER_VOL) ** 0.5
 
-s_0 = float(input("Enter the initial position of free boundary (in meters): "))
+# s_0 = float(input("Enter the initial position of free boundary (in meters): "))
 
 
 def trans_eq(_gamma: float):
@@ -24,13 +24,13 @@ def trans_eq(_gamma: float):
     return lhs - rhs
 
 
-gamma = fsolve(trans_eq, 0.0002)[0]
-
-print(f"GAMMA: gamma")
-
-t_0 = (s_0 / gamma)**2
-
-print(f"STARTING TIME (S = {s_0} m): {int(t_0/3600)} hours")
+# gamma = fsolve(trans_eq, 0.0002)[0]
+#
+# print(f"GAMMA: gamma")
+#
+# t_0 = (s_0 / gamma)**2
+#
+# print(f"STARTING TIME (S = {s_0} m): {int(t_0/3600)} hours")
 
 
 def get_ice_temp(y: float, _s_0: float, _t_0: float):
@@ -43,15 +43,15 @@ def get_water_temp(y: float, _s_0: float, _t_0: float):
         (1.0 - erf(_s_0 / (2.0 * a_water * _t_0 ** 0.5)))
 
 
-analytic_T = np.empty((N_Y, N_X))
-
-for j in range(N_Y):
-    analytic_T[j, :] = get_ice_temp(j * dy, s_0, t_0) if j * dy <= s_0 else get_water_temp(j * dy, s_0, t_0)
-
-
-np.savez_compressed("./data/analytic_1d_2f_at_0_3", T=analytic_T)
-
-plot_temperature(analytic_T, t_0, 0, True)
+# analytic_T = np.empty((N_Y, N_X))
+#
+# for j in range(N_Y):
+#     analytic_T[j, :] = get_ice_temp(j * dy, s_0, t_0) if j * dy <= s_0 else get_water_temp(j * dy, s_0, t_0)
+#
+#
+# np.savez_compressed("./data/analytic_1d_2f_at_0_3", T=analytic_T)
+#
+# plot_temperature(analytic_T, t_0, 0, True)
 
 
 def get_analytic_solution(_s_0: float):

@@ -2,18 +2,17 @@ import time
 import os
 import numpy as np
 
-from datetime import datetime
 
 from src.boundary import init_boundary
 from src.temperature import init_temperature
 from src.plotting import plot_temperature
 from src.solver import solve
 from src.parameters import N_T
-from src.tests.num_vs_analytic.test import run_test
+
 
 if __name__ == '__main__':
-    # run_test()
-    dir_name = f"../data/{datetime.now().strftime('%m%d%y_%H%M')}"
+    dir_name = input("Enter a directory name where data will be stored: ")
+    dir_name = f"../data/{dir_name}"
 
     try:
         os.mkdir(dir_name)
@@ -31,7 +30,7 @@ if __name__ == '__main__':
         T = solve(T, fixed_delta=False)
         if n % 60 == 0:
             print(f"ВРЕМЯ МОДЕЛИРОВАНИЯ: {int(n / 60)} ч, ВРЕМЯ ВЫПОЛНЕНИЯ: {time.process_time() - start_time}")
-            np.savez_compressed(f"../data/{dir_name}/T_at_{n}", T=T)
+            np.savez_compressed(f"{dir_name}/T_at_{n}", T=T)
             plot_temperature(T, time=n * 60, graph_id=int(n / 60), plot_boundary=True, show_graph=True)
 
     plot_temperature(T, time=N_T * 3600, graph_id=int(N_T / 60), plot_boundary=False, show_graph=True)

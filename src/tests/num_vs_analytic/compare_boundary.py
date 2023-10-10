@@ -1,24 +1,18 @@
 import math
-import numpy as np
 import matplotlib.pyplot as plt
 
+from typing import Optional
 from scipy.optimize import fsolve
 from scipy.special import erf
 
 from src.parameters import K_ICE, K_WATER, C_ICE_VOL, C_WATER_VOL, L_VOL
 
-s_0 = 0.3
 g = -5.0
 u_0 = 5.0
 
 a_ice = (K_ICE / C_ICE_VOL) ** 0.5
 a_water = (K_WATER / C_WATER_VOL) ** 0.5
 
-dir_name = input("DIR NAME: ")
-
-method = input("FINITE DIFFERENCE METHOD: ")
-
-delta = input("DELTA: ")
 
 def trans_eq(_gamma: float):
     lhs = K_ICE * g * math.exp(-(_gamma / (2.0 * a_ice)) ** 2) / (a_ice * erf(_gamma / (2.0 * a_ice)))
@@ -28,50 +22,71 @@ def trans_eq(_gamma: float):
     return lhs - rhs
 
 
-gamma = fsolve(trans_eq, 0.0002)[0]
+def compare_num_with_analytic(num: list[float], _s_0: float, dir_name: str,
+                              _delta: Optional[float] = None, show_graphs: bool = True):
 
-print(f"GAMMA: {gamma}")
+    gamma = fsolve(trans_eq, 0.0002)[0]
 
-num = np.load(f"./results/{dir_name}/1d_2f_boundary.npz")['boundary']
+    print(f"GAMMA: {gamma}")
 
-n = len(num)
-print(f"Modeling time: {n} days.")
+    n = len(num)
+    print(f"Modeling time: {n} days.")
 
-t_0 = (s_0 / gamma) ** 2
+    t_0 = (_s_0 / gamma) ** 2
 
-time = [i * 60. * 60. * 24.0 + t_0 for i in range(n)]
+    print(int(t_0/3600))
 
-exact = [gamma * time[i] ** 0.5 for i in range(n)]
+    time = [i * 60. * 60. * 24.0 + t_0 for i in range(n)]
 
-relative_error = [abs(exact[i] - num[i]) * 100 / exact[i] for i in range(n)]
+    exact = [gamma * time[i] ** 0.5 for i in range(n)]
 
-abs_error = [abs(exact[i] - num[i]) for i in range(n)]
+    relative_error = [abs(exact[i] - num[i]) * 100 / exact[i] for i in range(n)]
 
-fig = plt.figure()
-ax = plt.axes()
+    abs_error = [abs(exact[i] - num[i]) for i in range(n)]
 
-plt.plot(time, relative_error, linewidth=1, color='r', label=f'Relative error, delta={delta}\n{method}')
-ax.set_xlabel("time, s")
-ax.set_ylabel("relative error, %")
-ax.legend()
-plt.savefig(f"./results/{dir_name}/1d_2f_boundary_rel_error.png")
-plt.show()
-plt.clf()
+    fig = plt.figure()
 
-ax = plt.axes()
-plt.plot(time, abs_error, linewidth=1, color='r', label=f'Abs error, delta={delta}')
-ax.set_xlabel("time, s")
-ax.set_ylabel("abs error, m")
-ax.legend()
-plt.savefig(f"./results/{dir_name}/1d_2f_boundary_abs_error.png")
-plt.show()
-plt.clf()
+    ax = plt.axes()
+    plt.plot(
+        time,
+        relative_error,
+        linewidth=1,
+        color='r',
+        label="дельта = " + str(_delta) if _delta is not None else "адаптивная дельта"
+    )
+    ax.set_title("Относительная погрешность")
+    ax.set_xlabel("Время, с")
+    ax.set_ylabel("Относительная погрешность, %")
+    ax.legend()
+    plt.savefig(f"{dir_name}/boundary_rel_error.png")
+    if show_graphs:
+        plt.show()
+    plt.clf()
 
-ax = plt.axes()
-plt.plot(time, exact, linewidth=1, color='r', label='Analytic solution')
-plt.plot(time, num, linewidth=1, color='k', label='Numerical solution')
-ax.set_xlabel("time, s")
-ax.set_ylabel("free boundary position, m")
-ax.legend()
-plt.savefig(f"./results/{dir_name}/1d_2f_boundary.png")
-plt.show()
+    ax = plt.axes()
+    plt.plot(
+        time,
+        abs_error,
+        linewidth=1,
+        color='r',
+        label="дельта = " + str(_delta) if _delta is not None else "адаптивная дельта"
+    )
+    ax.set_title("Абсолютная погрешность")
+    ax.set_xlabel("Время, с")
+    ax.set_ylabel("Абсолютная погрешность, м")
+    ax.legend()
+    plt.savefig(f"{dir_name}/boundary_abs_error.png")
+    if show_graphs:
+        plt.show()
+    plt.clf()
+
+    ax = plt.axes()
+    plt.plot(time, exact, linewidth=1, color='r', label='Аналитическое решение')
+    plt.plot(time, num, linewidth=1, color='k', label='Численное решение')
+    ax.set_title("Сравнение численного и аналитического решения")
+    ax.set_xlabel("Время, с")
+    ax.set_ylabel("Положение границы фазового перехода, м")
+    ax.legend()
+    plt.savefig(f"{dir_name}/boundary.png")
+    if show_graphs:
+        plt.show()
