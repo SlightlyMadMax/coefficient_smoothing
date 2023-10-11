@@ -1,23 +1,32 @@
 import numpy as np
 import numba
+from typing import Optional
 
 from src.coefficients import c_smoothed, k_smoothed
-from src.parameters import N_Y, N_X, inv_dx, inv_dy, dt, T_ICE_MIN, T_WATER_MAX, delta
-from src.temperature import get_delta_y, get_delta_x
+from src.parameters import N_Y, N_X, inv_dx, inv_dy, dt, dy, T_ICE_MIN, T_WATER_MAX, delta, K_WATER, CONV_COEF
+from src.temperature import get_delta_y, get_delta_x, solar_heat, air_temperature
 
 
 @numba.jit(nopython=True)
-def solve(T, _delta: float = delta, fixed_delta: bool = True):
+def solve(T, time: Optional[float], _delta: float = delta, fixed_delta: bool = True):
     """
     Функция для нахождения решения задачи Стефана в обобщенной формулировке с помощью локально-одномерной
     линеаризованной разностной схемы.
     :param T: Двумерный массив температур на текущем временном слое.
+    :param time: Время в секундах на следующем шаге сетки. Используется для определения граничных условий.
     :param _delta: Параметр сглаживания.
     :param fixed_delta: Определяет зафиксирован ли параметр сглаживания.
+    Если задано значение False – параметр _delta будет определяться адаптивно на каждом шаге.
     :return: Двумерный массив температур на новом временном слое.
     """
     # Массив для хранения значений температуры на промежуточном слое
     tempT = np.empty((N_Y, N_X))
+
+    # Определяем температуру воздуха у поверхности
+    T_air_t = air_temperature(time)
+
+    # Определяем тепловой поток солнечной энергии
+    Q_sol = solar_heat(time)
 
     # Векторы для хранения значений прогоночных коэффициентов (см. Кольцова Э. М. и др.
     # "Численные методы решения уравнений математической физики и химии" 2021, стр. 43)
@@ -57,10 +66,6 @@ def solve(T, _delta: float = delta, fixed_delta: bool = True):
         for i in range(N_X - 2, -1, -1):
             tempT[j, i] = alpha[i] * tempT[j, i + 1] + beta[i]
 
-    # Учет граничных условий по Y
-    tempT[0, :] = T_ICE_MIN
-    tempT[N_Y-1, :] = T_WATER_MAX
-
     # Массив для хранения значений температуры на новом временном слое
     new_T = np.empty((N_Y, N_X))
 
@@ -94,16 +99,17 @@ def solve(T, _delta: float = delta, fixed_delta: bool = True):
             alpha[j] = -a_j / (b_j + c_j * alpha[j - 1])
             beta[j] = (tempT[j, i] - c_j * beta[j - 1]) / (b_j + c_j * alpha[j - 1])
 
+        # Из правого граничного условия первого рода
+        # new_T[N_Y - 1, i] = T_WATER_MAX
         # Из правого граничного условия второго рода
-        new_T[N_Y - 1, i] = beta[N_Y - 2]/(1.0 - alpha[N_Y - 2])
+        # new_T[N_Y - 1, i] = beta[N_Y - 2]/(1.0 - alpha[N_Y - 2])
+        # Из правого граничного условия 3-го рода
+        new_T[N_Y - 1, i] = (dy * (Q_sol - CONV_COEF * T_air_t) / K_WATER +
+                             beta[N_Y - 2])/(1 - alpha[N_Y - 2] - dy * CONV_COEF / K_WATER)
 
         # Вычисление температуры на новом временном слое
         for j in range(N_Y - 2, -1, -1):
             new_T[j, i] = alpha[j] * new_T[j + 1, i] + beta[j]
-
-    # Учет граничных условий по X
-    new_T[:, 0] = new_T[:, 1]
-    new_T[:, N_X - 1] = new_T[:, N_X - 2]
 
     return new_T
 
