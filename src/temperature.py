@@ -1,7 +1,32 @@
 import numpy as np
 import numba
 
-from src.parameters import N_X, N_Y, T_ICE_MIN, T_WATER_MAX, dy, T_0, delta
+from math import sin, cos, pi
+from src.parameters import N_X, N_Y, T_ICE_MIN, T_WATER_MAX, dy, T_0, delta, Q_SOL, LAT, DECL, RAD_SPEED, T_air, T_amp
+
+
+@numba.jit(nopython=True)
+def solar_heat(t: float):
+    """
+    Функция для вычисления потока солнечной радиации.
+    :param t: Время в секундах.
+    :return: Величина солнечного потока радиации на горизонтальную поверхность при заданных параметрах
+    в момент времени t. [Вт/м^2]
+    """
+    return Q_SOL * (
+            sin(LAT) * sin(DECL) +
+            cos(LAT) * cos(DECL) * cos(RAD_SPEED * t + 12.0 * 3600.0)
+    )
+
+
+@numba.jit(nopython=True)
+def air_temperature(t: float):
+    """
+    Функция изменения температуры воздуха.
+    :param t: Время в секундах
+    :return: Температура воздуха в заданный момент времени
+    """
+    return T_air + T_amp * sin(2 * pi * t / (24.0 * 3600.0) - pi / 2)
 
 
 @numba.jit(nopython=True)
