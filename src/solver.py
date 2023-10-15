@@ -111,6 +111,8 @@ def solve(T, time: Optional[float], _delta: float = delta, fixed_delta: bool = T
         for j in range(N_Y - 2, -1, -1):
             new_T[j, i] = alpha[j] * new_T[j + 1, i] + beta[j]
 
+    new_T[:, 0] = new_T[:, 1]
+    new_T[:, N_X - 1] = new_T[:, N_X - 2]
     return new_T
 
 
