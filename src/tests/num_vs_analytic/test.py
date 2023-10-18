@@ -6,6 +6,7 @@ from src.solver import solve
 from src.parameters import N_Y, N_X, N_T, T_0, dy
 from src.tests.num_vs_analytic.analytic_solution_1d_2f import get_analytic_solution
 from compare_boundary import compare_num_with_analytic
+from src.plotting import plot_temperature
 
 
 def run_test():
@@ -29,6 +30,8 @@ def run_test():
         fixed_delta = True
 
     T = get_analytic_solution(_s_0=s_0)
+
+    plot_temperature(T, 0, True, True)
 
     boundary = [s_0]
 
