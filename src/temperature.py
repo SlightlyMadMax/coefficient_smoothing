@@ -2,7 +2,8 @@ import numpy as np
 import numba
 
 from math import sin, cos, pi
-from src.parameters import N_X, N_Y, T_ICE_MIN, T_WATER_MAX, dy, T_0, delta, Q_SOL, LAT, DECL, RAD_SPEED, T_air, T_amp
+from src.parameters import N_X, N_Y, T_ICE_MIN, T_WATER_MAX, dy, T_0, delta, Q_SOL, LAT, DECL, RAD_SPEED, T_air, T_amp, \
+    HEIGHT, WATER_H, dx, dy
 
 
 @numba.jit(nopython=True)
@@ -108,5 +109,18 @@ def init_temperature_1d_1f_test():
     T = np.empty((N_Y, N_X))
     T[:, :] = T_WATER_MAX
     T[0, :] = T_ICE_MIN
+
+    return T
+
+
+def init_temperature_circle():
+    T = np.empty((N_Y, N_X))
+
+    for i in range(N_X):
+        for j in range(N_Y):
+            if (i*dx - 0.5)**2 + (j*dy - 0.5)**2 < 0.0625:
+                T[j, i] = T_WATER_MAX
+            else:
+                T[j, i] = T_ICE_MIN
 
     return T
