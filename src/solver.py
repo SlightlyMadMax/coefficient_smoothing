@@ -1,6 +1,6 @@
 import numpy as np
 import numba
-from typing import Optional
+from numba.typed import Dict
 
 from src.coefficients import c_smoothed, k_smoothed
 from src.parameters import N_Y, N_X, inv_dx, inv_dy, dt, dy, T_ICE_MIN, T_WATER_MAX, delta, K_WATER, CONV_COEF
@@ -8,11 +8,12 @@ from src.temperature import get_delta_y, get_delta_x, solar_heat, air_temperatur
 
 
 @numba.jit(nopython=True)
-def solve(T, time: Optional[float], _delta: float = delta, fixed_delta: bool = True):
+def solve(T, boundary_conditions: Dict, time: float, _delta: float = delta, fixed_delta: bool = True):
     """
     Функция для нахождения решения задачи Стефана в обобщенной формулировке с помощью локально-одномерной
     линеаризованной разностной схемы.
     :param T: Двумерный массив температур на текущем временном слое.
+    :param boundary_conditions: Словарь, в котором указан тип граничного условия для каждой границы.
     :param time: Время в секундах на следующем шаге сетки. Используется для определения граничных условий.
     :param _delta: Параметр сглаживания.
     :param fixed_delta: Определяет зафиксирован ли параметр сглаживания.
@@ -22,19 +23,17 @@ def solve(T, time: Optional[float], _delta: float = delta, fixed_delta: bool = T
     # Массив для хранения значений температуры на промежуточном слое
     tempT = np.empty((N_Y, N_X))
 
-    # Определяем температуру воздуха у поверхности
-    T_air_t = air_temperature(time)
-
-    # Определяем тепловой поток солнечной энергии
-    Q_sol = solar_heat(time)
-
     # Векторы для хранения значений прогоночных коэффициентов (см. Кольцова Э. М. и др.
     # "Численные методы решения уравнений математической физики и химии" 2021, стр. 43)
     alpha = np.empty((N_X - 1), )
     beta = np.empty((N_X - 1), )
 
-    alpha[0] = 1  # Из левого граничного условия второго рода
-    beta[0] = 0  # Из левого граничного условия второго рода
+    if boundary_conditions["left"] == 1:
+        alpha[0] = 0
+        beta[0] = T_ICE_MIN
+    else:
+        alpha[0] = 1
+        beta[0] = 0
 
     if not fixed_delta:
         _delta = get_delta_x(T)
@@ -59,8 +58,10 @@ def solve(T, time: Optional[float], _delta: float = delta, fixed_delta: bool = T
             alpha[i] = -a_i / (b_i + c_i * alpha[i - 1])
             beta[i] = (T[j, i] - c_i * beta[i - 1]) / (b_i + c_i * alpha[i - 1])
 
-        # Из правого граничного условия второго рода
-        tempT[j, N_X - 1] = beta[N_X - 2]/(1.0 - alpha[N_X - 2])
+        if boundary_conditions["right"] == 1:
+            tempT[j, N_X - 1] = T_ICE_MIN
+        else:
+            tempT[j, N_X - 1] = beta[N_X - 2]/(1.0 - alpha[N_X - 2])
 
         # Вычисление температуры на промежуточном временном слое
         for i in range(N_X - 2, -1, -1):
@@ -72,8 +73,8 @@ def solve(T, time: Optional[float], _delta: float = delta, fixed_delta: bool = T
     alpha = np.empty((N_Y - 1), )
     beta = np.empty((N_Y - 1), )
 
-    alpha[0] = 0  # из левого граничного условия первого рода
-    beta[0] = T_ICE_MIN  # из левого граничного условия первого рода
+    alpha[0] = 0  # из левого граничного условия первого рода (по Y)
+    beta[0] = T_ICE_MIN  # из левого граничного условия первого рода (по Y)
 
     if not fixed_delta:
         _delta = get_delta_y(tempT)
@@ -99,20 +100,32 @@ def solve(T, time: Optional[float], _delta: float = delta, fixed_delta: bool = T
             alpha[j] = -a_j / (b_j + c_j * alpha[j - 1])
             beta[j] = (tempT[j, i] - c_j * beta[j - 1]) / (b_j + c_j * alpha[j - 1])
 
-        # Из правого граничного условия первого рода
-        # new_T[N_Y - 1, i] = T_WATER_MAX
-        # Из правого граничного условия второго рода
-        # new_T[N_Y - 1, i] = beta[N_Y - 2]/(1.0 - alpha[N_Y - 2])
-        # Из правого граничного условия 3-го рода
-        new_T[N_Y - 1, i] = (dy * (Q_sol - CONV_COEF * T_air_t) / K_WATER +
-                             beta[N_Y - 2])/(1 - alpha[N_Y - 2] - dy * CONV_COEF / K_WATER)
+        if boundary_conditions["upper"] == 1:
+            new_T[N_Y - 1, i] = T_ICE_MIN
+        elif boundary_conditions["upper"] == 2:
+            new_T[N_Y - 1, i] = beta[N_Y - 2]/(1.0 - alpha[N_Y - 2])
+        else:
+            # Определяем температуру воздуха у поверхности
+            T_air_t = air_temperature(time)
+            # Определяем тепловой поток солнечной энергии
+            Q_sol = solar_heat(time)
+            new_T[N_Y - 1, i] = (dy * (Q_sol - CONV_COEF * T_air_t) / K_WATER +
+                                 beta[N_Y - 2])/(1 - alpha[N_Y - 2] - dy * CONV_COEF / K_WATER)
 
         # Вычисление температуры на новом временном слое
         for j in range(N_Y - 2, -1, -1):
             new_T[j, i] = alpha[j] * new_T[j + 1, i] + beta[j]
 
-    new_T[:, 0] = new_T[:, 1]
-    new_T[:, N_X - 1] = new_T[:, N_X - 2]
+    if boundary_conditions["left"] == 1:
+        new_T[:, 0] = T_ICE_MIN
+    else:
+        new_T[:, 0] = new_T[:, 1]
+
+    if boundary_conditions["right"] == 1:
+        new_T[:, N_X - 1] = T_ICE_MIN
+    else:
+        new_T[:, N_X - 1] = new_T[:, N_X - 2]
+
     return new_T
 
 

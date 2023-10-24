@@ -24,15 +24,22 @@ if __name__ == '__main__':
 
     plot_temperature(T, time=0, graph_id=0, plot_boundary=True, show_graph=True)
 
+    boundary_conditions = Dict()
+
+    boundary_conditions["left"] = 1
+    boundary_conditions["right"] = 1
+    boundary_conditions["bottom"] = 1
+    boundary_conditions["upper"] = 1
+
     start_time = time.process_time()
 
     for n in range(1, N_T):
         t = n * dt
-        T = solve(T, time=t, fixed_delta=True)
+        T = solve(T, boundary_conditions, t, fixed_delta=False)
         if n % 60 == 0:
             print(f"T_air_t = {round(air_temperature(t), 2)}")
             print(f"ВРЕМЯ МОДЕЛИРОВАНИЯ: {int(n / 60)} ч, ВРЕМЯ ВЫПОЛНЕНИЯ: {time.process_time() - start_time}")
             np.savez_compressed(f"{dir_name}/T_at_{n}", T=T)
             plot_temperature(T, time=t, graph_id=int(n / 60), plot_boundary=True, show_graph=True)
 
-    plot_temperature(T, time=N_T * 3600, graph_id=int(N_T / 60), plot_boundary=False, show_graph=True)
+    plot_temperature(T, time=N_T * dt, graph_id=int(N_T / 60), plot_boundary=True, show_graph=True)
