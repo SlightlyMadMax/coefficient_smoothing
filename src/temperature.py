@@ -124,3 +124,16 @@ def init_temperature_circle():
                 T[j, i] = T_ICE_MIN
 
     return T
+
+
+def init_temperature_square():
+    T = np.empty((N_Y, N_X))
+
+    for i in range(N_X):
+        for j in range(N_Y):
+            if abs(i*dx - 0.5) < 0.25 and abs(j*dy - 0.5) < 0.25:
+                T[j, i] = T_WATER_MAX
+            else:
+                T[j, i] = T_ICE_MIN
+
+    return T
