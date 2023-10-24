@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from src.parameters import N_Y, N_X, HEIGHT, dt, dx, dy
+from src.parameters import N_Y, N_X, HEIGHT, dt, dx, dy, T_WATER_MAX, T_ICE_MIN
 from src.boundary import get_phase_trans_boundary
 
 
@@ -19,12 +19,15 @@ def plot_temperature(T, time: float, graph_id: int, plot_boundary: bool = False,
     plt.contourf(X, Y, T, 50, cmap="viridis")
 
     if plot_boundary:
-        F = get_phase_trans_boundary(T)
-        plt.plot(X[0], F, linewidth=1, color='r', label='Граница ф.п.')
+        X_b, Y_b = get_phase_trans_boundary(T)
+        plt.scatter(X_b, Y_b, s=1, linewidths=0.1, color='r', label='Граница ф.п.')
         ax.legend()
 
-    plt.ylim((4.5, 10.05))
-    plt.xlim((0.3, 0.7))
+    # plt.ylim((4.5, 10.05))
+    # plt.xlim((0.3, 0.7))
+
+    plt.clim(T_ICE_MIN, T_WATER_MAX)
+
     plt.colorbar()
     ax.set_xlabel("x, м")
     ax.set_ylabel("y, м")
