@@ -3,22 +3,20 @@ import numba
 from numba.typed import Dict
 
 from src.coefficients import c_smoothed, k_smoothed
-from src.parameters import N_Y, N_X, inv_dx, inv_dy, dt, dy, T_ICE_MIN, T_WATER_MAX, delta, K_WATER, CONV_COEF
-from src.temperature import get_delta_y, get_delta_x, solar_heat, air_temperature
+from src.parameters import N_Y, N_X, inv_dx, inv_dy, dt, dy, T_ICE_MIN, T_WATER_MAX, K_WATER, CONV_COEF, delta
+from src.temperature import get_delta_y_scalar, get_delta_x_scalar, get_delta_matrix, get_delta_x_vector, \
+    get_delta_y_vector, solar_heat, air_temperature
 
 
 @numba.jit(nopython=True)
-def solve(T, boundary_conditions: Dict, time: float, _delta: float = delta, fixed_delta: bool = True):
+def solve(T, boundary_conditions: Dict, time: float = 0.0, _delta: float = delta, fixed_delta: bool = True):
     """
-    Функция для нахождения решения задачи Стефана в обобщенной формулировке с помощью локально-одномерной
-    линеаризованной разностной схемы.
-    :param T: Двумерный массив температур на текущем временном слое.
-    :param boundary_conditions: Словарь, в котором указан тип граничного условия для каждой границы.
-    :param time: Время в секундах на следующем шаге сетки. Используется для определения граничных условий.
-    :param _delta: Параметр сглаживания.
-    :param fixed_delta: Определяет зафиксирован ли параметр сглаживания.
-    Если задано значение False – параметр _delta будет определяться адаптивно на каждом шаге.
-    :return: Двумерный массив температур на новом временном слое.
+    Функция для нахождения решения задачи Стефана в обобщенной формулировке с помощью локально-одномерной линеаризованной разностной схемы.
+    :param T: двумерный массив температур на текущем временном слое.
+    :param boundary_conditions: словарь, в котором указан тип граничного условия для каждой границы.
+    :param time: время в секундах на следующем шаге сетки. Используется для определения граничных условий.
+    :param fixed_delta: определяет зафиксирован ли параметр сглаживания. Если задано значение False – параметр _delta будет определяться адаптивно на каждом шаге.
+    :return: двумерный массив температур на новом временном слое.
     """
     # Массив для хранения значений температуры на промежуточном слое
     tempT = np.empty((N_Y, N_X))
@@ -36,7 +34,7 @@ def solve(T, boundary_conditions: Dict, time: float, _delta: float = delta, fixe
         beta[0] = 0
 
     if not fixed_delta:
-        _delta = get_delta_x(T)
+        _delta = get_delta_y_scalar(T)
 
     # Прогонка по X
     for j in range(1, N_Y - 1):
@@ -67,6 +65,9 @@ def solve(T, boundary_conditions: Dict, time: float, _delta: float = delta, fixe
         for i in range(N_X - 2, -1, -1):
             tempT[j, i] = alpha[i] * tempT[j, i + 1] + beta[i]
 
+    tempT[0, :] = T_ICE_MIN
+    tempT[N_Y-1, :] = T_WATER_MAX
+
     # Массив для хранения значений температуры на новом временном слое
     new_T = np.empty((N_Y, N_X))
 
@@ -77,7 +78,7 @@ def solve(T, boundary_conditions: Dict, time: float, _delta: float = delta, fixe
     beta[0] = T_ICE_MIN  # из левого граничного условия первого рода (по Y)
 
     if not fixed_delta:
-        _delta = get_delta_y(tempT)
+        _delta = get_delta_y_scalar(tempT)
 
     # Прогонка по Y
     for i in range(1, N_X - 1):
@@ -101,7 +102,7 @@ def solve(T, boundary_conditions: Dict, time: float, _delta: float = delta, fixe
             beta[j] = (tempT[j, i] - c_j * beta[j - 1]) / (b_j + c_j * alpha[j - 1])
 
         if boundary_conditions["upper"] == 1:
-            new_T[N_Y - 1, i] = T_ICE_MIN
+            new_T[N_Y - 1, i] = T_WATER_MAX
         elif boundary_conditions["upper"] == 2:
             new_T[N_Y - 1, i] = beta[N_Y - 2]/(1.0 - alpha[N_Y - 2])
         else:
