@@ -88,10 +88,11 @@ T_air = 2.0
 T_amp = 2.0
 
 # ДЛЯ ТЕСТОВ
-# N_X = 50
-# dx = 1.0 / (N_X - 1)
-# inv_dx = N_X - 1
-# N_Y = 1000
+# N_X = 21
+# WIDTH = 1.0
+# dx = WIDTH / (N_X - 1)
+# inv_dx = (N_X - 1) / WIDTH
+# N_Y = 1001
 # HEIGHT = 8.0
 # dy = HEIGHT / (N_Y - 1)
 # inv_dy = (N_Y - 1) / HEIGHT
