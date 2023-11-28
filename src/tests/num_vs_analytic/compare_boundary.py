@@ -1,11 +1,12 @@
 import math
 import matplotlib.pyplot as plt
+import numpy as np
 
 from typing import Optional
 from scipy.optimize import fsolve
 from scipy.special import erf
 
-from src.parameters import K_ICE, K_WATER, C_ICE_VOL, C_WATER_VOL, L_VOL
+from src.parameters import K_ICE, K_WATER, C_ICE_VOL, C_WATER_VOL, L_VOL, dy
 
 g = -5.0
 u_0 = 5.0
@@ -43,6 +44,9 @@ def compare_num_with_analytic(num: list[float], _s_0: float, dir_name: str,
     relative_error = [abs(exact[i] - num[i]) * 100 / exact[i] for i in range(n)]
 
     abs_error = [abs(exact[i] - num[i]) for i in range(n)]
+
+    print(f"Average abs. error: {np.average(abs_error)}")
+    print(f"Шаг сетки: {dy}")
 
     fig = plt.figure()
 
