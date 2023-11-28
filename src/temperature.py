@@ -3,7 +3,7 @@ import numba
 
 from math import sin, cos, pi
 from src.parameters import N_X, N_Y, T_ICE_MIN, T_WATER_MAX, dy, T_0, delta, Q_SOL, LAT, DECL, RAD_SPEED, T_air, T_amp, \
-    HEIGHT, WATER_H, dx, dy
+    HEIGHT, WIDTH, WATER_H, dx, dy
 
 
 @numba.jit(nopython=True)
@@ -31,7 +31,7 @@ def air_temperature(t: float):
 
 
 @numba.jit(nopython=True)
-def get_delta_y(T) -> float:
+def get_delta_y_scalar(T) -> float:
     """
     Функция для поиска параметра сглаживания по оси y.
     :param T: Двумерный массив температур на текущем временном слое.
@@ -46,11 +46,11 @@ def get_delta_y(T) -> float:
                 delta_y = temp if temp > delta_y else delta_y
                 break
 
-    return delta_y or delta
+    return delta_y
 
 
 @numba.jit(nopython=True)
-def get_delta_x(T) -> float:
+def get_delta_x_scalar(T) -> float:
     """
     Функция для поиска параметра сглаживания по оси x.
     :param T: Двумерный массив температур на текущем временном слое.
@@ -65,7 +65,54 @@ def get_delta_x(T) -> float:
                 delta_x = temp if temp > delta_x else delta_x
                 break
 
-    return delta_x or delta
+    return delta_x
+
+
+@numba.jit(nopython=True)
+def get_delta_y_vector(T):
+    delta_y = np.zeros(N_X)
+
+    for i in range(1, N_X - 1):
+        for j in range(1, N_Y - 1):
+            if (T[j + 1, i] - T_0) * (T[j, i] - T_0) < 0.0:
+                delta_y[i] = abs(T[j + 1, i] - T[j, i])
+                break
+
+    return delta_y
+
+
+@numba.jit(nopython=True)
+def get_delta_x_vector(T):
+    delta_x = np.zeros(N_Y)
+
+    for j in range(1, N_Y - 1):
+        for i in range(1, N_X - 1):
+            if (T[j, i + 1] - T_0) * (T[j, i] - T_0) < 0.0:
+                delta_x[i] = abs(T[j, i + 1] - T[j, i])
+                break
+
+    return delta_x
+
+
+@numba.jit(nopython=True)
+def get_delta_matrix(T):
+    Delta = np.zeros((N_Y, N_X))
+
+    for i in range(1, N_X - 1):
+        for j in range(1, N_Y - 1):
+            if (T[j + 1, i] - T_0) * (T[j, i] - T_0) < 0.0:
+                Delta[j, i] = abs(T[j + 1, i] - T[j, i])
+
+            if (T[j - 1, i] - T_0) * (T[j, i] - T_0) < 0.0:
+                Delta[j, i] = abs(T[j - 1, i] - T[j, i]) if Delta[j, i] < abs(T[j - 1, i] - T[j, i]) else Delta[j, i]
+
+            if (T[j, i + 1] - T_0) * (T[j, i] - T_0) < 0.0:
+                Delta[j, i] = abs(T[j, i + 1] - T[j, i]) if Delta[j, i] < abs(T[j, i + 1] - T[j, i]) else Delta[j, i]
+
+            if (T[j, i - 1] - T_0) * (T[j, i] - T_0) < 0.0:
+                Delta[j, i] = abs(T[j, i - 1] - T[j, i]) if Delta[j, i] < abs(T[j, i - 1] - T[j, i]) else Delta[j, i]
+
+    return Delta
 
 
 def init_temperature(F = None):
@@ -118,7 +165,7 @@ def init_temperature_circle():
 
     for i in range(N_X):
         for j in range(N_Y):
-            if (i*dx - 0.5)**2 + (j*dy - 0.5)**2 < 0.0625:
+            if (i * dx - WIDTH / 2.0)**2 + (j * dy - WIDTH / 2.0)**2 < 0.0625:
                 T[j, i] = T_WATER_MAX
             else:
                 T[j, i] = T_ICE_MIN
@@ -131,7 +178,7 @@ def init_temperature_square():
 
     for i in range(N_X):
         for j in range(N_Y):
-            if abs(i*dx - 0.5) < 0.25 and abs(j*dy - 0.5) < 0.25:
+            if abs(i * dx - WIDTH / 2.0) < 0.25 and abs(j * dy - WIDTH / 2.0) < 0.25:
                 T[j, i] = T_WATER_MAX
             else:
                 T[j, i] = T_ICE_MIN
