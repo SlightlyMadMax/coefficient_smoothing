@@ -152,7 +152,7 @@ def init_temperature_angle():
     return T
 
 
-def init_temperature_1d_1f_test():
+def init_temperature_test():
     T = np.empty((N_Y, N_X))
     T[:, :] = T_WATER_MAX
     T[0, :] = T_ICE_MIN
