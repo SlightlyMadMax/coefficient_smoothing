@@ -88,7 +88,7 @@ def get_delta_x_vector(T):
     for j in range(1, N_Y - 1):
         for i in range(1, N_X - 1):
             if (T[j, i + 1] - T_0) * (T[j, i] - T_0) < 0.0:
-                delta_x[i] = abs(T[j, i + 1] - T[j, i])
+                delta_x[j] = abs(T[j, i + 1] - T[j, i])
                 break
 
     return delta_x
