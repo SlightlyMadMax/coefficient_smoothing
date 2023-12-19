@@ -2,7 +2,30 @@ import numpy as np
 import math
 import numba
 
-from src.parameters import N_X, N_Y, dx, dy, T_0
+from numba.typed import Dict
+from src.parameters import N_X, N_Y, dx, dy, T_0, T_ICE_MIN, T_WATER_MAX, HEIGHT, WATER_H, CREV_DEPTH
+
+
+def init_bc():
+    boundary_conditions = Dict()
+
+    bc_bottom = Dict()
+    bc_bottom["type"] = 1.0
+    bc_bottom["temp"] = T_ICE_MIN
+
+    bc_top = Dict()
+    bc_top["type"] = 1.0
+    bc_top["temp"] = T_WATER_MAX
+
+    bc_sides = Dict()
+    bc_sides["type"] = 2.0
+
+    boundary_conditions["left"] = bc_sides
+    boundary_conditions["right"] = bc_sides
+    boundary_conditions["bottom"] = bc_bottom
+    boundary_conditions["top"] = bc_top
+
+    return boundary_conditions
 
 
 def init_boundary(n_x: int = N_X):
@@ -13,8 +36,8 @@ def init_boundary(n_x: int = N_X):
     """
     F = np.empty(n_x)
 
-    # Трещина-гауссиана глубиной 5 метров
-    F[:] = [10.0 - 5.0 * math.exp(-(i * dx - 0.5) ** 2 / 0.001) for i in range(n_x)]
+    # Трещина-гауссиана
+    F[:] = [HEIGHT - WATER_H - CREV_DEPTH * math.exp(-(i * dx - 0.5) ** 2 / 0.005) for i in range(n_x)]
 
     return F
 

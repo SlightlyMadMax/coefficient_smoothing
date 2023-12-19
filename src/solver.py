@@ -4,16 +4,15 @@ from numba.typed import Dict
 
 from src.coefficients import c_smoothed, k_smoothed
 from src.parameters import N_Y, N_X, inv_dx, inv_dy, dt, dy, T_ICE_MIN, T_WATER_MAX, K_WATER, CONV_COEF, delta
-from src.temperature import get_delta_y_scalar, get_delta_x_scalar, get_delta_matrix, get_delta_x_vector, \
-    get_delta_y_vector, solar_heat, air_temperature
+from src.temperature import solar_heat, air_temperature, get_max_delta
 
 
 @numba.jit(nopython=True)
-def solve(T, boundary_conditions: Dict, time: float = 0.0, _delta: float = delta, fixed_delta: bool = True):
+def solve(T, boundary_conditions: Dict, time: float = 0.0, fixed_delta: bool = True):
     """
     Функция для нахождения решения задачи Стефана в обобщенной формулировке с помощью локально-одномерной линеаризованной разностной схемы.
     :param T: двумерный массив температур на текущем временном слое.
-    :param boundary_conditions: словарь, в котором указан тип граничного условия для каждой границы.
+    :param boundary_conditions: словарь, в котором указан тип граничного условия и температура для каждой границы.
     :param time: время в секундах на следующем шаге сетки. Используется для определения граничных условий.
     :param fixed_delta: определяет зафиксирован ли параметр сглаживания. Если задано значение False – параметр _delta будет определяться адаптивно на каждом шаге.
     :return: двумерный массив температур на новом временном слое.
@@ -26,15 +25,17 @@ def solve(T, boundary_conditions: Dict, time: float = 0.0, _delta: float = delta
     alpha = np.empty((N_X - 1), )
     beta = np.empty((N_X - 1), )
 
-    if boundary_conditions["left"] == 1:
+    _delta = delta
+
+    if boundary_conditions["left"]["type"] == 1.0:
         alpha[0] = 0
-        beta[0] = T_ICE_MIN
+        beta[0] = boundary_conditions["left"]["temp"]
     else:
         alpha[0] = 1
         beta[0] = 0
 
     if not fixed_delta:
-        _delta = get_delta_y_scalar(T)
+        _delta = get_max_delta(T)
 
     # Прогонка по X
     for j in range(1, N_Y - 1):
@@ -56,8 +57,8 @@ def solve(T, boundary_conditions: Dict, time: float = 0.0, _delta: float = delta
             alpha[i] = -a_i / (b_i + c_i * alpha[i - 1])
             beta[i] = (T[j, i] - c_i * beta[i - 1]) / (b_i + c_i * alpha[i - 1])
 
-        if boundary_conditions["right"] == 1:
-            tempT[j, N_X - 1] = T_ICE_MIN
+        if boundary_conditions["right"]["type"] == 1.0:
+            tempT[j, N_X - 1] = boundary_conditions["right"]["temp"]
         else:
             tempT[j, N_X - 1] = beta[N_X - 2]/(1.0 - alpha[N_X - 2])
 
@@ -65,8 +66,8 @@ def solve(T, boundary_conditions: Dict, time: float = 0.0, _delta: float = delta
         for i in range(N_X - 2, -1, -1):
             tempT[j, i] = alpha[i] * tempT[j, i + 1] + beta[i]
 
-    tempT[0, :] = T_ICE_MIN
-    tempT[N_Y-1, :] = T_WATER_MAX
+    tempT[0, :] = boundary_conditions["bottom"]["temp"]
+    tempT[N_Y-1, :] = boundary_conditions["top"]["temp"]
 
     # Массив для хранения значений температуры на новом временном слое
     new_T = np.empty((N_Y, N_X))
@@ -75,10 +76,10 @@ def solve(T, boundary_conditions: Dict, time: float = 0.0, _delta: float = delta
     beta = np.empty((N_Y - 1), )
 
     alpha[0] = 0  # из левого граничного условия первого рода (по Y)
-    beta[0] = T_ICE_MIN  # из левого граничного условия первого рода (по Y)
+    beta[0] = boundary_conditions["bottom"]["temp"]  # из левого граничного условия первого рода (по Y)
 
     if not fixed_delta:
-        _delta = get_delta_y_scalar(tempT)
+        _delta = get_max_delta(tempT)
 
     # Прогонка по Y
     for i in range(1, N_X - 1):
@@ -101,9 +102,9 @@ def solve(T, boundary_conditions: Dict, time: float = 0.0, _delta: float = delta
             alpha[j] = -a_j / (b_j + c_j * alpha[j - 1])
             beta[j] = (tempT[j, i] - c_j * beta[j - 1]) / (b_j + c_j * alpha[j - 1])
 
-        if boundary_conditions["upper"] == 1:
-            new_T[N_Y - 1, i] = T_WATER_MAX
-        elif boundary_conditions["upper"] == 2:
+        if boundary_conditions["top"]["type"] == 1.0:
+            new_T[N_Y - 1, i] = boundary_conditions["top"]["temp"]
+        elif boundary_conditions["top"]["type"] == 2.0:
             new_T[N_Y - 1, i] = beta[N_Y - 2]/(1.0 - alpha[N_Y - 2])
         else:
             # Определяем температуру воздуха у поверхности
@@ -117,13 +118,13 @@ def solve(T, boundary_conditions: Dict, time: float = 0.0, _delta: float = delta
         for j in range(N_Y - 2, -1, -1):
             new_T[j, i] = alpha[j] * new_T[j + 1, i] + beta[j]
 
-    if boundary_conditions["left"] == 1:
-        new_T[:, 0] = T_ICE_MIN
+    if boundary_conditions["left"]["type"] == 1:
+        new_T[:, 0] = boundary_conditions["left"]["temp"]
     else:
         new_T[:, 0] = new_T[:, 1]
 
-    if boundary_conditions["right"] == 1:
-        new_T[:, N_X - 1] = T_ICE_MIN
+    if boundary_conditions["right"]["type"] == 1:
+        new_T[:, N_X - 1] = boundary_conditions["right"]["temp"]
     else:
         new_T[:, N_X - 1] = new_T[:, N_X - 2]
 

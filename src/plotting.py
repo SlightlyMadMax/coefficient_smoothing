@@ -30,7 +30,7 @@ def plot_temperature(T, time: float, graph_id: int, plot_boundary: bool = False,
 
     ax.set_xlabel("x, м")
     ax.set_ylabel("y, м")
-    ax.set_title(f"t = {int(time/3600)} ч.\n dx = {round(dx, 3)} m, dy = {round(dy, 3)} m, dt = {round(dt, 2)} с")
+    ax.set_title(f"t = {int(time/60)} м.\n dx = {round(dx, 3)} m, dy = {round(dy, 3)} m, dt = {round(dt, 2)} с")
     plt.savefig(f"../graphs/temperature/T_{graph_id}.png")
 
     if show_graph:

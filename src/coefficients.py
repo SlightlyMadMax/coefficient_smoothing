@@ -23,6 +23,11 @@ def c_smoothed(T_j_i: float, _delta: float):
     :param _delta: Параметр сглаживания.
     :return: Значение сглаженной эффективной объемной теплоемкости при температуре T_j_i.
     """
+    if _delta <= 0:
+        if T_j_i < T_0:
+            return C_ICE_VOL
+        else:
+            return C_WATER_VOL
     return C_ICE_VOL + (C_WATER_VOL - C_ICE_VOL) * (1.0 + math.erf((T_j_i - T_0)/(2**0.5*_delta))) * 0.5 + \
            L_VOL * delta_function(T_j_i, _delta)
 
@@ -35,5 +40,10 @@ def k_smoothed(T_j_i: float, _delta: float):
     :param _delta: Параметр сглаживания.
     :return: Значение сглаженного коэффициента теплопроводности при температуре T_j_i.
     """
+    if _delta <= 0.0:
+        if T_j_i < T_0:
+            return K_ICE
+        else:
+            return K_WATER
     return K_ICE + (K_WATER - K_ICE) * (1.0 + math.erf((T_j_i - T_0)/(2**0.5*_delta))) * 0.5
 
