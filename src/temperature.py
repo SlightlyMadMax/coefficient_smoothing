@@ -109,8 +109,8 @@ def init_temperature(F = None):
         for i in range(N_X):
             for j in range(N_Y):
                 if j * dy < F[i]:
-                    T[j, i] = T_ICE_MIN
-                    # T[j, i] = T_ICE_MIN + j * dy * (T_0 - T_ICE_MIN) / (HEIGHT - WATER_H)
+                    # T[j, i] = T_ICE_MIN
+                    T[j, i] = T_ICE_MIN + j * dy * (T_0 - T_ICE_MIN) / (HEIGHT - WATER_H)
                 elif j * dy > F[i]:
                     T[j, i] = T_WATER_MAX
                 else:
