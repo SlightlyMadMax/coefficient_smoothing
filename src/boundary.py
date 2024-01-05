@@ -6,7 +6,11 @@ from numba.typed import Dict
 from src.parameters import N_X, N_Y, dx, dy, T_0, T_ICE_MIN, T_WATER_MAX, HEIGHT, WATER_H, CREV_DEPTH
 
 
-def init_bc():
+def init_bc() -> Dict:
+    """
+    Инициализация граничных условий.
+    :return: словарь (совместимого с numba типа Dict), содержащий описание условий (тип, температура) для левой, правой, верхней и нижней границ области
+    """
     boundary_conditions = Dict()
 
     bc_bottom = Dict()
