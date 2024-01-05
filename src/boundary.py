@@ -14,7 +14,7 @@ def init_bc():
     bc_bottom["temp"] = T_ICE_MIN
 
     bc_top = Dict()
-    bc_top["type"] = 1.0
+    bc_top["type"] = 3.0
     bc_top["temp"] = T_WATER_MAX
 
     bc_sides = Dict()

@@ -67,7 +67,20 @@ def solve(T, boundary_conditions: Dict, time: float = 0.0, fixed_delta: bool = T
             tempT[j, i] = alpha[i] * tempT[j, i + 1] + beta[i]
 
     tempT[0, :] = boundary_conditions["bottom"]["temp"]
-    tempT[N_Y-1, :] = boundary_conditions["top"]["temp"]
+
+    # tempT[N_Y-1, :] = boundary_conditions["top"]["temp"]
+
+    if boundary_conditions["top"]["type"] == 1.0:
+        tempT[N_Y - 1, :] = boundary_conditions["top"]["temp"]
+    elif boundary_conditions["top"]["type"] == 2.0:
+        tempT[N_Y - 1, :] = beta[N_Y - 2] / (1.0 - alpha[N_Y - 2])
+    else:
+        # Определяем температуру воздуха у поверхности
+        T_air_t = air_temperature(time)
+        # Определяем тепловой поток солнечной энергии
+        Q_sol = solar_heat(time)
+        tempT[N_Y - 1, :] = (dy * (Q_sol - CONV_COEF * T_air_t) / K_WATER +
+                             beta[N_Y - 2]) / (1 - alpha[N_Y - 2] - dy * CONV_COEF / K_WATER)
 
     # Массив для хранения значений температуры на новом временном слое
     new_T = np.empty((N_Y, N_X))
