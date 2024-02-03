@@ -60,16 +60,8 @@ def get_phase_trans_boundary(T, n_x: int = N_X):
     for j in range(1, N_Y - 1):
         for i in range(1, n_x - 1):
             if (T[j, i] - T_0) * (T[j + 1, i] - T_0) < 0.0:
-                if abs(T[j, i] - T_0) <= abs(T[j + 1, i] - T_0):
-                    Y.append(j * dy)
-                else:
-                    Y.append((j + 1) * dy)
+                y_0 = abs((T[j, i] * (j + 1) * dy - T[j + 1, i] * j * dy) / (T[j, i] - T[j + 1, i]))
+                Y.append(y_0)
                 X.append(i*dx)
-            elif (T[j, i] - T_0) * (T[j, i + 1] - T_0) < 0.0:
-                if abs(T[j, i] - T_0) <= abs(T[j, i + 1] - T_0):
-                    X.append(i * dx)
-                else:
-                    X.append((i + 1) * dx)
-                Y.append(j*dy)
 
     return X, Y
