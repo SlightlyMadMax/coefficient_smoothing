@@ -69,8 +69,6 @@ def solve(T, boundary_conditions: Dict, time: float = 0.0, fixed_delta: bool = T
 
     tempT[0, :] = boundary_conditions["bottom"]["temp"]
 
-    # tempT[N_Y-1, :] = boundary_conditions["top"]["temp"]
-
     if boundary_conditions["top"]["type"] == 1.0:
         tempT[N_Y - 1, :] = boundary_conditions["top"]["temp"]
     elif boundary_conditions["top"]["type"] == 2.0:
