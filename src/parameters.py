@@ -27,13 +27,13 @@ dy = HEIGHT / (N_Y - 1)
 inv_dy = (N_Y - 1) / HEIGHT
 
 # Параметр для аппроксимации дельта-функции
-delta = 0.001
+delta = 0.035
 
 # Начальная минимальная температура льда
-T_ICE_MIN = -10.0
+T_ICE_MIN = -9.0
 
 # Начальная максимальная температура воды
-T_WATER_MAX = 2.5
+T_WATER_MAX = 1.0
 
 # Температура фазового перехода
 T_0 = 0.0
@@ -72,7 +72,7 @@ K_ICE = 2.21
 dt = 60.0
 
 # Полное время моделирования
-FULL_TIME = 60.0 * 60.0 * 24.0 * 7.0
+FULL_TIME = 60.0 * 60.0 * 24.0 * 2.0
 
 # Число шагов по времени
 N_T = int(FULL_TIME / dt)
@@ -107,6 +107,8 @@ T_amp = 2.5
 # HEIGHT = 8.0
 # dy = HEIGHT / (N_Y - 1)
 # inv_dy = (N_Y - 1) / HEIGHT
+# WATER_H = 0.05
+# CREV_DEPTH = 0.8
 # delta = 0.3
 # T_ICE_MIN = -5.0
 # T_WATER_MAX = 5.0
@@ -124,3 +126,10 @@ T_amp = 2.5
 # L_VOL = L * RHO_WATER
 # K_WATER = 0.59
 # K_ICE = 2.21
+# CONV_COEF = 6000.0
+# Q_SOL = 1360.0
+# LAT = -69.0 * math.pi / 180.0
+# DECL = -23.0 * math.pi / 180.0
+# RAD_SPEED = 7.292 / 100000.0
+# T_air = 2.5
+# T_amp = 2.5

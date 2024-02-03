@@ -4,11 +4,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from src.boundary import init_boundary, get_phase_trans_boundary, init_bc
-from src.temperature import (init_temperature, get_max_delta, air_temperature, solar_heat)
-from src.plotting import plot_temperature
+from src.temperature import (init_temperature, get_max_delta, init_temperature_circle)
+from src.plotting import plot_temperature, animate
 from src.solver import solve
 from src.parameters import N_T, dt, N_Y
-from src.utils import get_crev_depth, is_frozen
+from src.utils import get_crev_depth
 
 
 if __name__ == '__main__':
@@ -20,8 +20,9 @@ if __name__ == '__main__':
     # except FileExistsError:
     #     pass
 
-    F = init_boundary()
-    T = init_temperature(F=F)
+    # F = init_boundary()
+
+    T = init_temperature_circle()
     print(get_max_delta(T))
     plot_temperature(T, time=0, graph_id=0, plot_boundary=True, show_graph=True)
 
@@ -31,36 +32,16 @@ if __name__ == '__main__':
 
     depths = []
     deltas = []
+
+    T_full = [T]
+    times = [0]
     for n in range(1, N_T):
         t = n * dt
         T = solve(T, boundary_conditions, t, fixed_delta=False)
-        if n % 2 == 0:
-            depth = get_crev_depth(T)
-            delta = get_max_delta(T)
-            depths.append(depth)
-            deltas.append(delta)
         if n % 60 == 0:
+            T_full.append(T)
+            times.append(t)
             print(f"ВРЕМЯ МОДЕЛИРОВАНИЯ: {n} М, ВРЕМЯ ВЫПОЛНЕНИЯ: {time.process_time() - start_time}")
-            # b = get_phase_trans_boundary(T=T)
-            # np.savez_compressed(f"../data/max_delta_testing/b_{n}", b=b)
-            # print(f"T_air_t = {round(air_temperature(t), 2)}")
-            # print(f"Max temp: {np.amax(T)}")
-            # print(f"Min temp: {np.amin(T)}")
-            # print(f"ВРЕМЯ МОДЕЛИРОВАНИЯ: {n} М, ВРЕМЯ ВЫПОЛНЕНИЯ: {time.process_time() - start_time}")
-            # np.savez_compressed(f"{dir_name}/T_at_{n}", T=T)
-            # plot_temperature(T, time=t, graph_id=n, plot_boundary=False, show_graph=True)
-        # if is_frozen(T):
-        #     print(f"УСЕ! {n}")
-        #     break
-    np.savez_compressed("../data/max_delta_testing/adaptive_delta_1500_72h_1m_sun", deltas=deltas)
-    np.savez_compressed("../data/max_delta_testing/depths_1500_72h_1m_sun", depths=depths)
-    times = [i/30 for i in range(1, len(deltas)+1)]
-    ax = plt.axes()
-    plt.plot(times, deltas, linewidth=1, color='b', label="1500x1500")
-    plt.title("Зависимость параметра $\Delta$ от времени\nпри адаптивном подборе")
-    ax.set_xlabel("Время, ч")
-    ax.set_ylabel("$\Delta$, м")
-    ax.legend(title="Число узлов сетки")
-    plt.savefig(f"../graphs/delta/comparison_fixed_indep_3.png")
 
-    plot_temperature(T, time=N_T * dt, graph_id=int(N_T / 60), plot_boundary=True, show_graph=False)
+    animate(T_full, times, t_step=60, filename="test_animation")
+    plot_temperature(T, time=N_T * dt, graph_id=int(N_T / 60), plot_boundary=True, show_graph=True)
