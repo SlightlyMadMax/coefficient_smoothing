@@ -18,11 +18,12 @@ def init_bc() -> Dict:
     bc_bottom["temp"] = T_ICE_MIN
 
     bc_top = Dict()
-    bc_top["type"] = 3.0
-    bc_top["temp"] = T_WATER_MAX
+    bc_top["type"] = 1.0
+    bc_top["temp"] = T_ICE_MIN
 
     bc_sides = Dict()
-    bc_sides["type"] = 2.0
+    bc_sides["type"] = 1.0
+    bc_sides["temp"] = T_ICE_MIN
 
     boundary_conditions["left"] = bc_sides
     boundary_conditions["right"] = bc_sides
@@ -63,5 +64,9 @@ def get_phase_trans_boundary(T, n_x: int = N_X):
                 y_0 = abs((T[j, i] * (j + 1) * dy - T[j + 1, i] * j * dy) / (T[j, i] - T[j + 1, i]))
                 Y.append(y_0)
                 X.append(i*dx)
+            elif (T[j, i] - T_0) * (T[j, i + 1] - T_0) < 0.0:
+                x_0 = abs((T[j, i] * (i + 1) * dx - T[j, i + 1] * i * dx) / (T[j, i] - T[j, i + 1]))
+                X.append(x_0)
+                Y.append(j*dy)
 
     return X, Y
