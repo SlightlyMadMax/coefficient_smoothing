@@ -40,7 +40,7 @@ def init_bc() -> Dict:
 
 def run_test():
     # dir_name = input("Enter a directory name where data will be stored: ")
-    dir_name = "hehe"
+    dir_name = "erf_delta_adaptive"
     dir_name = f"./results/{dir_name}"
 
     try:
