@@ -61,7 +61,7 @@ def delta_const(T_j_i: float, _delta: float):
 @numba.jit(nopython=True)
 def c_simple(T_j_i: float, _delta: float):
     if abs(T_j_i - T_0) <= _delta:
-        return 0.5 * (C_WATER_VOL + C_ICE_VOL) + L_VOL * delta_parabolic(T_j_i, _delta)
+        return 0.5 * (C_WATER_VOL + C_ICE_VOL) + L_VOL * delta_const(T_j_i, _delta)
     elif T_j_i < T_0 - _delta:
         return C_ICE_VOL
     else:
@@ -71,7 +71,7 @@ def c_simple(T_j_i: float, _delta: float):
 @numba.jit(nopython=True)
 def k_simple(T_j_i: float, _delta: float):
     if abs(T_j_i - T_0) <= _delta:
-        return 0.5 * (K_WATER + K_ICE)
+        return K_WATER + 0.5 * (K_WATER - K_ICE) * (T_j_i - T_0 - _delta) / _delta
     elif T_j_i < T_0 - _delta:
         return K_ICE
     else:
