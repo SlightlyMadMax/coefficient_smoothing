@@ -48,17 +48,18 @@ def init_boundary(n_x: int = N_X):
 
 
 @numba.jit(nopython=True)
-def get_phase_trans_boundary(T, n_x: int = N_X):
+def get_phase_trans_boundary(T, n_x: int = N_X, n_y: int = N_Y):
     """
     Функция для определения границы фазового перехода по изотерме T(x, y) = T_0
     :param T: Двумерный массив температур на текущем временном слое.
     :param n_x: Число узлов по оси X.
+    :param n_y: Число узлов по оси Y.
     :return: Кортеж векторов (X, Y) с точками границы фазового перехода на текущем временном слое.
     """
     X = []
     Y = []
 
-    for j in range(1, N_Y - 1):
+    for j in range(1, n_y - 1):
         for i in range(1, n_x - 1):
             if (T[j, i] - T_0) * (T[j + 1, i] - T_0) < 0.0:
                 y_0 = abs((T[j, i] * (j + 1) * dy - T[j + 1, i] * j * dy) / (T[j, i] - T[j + 1, i]))
