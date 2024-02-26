@@ -2,35 +2,7 @@ import numpy as np
 import math
 import numba
 
-from numba.typed import Dict
-from src.parameters import N_X, N_Y, dx, dy, T_0, T_ICE_MIN, T_WATER_MAX, HEIGHT, WATER_H, CREV_DEPTH
-
-
-def init_bc() -> Dict:
-    """
-    Инициализация граничных условий.
-    :return: словарь (совместимого с numba типа Dict), содержащий описание условий (тип, температура) для левой, правой, верхней и нижней границ области
-    """
-    boundary_conditions = Dict()
-
-    bc_bottom = Dict()
-    bc_bottom["type"] = 1.0
-    bc_bottom["temp"] = T_ICE_MIN
-
-    bc_top = Dict()
-    bc_top["type"] = 1.0
-    bc_top["temp"] = T_ICE_MIN
-
-    bc_sides = Dict()
-    bc_sides["type"] = 1.0
-    bc_sides["temp"] = T_ICE_MIN
-
-    boundary_conditions["left"] = bc_sides
-    boundary_conditions["right"] = bc_sides
-    boundary_conditions["bottom"] = bc_bottom
-    boundary_conditions["top"] = bc_top
-
-    return boundary_conditions
+from src.parameters import N_X, N_Y, dx, dy, T_0, HEIGHT, WATER_H, CREV_DEPTH
 
 
 def init_boundary(n_x: int = N_X):

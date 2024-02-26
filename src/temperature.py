@@ -1,33 +1,9 @@
 import numpy as np
 import numba
+from numpy import ndarray
 
-from math import sin, cos, pi
-from src.parameters import N_X, N_Y, T_ICE_MIN, T_WATER_MAX, T_0, Q_SOL, LAT, DECL, RAD_SPEED, T_air, T_amp, \
-    HEIGHT, WIDTH, WATER_H, dx, dy
-
-
-@numba.jit(nopython=True)
-def solar_heat(t: float):
-    """
-    Функция для вычисления потока солнечной радиации.
-    :param t: Время в секундах.
-    :return: Величина солнечного потока радиации на горизонтальную поверхность при заданных параметрах
-    в момент времени t. [Вт/м^2]
-    """
-    return Q_SOL * (
-            sin(LAT) * sin(DECL) +
-            cos(LAT) * cos(DECL) * cos(RAD_SPEED * t + 12.0 * 3600.0)
-    )
-
-
-@numba.jit(nopython=True)
-def air_temperature(t: float):
-    """
-    Функция изменения температуры воздуха.
-    :param t: Время в секундах
-    :return: Температура воздуха в заданный момент времени
-    """
-    return T_air + T_amp * sin(2 * pi * t / (24.0 * 3600.0) - pi / 2)
+from src.parameters import N_X, N_Y, T_ICE_MIN, T_WATER_MAX, T_0, HEIGHT, WIDTH, WATER_H, dx, dy
+from geometry import DomainGeometry
 
 
 @numba.jit(nopython=True)
@@ -136,15 +112,15 @@ def init_temperature_test():
     return T
 
 
-def init_temperature_circle():
-    T = np.empty((N_Y, N_X))
+def init_temperature_circle(geom: DomainGeometry, water_temp: float, ice_temp: float) -> ndarray:
+    T = np.empty((geom.n_y, geom.n_y))
 
-    for i in range(N_X):
-        for j in range(N_Y):
-            if (i * dx - WIDTH / 2.0)**2 + (j * dy - WIDTH / 2.0)**2 < 0.0625:
-                T[j, i] = T_WATER_MAX
+    for i in range(geom.n_x):
+        for j in range(geom.n_y):
+            if (i * geom.dx - geom.width / 2.0)**2 + (j * geom.dy - geom.height / 2.0)**2 < 0.0625:
+                T[j, i] = water_temp
             else:
-                T[j, i] = T_ICE_MIN
+                T[j, i] = ice_temp
 
     return T
 

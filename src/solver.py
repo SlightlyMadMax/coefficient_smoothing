@@ -1,46 +1,64 @@
 import numpy as np
+from numpy import ndarray
 import numba
-from numba.typed import Dict
 
 from src.coefficients import c_smoothed, k_smoothed
-from src.parameters import N_Y, N_X, inv_dx, inv_dy, dt, dy, T_ICE_MIN, T_WATER_MAX, K_WATER, CONV_COEF, delta
-from src.temperature import solar_heat, air_temperature, get_max_delta
+from src.parameters import T_ICE_MIN, T_WATER_MAX, delta
+from src.temperature import get_max_delta
+from src.boundary_conditions import get_bottom_bc_1, get_left_bc_1, get_right_bc_1, get_top_bc_1, get_top_bc_3
 
 
 @numba.jit(nopython=True)
-def solve(T, boundary_conditions: Dict, time: float = 0.0, fixed_delta: bool = True):
+def solve(T: ndarray,
+          top_cond_type: int,
+          right_cond_type: int,
+          bottom_cond_type: int,
+          left_cond_type: int,
+          dx: float,
+          dy: float,
+          dt: float,
+          time: float = 0.0,
+          fixed_delta: bool = True):
     """
     Функция для нахождения решения задачи Стефана в обобщенной формулировке с помощью локально-одномерной
     линеаризованной разностной схемы.
     :param T: двумерный массив температур на текущем временном слое.
-    :param boundary_conditions: словарь, в котором указан тип граничного условия и температура для каждой границы.
     :param time: время в секундах на следующем шаге сетки. Используется для определения граничных условий.
     :param fixed_delta: определяет зафиксирован ли параметр сглаживания. Если задано значение False – параметр _delta будет определяться адаптивно на каждом шаге.
     :return: двумерный массив температур на новом временном слое.
     """
+    n_y, n_x = T.shape
+    inv_dx = 1.0 / dx
+    inv_dy = 1.0 / dy
+
     # Массив для хранения значений температуры на промежуточном слое
-    tempT = np.empty((N_Y, N_X))
+    tempT = np.empty((n_y, n_x))
 
     # Векторы для хранения значений прогоночных коэффициентов (см. Кольцова Э. М. и др.
     # "Численные методы решения уравнений математической физики и химии" 2021, стр. 43)
-    alpha = np.empty((N_X - 1), )
-    beta = np.empty((N_X - 1), )
+    alpha = np.empty((n_x - 1), )
+    beta = np.empty((n_x - 1), )
 
     _delta = delta
 
-    if boundary_conditions["left"]["type"] == 1.0:
-        alpha[0] = 0
-        beta[0] = boundary_conditions["left"]["temp"]
-    else:
-        alpha[0] = 1
-        beta[0] = 0
+    lbc = get_left_bc_1(time, n_y)
+    rbc = get_right_bc_1(time, n_y)
+    bbc = get_bottom_bc_1(time, n_x)
+    tbc = get_top_bc_1(time, n_x)
+    psi, phi = get_top_bc_3(time)
 
     if not fixed_delta:
         _delta = get_max_delta(T)
 
     # Прогонка по X
-    for j in range(1, N_Y - 1):
-        for i in range(1, N_X - 1):
+    for j in range(1, n_y - 1):
+        if left_cond_type == 1:
+            alpha[0] = 0.0
+            beta[0] = lbc[j]
+        else:
+            alpha[0] = 1.0
+            beta[0] = 0.0
+        for i in range(1, n_x - 1):
             inv_c = 1.0 / c_smoothed(T[j, i], _delta)
 
             # Коэффициент при T_(i-1,j)^(n+1/2)
@@ -58,44 +76,42 @@ def solve(T, boundary_conditions: Dict, time: float = 0.0, fixed_delta: bool = T
             alpha[i] = -a_i / (b_i + c_i * alpha[i - 1])
             beta[i] = (T[j, i] - c_i * beta[i - 1]) / (b_i + c_i * alpha[i - 1])
 
-        if boundary_conditions["right"]["type"] == 1.0:
-            tempT[j, N_X - 1] = boundary_conditions["right"]["temp"]
+        if right_cond_type == 1:
+            tempT[j, n_x - 1] = rbc[j]
         else:
-            tempT[j, N_X - 1] = beta[N_X - 2]/(1.0 - alpha[N_X - 2])
+            tempT[j, n_x - 1] = beta[n_x - 2]/(1.0 - alpha[n_x - 2])
 
         # Вычисление температуры на промежуточном временном слое
-        for i in range(N_X - 2, -1, -1):
+        for i in range(n_x - 2, -1, -1):
             tempT[j, i] = alpha[i] * tempT[j, i + 1] + beta[i]
 
-    tempT[0, :] = boundary_conditions["bottom"]["temp"]
+    tempT[0, :] = bbc
 
-    if boundary_conditions["top"]["type"] == 1.0:
-        tempT[N_Y - 1, :] = boundary_conditions["top"]["temp"]
-    elif boundary_conditions["top"]["type"] == 2.0:
-        tempT[N_Y - 1, :] = beta[N_Y - 2] / (1.0 - alpha[N_Y - 2])
+    if top_cond_type == 1:
+        tempT[n_y - 1, :] = tbc
+    elif top_cond_type == 2:
+        tempT[n_y - 1, :] = beta[n_y - 2] / (1.0 - alpha[n_y - 2])
     else:
-        # Определяем температуру воздуха у поверхности
-        T_air_t = air_temperature(time)
-        # Определяем тепловой поток солнечной энергии
-        Q_sol = solar_heat(time)
-        tempT[N_Y - 1, :] = (dy * (Q_sol - CONV_COEF * T_air_t) / K_WATER +
-                             beta[N_Y - 2]) / (1 - alpha[N_Y - 2] - dy * CONV_COEF / K_WATER)
+        tempT[n_y - 1, :] = (dy * psi + beta[n_y - 2]) / (1 - alpha[n_y - 2] - dy * phi)
 
     # Массив для хранения значений температуры на новом временном слое
-    new_T = np.empty((N_Y, N_X))
+    new_T = np.empty((n_y, n_x))
 
-    alpha = np.empty((N_Y - 1), )
-    beta = np.empty((N_Y - 1), )
-
-    alpha[0] = 0  # из левого граничного условия первого рода (по Y)
-    beta[0] = boundary_conditions["bottom"]["temp"]  # из левого граничного условия первого рода (по Y)
+    alpha = np.empty((n_y - 1), )
+    beta = np.empty((n_y - 1), )
 
     if not fixed_delta:
         _delta = get_max_delta(tempT)
 
     # Прогонка по Y
-    for i in range(1, N_X - 1):
-        for j in range(1, N_Y - 1):
+    for i in range(1, n_x - 1):
+        if bottom_cond_type == 1:
+            alpha[0] = 0.0
+            beta[0] = bbc[i]
+        else:
+            alpha[0] = 1.0
+            beta[0] = 0.0
+        for j in range(1, n_y - 1):
             inv_c = 1.0 / c_smoothed(tempT[j, i], _delta)
 
             # Коэффициент при T_(i,j-1)^n
@@ -114,37 +130,32 @@ def solve(T, boundary_conditions: Dict, time: float = 0.0, fixed_delta: bool = T
             alpha[j] = -a_j / (b_j + c_j * alpha[j - 1])
             beta[j] = (tempT[j, i] - c_j * beta[j - 1]) / (b_j + c_j * alpha[j - 1])
 
-        if boundary_conditions["top"]["type"] == 1.0:
-            new_T[N_Y - 1, i] = boundary_conditions["top"]["temp"]
-        elif boundary_conditions["top"]["type"] == 2.0:
-            new_T[N_Y - 1, i] = beta[N_Y - 2]/(1.0 - alpha[N_Y - 2])
+        if top_cond_type == 1:
+            new_T[n_y - 1, i] = tbc[i]
+        elif top_cond_type == 2:
+            new_T[n_y - 1, i] = beta[n_y - 2]/(1.0 - alpha[n_y - 2])
         else:
-            # Определяем температуру воздуха у поверхности
-            T_air_t = air_temperature(time)
-            # Определяем тепловой поток солнечной энергии
-            Q_sol = solar_heat(time)
-            new_T[N_Y - 1, i] = (dy * (Q_sol - CONV_COEF * T_air_t) / K_WATER +
-                                 beta[N_Y - 2])/(1 - alpha[N_Y - 2] - dy * CONV_COEF / K_WATER)
+            new_T[n_y - 1, i] = (dy * psi + beta[n_y - 2])/(1 - alpha[n_y - 2] - dy * phi)
 
         # Вычисление температуры на новом временном слое
-        for j in range(N_Y - 2, -1, -1):
+        for j in range(n_y - 2, -1, -1):
             new_T[j, i] = alpha[j] * new_T[j + 1, i] + beta[j]
 
-    if boundary_conditions["left"]["type"] == 1:
-        new_T[:, 0] = boundary_conditions["left"]["temp"]
+    if left_cond_type == 1:
+        new_T[:, 0] = lbc
     else:
         new_T[:, 0] = new_T[:, 1]
 
-    if boundary_conditions["right"]["type"] == 1:
-        new_T[:, N_X - 1] = boundary_conditions["right"]["temp"]
+    if right_cond_type == 1:
+        new_T[:, n_x - 1] = rbc
     else:
-        new_T[:, N_X - 1] = new_T[:, N_X - 2]
+        new_T[:, n_x - 1] = new_T[:, n_x - 2]
 
     return new_T
 
 
 @numba.jit(nopython=True)
-def solve_alt_dir(T, _delta: float):
+def solve_alt_dir(T: ndarray, dx: float, dy: float, dt: float, _delta: float):
     """
     Функция для нахождения решения задачи Стефана в обобщенной формулировке с линеаризованной классической схемы
     переменных направлений (Писмена-Рэкфорда).
@@ -152,16 +163,20 @@ def solve_alt_dir(T, _delta: float):
     :param _delta: Параметр сглаживания
     :return: Двумерный массив температур на новом временном слое.
     """
-    tempT = np.empty((N_Y, N_X))
+    n_y, n_x = T.shape
+    inv_dx = 1.0 / dx
+    inv_dy = 1.0 / dy
 
-    alpha = np.empty((N_X - 1), )
-    beta = np.empty((N_X - 1), )
+    tempT = np.empty((n_y, n_x))
+
+    alpha = np.empty((n_x - 1), )
+    beta = np.empty((n_x - 1), )
 
     alpha[0] = 1  # из левого граничного условия второго рода
     beta[0] = 0  # из левого граничного условия второго рода
 
-    for j in range(1, N_Y - 1):
-        for i in range(1, N_X - 1):
+    for j in range(1, n_y - 1):
+        for i in range(1, n_x - 1):
             inv_c = 1.0 / c_smoothed(T[j, i], _delta)
             a_i = -dt * 0.5 * k_smoothed(0.5 * (T[j, i + 1] + T[j, i]), _delta) * inv_c * inv_dx * inv_dx
             b_i = (
@@ -178,24 +193,24 @@ def solve_alt_dir(T, _delta: float):
             alpha[i] = -a_i / (b_i + c_i * alpha[i - 1])
             beta[i] = (rhs_i - c_i * beta[i - 1]) / (b_i + c_i * alpha[i - 1])
 
-        tempT[j, N_X - 1] = beta[N_X - 2]/(1.0 - alpha[N_X - 2])  # из правого граничного условия второго рода
+        tempT[j, n_x - 1] = beta[n_x - 2]/(1.0 - alpha[n_x - 2])  # из правого граничного условия второго рода
 
-        for i in range(N_X - 2, -1, -1):
+        for i in range(n_x - 2, -1, -1):
             tempT[j, i] = alpha[i] * tempT[j, i + 1] + beta[i]
 
     tempT[0, :] = T_ICE_MIN
-    tempT[N_Y-1, :] = T_WATER_MAX
+    tempT[n_y-1, :] = T_WATER_MAX
 
-    new_T = np.empty((N_Y, N_X))
+    new_T = np.empty((n_y, n_x))
 
-    alpha = np.empty((N_Y - 1), )
-    beta = np.empty((N_Y - 1), )
+    alpha = np.empty((n_y - 1), )
+    beta = np.empty((n_y - 1), )
 
     alpha[0] = 0  # из левого граничного условия первого рода
     beta[0] = T_ICE_MIN  # из левого граничного условия первого рода
 
-    for i in range(1, N_X - 1):
-        for j in range(1, N_Y - 1):
+    for i in range(1, n_x - 1):
+        for j in range(1, n_y - 1):
             inv_c = 1.0 / c_smoothed(tempT[j, i], _delta)
             a_j = -dt * 0.5 * k_smoothed(0.5 * (tempT[j + 1, i] + tempT[j, i]), _delta) * inv_c * inv_dy * inv_dy
             b_j = (
@@ -212,12 +227,12 @@ def solve_alt_dir(T, _delta: float):
             alpha[j] = -a_j / (b_j + c_j * alpha[j - 1])
             beta[j] = (rhs_j - c_j * beta[j - 1]) / (b_j + c_j * alpha[j - 1])
 
-        new_T[N_Y - 1, i] = beta[N_Y - 2]/(1.0 - alpha[N_Y - 2])  # из правого граничного условия второго рода
+        new_T[n_y - 1, i] = beta[n_y - 2]/(1.0 - alpha[n_y - 2])  # из правого граничного условия второго рода
 
-        for j in range(N_Y - 2, -1, -1):
+        for j in range(n_y - 2, -1, -1):
             new_T[j, i] = alpha[j] * new_T[j + 1, i] + beta[j]
 
     new_T[:, 0] = new_T[:, 1]
-    new_T[:, N_X - 1] = new_T[:, N_X - 2]
+    new_T[:, n_x - 1] = new_T[:, n_x - 2]
 
     return new_T
