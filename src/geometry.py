@@ -1,6 +1,7 @@
 import numpy as np
 from decimal import Decimal
 
+
 class DomainGeometry:
     def __init__(self, width: float, height: float,
                  end_time: float, n_x: int, n_y: int, n_t: int):
