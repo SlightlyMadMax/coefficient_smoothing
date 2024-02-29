@@ -36,10 +36,10 @@ if __name__ == '__main__':
         max_temp=T_WATER_MAX
     )
 
-    start_time = time.process_time()
-
     T_full = [T]
     times = [0]
+
+    start_time = time.process_time()
     for n in range(1, N_T):
         t = n * geometry.dt
         T = solve(T,
