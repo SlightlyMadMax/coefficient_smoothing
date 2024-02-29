@@ -3,7 +3,7 @@ import numba
 from numpy import ndarray
 
 from src.parameters import N_X, N_Y, T_ICE_MIN, T_WATER_MAX, T_0, HEIGHT, WIDTH, WATER_H, dx, dy
-from geometry import DomainGeometry
+from src.geometry import DomainGeometry
 
 
 @numba.jit(nopython=True)
