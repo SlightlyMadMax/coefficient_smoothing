@@ -17,7 +17,8 @@ def get_left_bc_1(time: float, n_y: int) -> ndarray:
 
 @numba.jit(nopython=True)
 def get_top_bc_1(time: float, n_x: int) -> ndarray:
-    return T_ICE_MIN * np.ones(n_x)
+    return 5.0 * np.ones(n_x)
+    # return T_ICE_MIN * np.ones(n_x)
 
 
 @numba.jit(nopython=True)
@@ -27,7 +28,8 @@ def get_right_bc_1(time: float, n_y: int) -> ndarray:
 
 @numba.jit(nopython=True)
 def get_bottom_bc_1(time: float, n_x: int) -> ndarray:
-    return T_ICE_MIN * np.ones(n_x)
+    return -5.0 * np.ones(n_x)
+    # return T_ICE_MIN * np.ones(n_x)
 
 
 @numba.jit(nopython=True)
