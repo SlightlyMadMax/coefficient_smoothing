@@ -113,7 +113,7 @@ def init_temperature_test():
 
 
 def init_temperature_circle(geom: DomainGeometry, water_temp: float, ice_temp: float) -> ndarray:
-    T = np.empty((geom.n_y, geom.n_y))
+    T = np.empty((geom.n_y, geom.n_x))
 
     for i in range(geom.n_x):
         for j in range(geom.n_y):
