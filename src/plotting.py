@@ -20,7 +20,6 @@ def plot_temperature(T: ndarray,
                      min_temp: Optional[float] = None,
                      max_temp: Optional[float] = None,
                      ):
-
     X, Y = geom.mesh_grid
 
     ax = plt.axes(xlim=(0, geom.width), ylim=(0, geom.height), xlabel="x, м", ylabel="y, м")
@@ -33,7 +32,7 @@ def plot_temperature(T: ndarray,
     plt.colorbar()
 
     if plot_boundary:
-        X_b, Y_b = get_phase_trans_boundary(T)
+        X_b, Y_b = get_phase_trans_boundary(T=T, geom=geom)
         plt.scatter(X_b, Y_b, s=1, linewidths=0.1, color='r', label='Граница ф.п.')
         ax.legend()
 
@@ -68,7 +67,7 @@ def animate(T_full: list | ndarray,
 
     B = []
     for T in T_full:
-        B.append(get_phase_trans_boundary(T, geom.n_x, geom.n_y))
+        B.append(get_phase_trans_boundary(T, geom=geom))
 
     X, Y = geom.mesh_grid
 
