@@ -13,7 +13,7 @@ class DomainGeometry:
         self._n_t = n_t
         self._dx = width / (n_x - 1)
         self._dy = height / (n_y - 1)
-        self._dt = end_time / (n_t - 1)
+        self._dt = end_time / n_t
 
     @property
     def width(self):

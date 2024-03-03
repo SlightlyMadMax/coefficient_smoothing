@@ -10,10 +10,10 @@ from src.plotting import plot_temperature, animate
 from src.temperature import init_temperature_2f_test
 from src.parameters import K_ICE, K_WATER, RHO_ICE, L
 
-T_WATER = 7.0
-T_ICE = -3.0
-end_time = 60.0 * 60.0 * 24.0 * 350.0
-n_t = 24*350 + 1
+T_WATER = 5.0
+T_ICE = -5.0
+end_time = 60.0 * 60.0 * 24.0 * 250.0
+n_t = 24*250
 T_0 = 0.0
 
 b_lim = (K_WATER * L / RHO_ICE) * T_WATER / ((K_WATER * L / RHO_ICE) * T_WATER + (K_ICE * L / RHO_ICE)*abs(T_ICE))
@@ -23,10 +23,12 @@ geom = DomainGeometry(
     width=1.0,
     height=1.0,
     end_time=end_time,
-    n_x=500,
-    n_y=500,
+    n_x=1500,
+    n_y=1500,
     n_t=n_t
 )
+
+print(geom)
 
 T = init_temperature_2f_test(geom=geom, water_temp=T_WATER, ice_temp=T_ICE, b=0.5)
 

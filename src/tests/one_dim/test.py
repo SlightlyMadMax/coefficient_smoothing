@@ -7,6 +7,9 @@ from src.parameters import N_Y, N_X, N_T, T_0, WIDTH, HEIGHT, FULL_TIME
 from compare_boundary import compare_num_with_analytic
 from src.tests.one_dim.analytic_solution_1d_2f import get_analytic_solution
 from src.geometry import DomainGeometry
+from src.temperature import get_max_delta
+
+from matplotlib import pyplot as plt
 
 
 def run_test():
@@ -49,8 +52,11 @@ def run_test():
     # T = init_temperature_test()
     # plot_temperature(T, 0, 0, True, True)
     boundary = [s_0]
-
+    deltas = []
+    times = [0.0]
     i = int(N_X / 2)
+
+    deltas.append(get_max_delta(T))
 
     for n in range(1, N_T):
         t = n * geometry.dt
@@ -68,12 +74,22 @@ def run_test():
         )
         if n % 24 == 0:
             # plot_temperature(T, 0, 0, True, True)
+            deltas.append(get_max_delta(T))
+            times.append(t)
             print(f"ДЕНЬ: {int(n/24)}")
             for j in range(N_Y - 1):
                 if (T[j, i] - T_0) * (T[j + 1, i] - T_0) < 0.0:
                     y_0 = abs((T[j, i] * (j + 1) * geometry.dy - T[j + 1, i] * j * geometry.dy) / (T[j, i] - T[j + 1, i]))
                     boundary.append(y_0)
                     break
+
+    # plt.plot(
+    #     times,
+    #     deltas,
+    #     linewidth=1,
+    #     color='r',
+    # )
+    # plt.show()
 
     np.savez_compressed(f"{dir_name}/1d_2f_boundary", boundary=boundary)
 
