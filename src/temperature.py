@@ -28,44 +28,6 @@ def get_max_delta(T) -> float:
     return delta
 
 
-@numba.jit(nopython=True)
-def get_max_delta_y(T) -> float:
-    """
-    Функция для поиска параметра сглаживания по оси y.
-    :param T: Двумерный массив температур на текущем временном слое.
-    :return: Максимальный температурный интервал вдоль оси y, содержащий границу ф.п.
-    """
-    delta_y = 0.0
-
-    for i in range(N_X):
-        for j in range(0, N_Y - 1):
-            if (T[j + 1, i] - T_0) * (T[j, i] - T_0) < 0.0:
-                temp = abs(T[j + 1, i] - T[j, i])
-                delta_y = temp if temp > delta_y else delta_y
-                break
-
-    return delta_y
-
-
-@numba.jit(nopython=True)
-def get_max_delta_x(T) -> float:
-    """
-    Функция для поиска параметра сглаживания по оси x.
-    :param T: Двумерный массив температур на текущем временном слое.
-    :return: Максимальный температурный интервал вдоль оси x, содержащий границу ф.п.
-    """
-    delta_x = 0.0
-
-    for j in range(N_Y):
-        for i in range(0, N_X - 1):
-            if (T[j, i + 1] - T_0) * (T[j, i] - T_0) < 0.0:
-                temp = abs(T[j, i + 1] - T[j, i])
-                delta_x = temp if temp > delta_x else delta_x
-                break
-
-    return delta_x
-
-
 def init_temperature(F = None):
     """
     Функция для задания начального распределения температуры.
