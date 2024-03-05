@@ -171,12 +171,12 @@ def init_temperature_square():
     return T
 
 
-def init_temperature_2f_test(geom: DomainGeometry, water_temp: float, ice_temp: float, b: float) -> ndarray:
+def init_temperature_2f_test(geom: DomainGeometry, water_temp: float, ice_temp: float, F: ndarray) -> ndarray:
     T = np.empty((geom.n_y, geom.n_x))
 
     for i in range(geom.n_x):
         for j in range(geom.n_y):
-            if j * geom.dy < b:
+            if j * geom.dy < F[i]:
                 T[j][i] = ice_temp
             else:
                 T[j][i] = water_temp

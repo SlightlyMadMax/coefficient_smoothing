@@ -1,3 +1,4 @@
+import math
 import time
 
 import numba
@@ -23,14 +24,17 @@ geom = DomainGeometry(
     width=1.0,
     height=1.0,
     end_time=end_time,
-    n_x=1500,
-    n_y=1500,
+    n_x=500,
+    n_y=500,
     n_t=n_t
 )
 
 print(geom)
 
-T = init_temperature_2f_test(geom=geom, water_temp=T_WATER, ice_temp=T_ICE, b=0.5)
+F = [geom.height / 2 - 0.2 * math.exp(-(i * geom.dx - geom.width / 4.0) ** 2 / 0.005) + 0.2 * math.exp(-(i * geom.dx - geom.width / 1.5) ** 2 / 0.005) for i in range(geom.n_x)]
+F = np.array(F)
+
+T = init_temperature_2f_test(geom=geom, water_temp=T_WATER, ice_temp=T_ICE, F=F)
 
 plot_temperature(
     T=T,
@@ -63,8 +67,8 @@ for i in range(1, n_t+1):
               fixed_delta=False
               )
     if i % 24 == 0:
-        # T_full.append(T)
-        # times.append(t)
+        T_full.append(T)
+        times.append(t)
         print(f"ВРЕМЯ МОДЕЛИРОВАНИЯ: {i} ч, ВРЕМЯ ВЫПОЛНЕНИЯ: {time.process_time() - start_time}")
 
 for j in range(1, geom.n_y - 1):
@@ -74,14 +78,14 @@ for j in range(1, geom.n_y - 1):
         print(f"Absolute error: {abs(y_0 - 1 + b_lim)}, relative: {round(abs(y_0 - 1 + b_lim) * 100/ b_lim, 2)}%")
         break
 
-# print("СОЗДАНИЕ АНИМАЦИИ...")
-# animate(
-#     T_full=T_full,
-#     geom=geom,
-#     times=times,
-#     t_step=60*60*24,
-#     directory="./results/",
-#     filename="test_animation",
-#     min_temp=T_ICE,
-#     max_temp=T_WATER
-# )
+print("СОЗДАНИЕ АНИМАЦИИ...")
+animate(
+    T_full=T_full,
+    geom=geom,
+    times=times,
+    t_step=60*60*24,
+    directory="./results/",
+    filename="test_animation",
+    min_temp=T_ICE,
+    max_temp=T_WATER
+)
