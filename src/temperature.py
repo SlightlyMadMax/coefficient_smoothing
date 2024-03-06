@@ -1,22 +1,23 @@
 import numpy as np
 import numba
 from numpy import ndarray
+from typing import Optional
 
-from src.parameters import N_X, N_Y, T_ICE_MIN, T_WATER_MAX, T_0, HEIGHT, WIDTH, WATER_H, dx, dy
+from src.parameters import T_ICE_MIN, T_WATER_MAX, T_0, WATER_H
 from src.geometry import DomainGeometry
 
 
 @numba.jit(nopython=True)
-def get_max_delta(T) -> float:
+def get_max_delta(T: ndarray) -> float:
     """
     Функция для поиска параметра сглаживания по обоим осям.
     :param T: Двумерный массив температур на текущем временном слое.
     :return: Максимальный температурный интервал содержащий границу ф.п.
     """
+    n_x, n_y = T.shape
     delta = 0.0
-
-    for i in range(N_X - 1):
-        for j in range(N_Y - 1):
+    for i in range(n_x - 1):
+        for j in range(n_y - 1):
             if (T[j + 1, i] - T_0) * (T[j, i] - T_0) < 0.0:
                 temp = abs(T[j + 1, i] - T[j, i])
                 delta = temp if temp > delta else delta
@@ -28,28 +29,23 @@ def get_max_delta(T) -> float:
     return delta
 
 
-def init_temperature(F = None):
-    """
-    Функция для задания начального распределения температуры.
-    :param F: Необязательный параметр, вектор координат начального положения границы фазового перехода.
-    :return: Двумерный массив температур в начальный момент времени.
-    """
-    T = np.empty((N_Y, N_X))
+def init_temperature(geom: DomainGeometry, F: Optional[list | ndarray] = None):
+    T = np.empty((geom.n_y, geom.n_x))
 
     if F is None:
         # Линейное изменение температуры от T_ICE_MIN на нижней границе y = 0 до T_WATER_MAX на верхней границе
         T[0, :] = T_ICE_MIN
-        T[N_Y-1, :] = T_WATER_MAX
-        for j in range(1, N_Y):
-            T[j, :] = T_ICE_MIN + j * (T_WATER_MAX - T_ICE_MIN) / N_Y
+        T[geom.n_y-1, :] = T_WATER_MAX
+        for j in range(1, geom.n_y):
+            T[j, :] = T_ICE_MIN + j * (T_WATER_MAX - T_ICE_MIN) / geom.n_y
     else:
         # Линейное изменение температуры с учетом начального положения границы ф.п.
-        for i in range(N_X):
-            for j in range(N_Y):
-                if j * dy < F[i]:
+        for i in range(geom.n_x):
+            for j in range(geom.n_y):
+                if j * geom.dy < F[i]:
                     # T[j, i] = T_ICE_MIN
-                    T[j, i] = T_ICE_MIN + j * dy * (T_0 - T_ICE_MIN) / (HEIGHT - WATER_H)
-                elif j * dy > F[i]:
+                    T[j, i] = T_ICE_MIN + j * geom.dy * (T_0 - T_ICE_MIN) / (geom.height - WATER_H)
+                elif j * geom.dy > F[i]:
                     T[j, i] = T_WATER_MAX
                 else:
                     T[j, i] = T_0
@@ -57,8 +53,8 @@ def init_temperature(F = None):
     return T
 
 
-def init_temperature_angle():
-    T = np.empty((N_Y, N_X))
+def init_temperature_angle(geom: DomainGeometry):
+    T = np.empty((geom.n_y, geom.n_x))
     T[:, :] = T_WATER_MAX
     T[0, :] = T_ICE_MIN
     T[:, 0] = T_ICE_MIN
@@ -66,8 +62,8 @@ def init_temperature_angle():
     return T
 
 
-def init_temperature_test():
-    T = np.empty((N_Y, N_X))
+def init_temperature_test(geom: DomainGeometry):
+    T = np.empty((geom.n_y, geom.n_x))
     T[:, :] = T_WATER_MAX
     T[0, :] = T_ICE_MIN
 
@@ -87,15 +83,15 @@ def init_temperature_circle(geom: DomainGeometry, water_temp: float, ice_temp: f
     return T
 
 
-def init_temperature_pacman():
-    T = np.empty((N_Y, N_X))
+def init_temperature_pacman(geom: DomainGeometry):
+    T = np.empty((geom.n_y, geom.n_x))
 
-    for i in range(N_X):
-        for j in range(N_Y):
-            if (i * dx - WIDTH / 2.0)**2 + (j * dy - WIDTH / 2.0)**2 < 0.0625:
-                if i*dx <= j * dy <= - i * dx + 1:
+    for i in range(geom.n_x):
+        for j in range(geom.n_y):
+            if (i * geom.dx - geom.width / 2.0)**2 + (j * geom.dy - geom.height / 2.0)**2 < 0.0625:
+                if i * geom.dx <= j * geom.dy <= - i * geom.dx + 1:
                     T[j, i] = T_ICE_MIN
-                elif (i * dx - 0.6) ** 2 + (j * dy - 0.6) ** 2 < 0.0025:
+                elif (i * geom.dx - 0.6) ** 2 + (j * geom.dy - 0.6) ** 2 < 0.0025:
                     T[j, i] = T_ICE_MIN
                 else:
                     T[j, i] = T_WATER_MAX
@@ -105,27 +101,27 @@ def init_temperature_pacman():
     return T
 
 
-def init_temperature_double_circle():
-    T = np.empty((N_Y, N_X))
+def init_temperature_double_circle(geom: DomainGeometry):
+    T = np.empty((geom.n_y, geom.n_x))
 
-    for i in range(N_X):
-        for j in range(N_Y):
-            if (i * dx - WIDTH / 2.0)**2 + (j * dy - 0.75)**2 < 0.04:
+    for i in range(geom.n_x):
+        for j in range(geom.n_y):
+            if (i * geom.dx - geom.width / 2.0)**2 + (j * geom.dy - 0.75)**2 < 0.04:
                 T[j, i] = T_WATER_MAX
-            elif (i * dx - WIDTH / 2.0)**2 + (j * dy - 0.25)**2 < 0.04:
+            elif (i * geom.dx - geom.width / 2.0)**2 + (j * geom.dy - 0.25)**2 < 0.04:
                 T[j, i] = T_WATER_MAX
             else:
-                T[j, i] = T_ICE_MIN * (1.0 - j / N_Y)
+                T[j, i] = T_ICE_MIN * (1.0 - j / geom.n_y)
 
     return T
 
 
-def init_temperature_square():
-    T = np.empty((N_Y, N_X))
+def init_temperature_square(geom: DomainGeometry):
+    T = np.empty((geom.n_y, geom.n_x))
 
-    for i in range(N_X):
-        for j in range(N_Y):
-            if abs(i * dx - WIDTH / 2.0) < 0.25 and abs(j * dy - WIDTH / 2.0) < 0.25:
+    for i in range(geom.n_x):
+        for j in range(geom.n_y):
+            if abs(i * geom.dx - geom.width / 2.0) < 0.25 and abs(j * geom.dy - geom.height / 2.0) < 0.25:
                 T[j, i] = T_WATER_MAX
             else:
                 T[j, i] = T_ICE_MIN
@@ -143,4 +139,17 @@ def init_temperature_2f_test(geom: DomainGeometry, water_temp: float, ice_temp: 
             else:
                 T[j][i] = water_temp
 
+    return T
+
+
+def init_temperature_lake(geom: DomainGeometry, water_temp: float, ice_temp: float):
+    T = np.empty((geom.n_y, geom.n_x))
+
+    for i in range(geom.n_x):
+        for j in range(geom.n_y):
+            if (i * geom.dx - geom.width / 1.0)**2 / 0.4 + (j * geom.dy - geom.height / 1.5)**2 / 0.025 < 1.0:
+                T[j, i] = water_temp
+            else:
+                T[j, i] = ice_temp
+    T[geom.n_y - 1, :] = 0.0
     return T
