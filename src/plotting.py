@@ -19,6 +19,7 @@ def plot_temperature(T: ndarray,
                      directory: str = "../graphs/temperature/",
                      min_temp: Optional[float] = None,
                      max_temp: Optional[float] = None,
+                     equal_aspect: Optional[bool] = True
                      ):
     X, Y = geom.mesh_grid
 
@@ -39,6 +40,9 @@ def plot_temperature(T: ndarray,
     ax.set_title(f"t = {int(time/60)} м.\n dx = {round(geom.dx, 3)} m, "
                  f"dy = {round(geom.dy, 3)} m, dt = {round(geom.dt)} с")
 
+    if equal_aspect:
+        ax.set_aspect("equal")
+
     if not os.path.exists(directory):
         os.makedirs(directory)
 
@@ -58,12 +62,16 @@ def animate(T_full: list | ndarray,
             directory: str = "../graphs/animations/",
             min_temp: Optional[float] = None,
             max_temp: Optional[float] = None,
+            equal_aspect: Optional[bool] = True
             ):
     plt.rcParams["animation.ffmpeg_path"] = r"C:\Users\ZZZ\ffmpeg\ffmpeg.exe"
     plt.rcParams["animation.convert_path"] = r"C:\Program Files\ImageMagick-7.1.1-Q16\magick.exe"
 
     fig = plt.figure()
     ax = plt.axes(xlim=(0, geom.width), ylim=(0, geom.height), xlabel="x, м", ylabel="y, м")
+
+    if equal_aspect:
+        ax.set_aspect("equal")
 
     B = []
     for T in T_full:
