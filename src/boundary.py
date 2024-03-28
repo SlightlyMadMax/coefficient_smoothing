@@ -15,7 +15,7 @@ def init_boundary(geom: DomainGeometry):
     F = np.empty(geom.n_x)
 
     # Трещина-гауссиана
-    F[:] = [HEIGHT - WATER_H - CREV_DEPTH * math.exp(-(i * geom.dx - 0.5) ** 2 / 0.005) for i in range(geom.n_x)]
+    F[:] = [geom.height - WATER_H - CREV_DEPTH * math.exp(-(i * geom.dx - 0.5) ** 2 / 0.005) for i in range(geom.n_x)]
 
     return F
 

@@ -14,7 +14,7 @@ def get_max_delta(T: ndarray) -> float:
     :param T: Двумерный массив температур на текущем временном слое.
     :return: Максимальный температурный интервал содержащий границу ф.п.
     """
-    n_x, n_y = T.shape
+    n_y, n_x = T.shape
     delta = 0.0
     for i in range(n_x - 1):
         for j in range(n_y - 1):
