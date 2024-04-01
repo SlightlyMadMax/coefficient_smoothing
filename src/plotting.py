@@ -19,9 +19,13 @@ def plot_temperature(T: ndarray,
                      directory: str = "../graphs/temperature/",
                      min_temp: Optional[float] = None,
                      max_temp: Optional[float] = None,
-                     equal_aspect: Optional[bool] = True
+                     equal_aspect: Optional[bool] = True,
+                     invert_xaxis: Optional[bool] = False,
+                     invert_yaxis: Optional[bool] = False,
                      ):
     X, Y = geom.mesh_grid
+
+    plt.rcParams["figure.figsize"] = (16, 9)
 
     ax = plt.axes(xlim=(0, geom.width), ylim=(0, geom.height), xlabel="x, м", ylabel="y, м")
 
@@ -39,6 +43,14 @@ def plot_temperature(T: ndarray,
 
     ax.set_title(f"t = {int(time/60)} м.\n dx = {round(geom.dx, 3)} m, "
                  f"dy = {round(geom.dy, 3)} m, dt = {round(geom.dt)} с")
+
+    if invert_xaxis:
+        labels = [item.get_text() for item in ax.get_xticklabels()]
+        ax.set_xticklabels(reversed(labels))
+
+    if invert_yaxis:
+        labels = [item.get_text() for item in ax.get_yticklabels()]
+        ax.set_yticklabels(reversed(labels))
 
     if equal_aspect:
         ax.set_aspect("equal")
@@ -64,8 +76,8 @@ def animate(T_full: list | ndarray,
             max_temp: Optional[float] = None,
             equal_aspect: Optional[bool] = True
             ):
-    plt.rcParams["animation.ffmpeg_path"] = r"C:\Users\ZZZ\ffmpeg\ffmpeg.exe"
-    plt.rcParams["animation.convert_path"] = r"C:\Program Files\ImageMagick-7.1.1-Q16\magick.exe"
+    # plt.rcParams["animation.ffmpeg_path"] = r"C:\Users\ZZZ\ffmpeg\ffmpeg.exe"
+    plt.rcParams["animation.convert_path"] = r"C:\Program Files\ImageMagick-7.1.1-Q16-HDRI\magick.exe"
 
     fig = plt.figure()
     ax = plt.axes(xlim=(0, geom.width), ylim=(0, geom.height), xlabel="x, м", ylabel="y, м")
