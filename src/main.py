@@ -1,27 +1,47 @@
 import time
 
-from src.temperature import get_max_delta, init_temperature_circle
+import numba
+import numpy as np
+
+from src.temperature import get_max_delta, init_temperature_circle, init_temperature_lake, init_temperature
 from src.plotting import plot_temperature, animate
 from src.solver import solve
-from src.parameters import WIDTH, HEIGHT, FULL_TIME, N_X, N_Y, N_T, T_ICE_MIN, T_WATER_MAX
+from src.parameters import WIDTH, HEIGHT, FULL_TIME, N_X, N_Y, N_T
 from src.geometry import DomainGeometry
+from src.boundary import init_boundary
+
+
+@numba.jit(nopython=True)
+def get_water_thickness(T, dy: float):
+    n_y, n_x = T.shape
+    bottom, top = 0.0, 0.0
+    for j in range(n_y-1):
+        if T[j+1, n_x // 2] > 0.0 and T[j, n_x // 2] <= 0.0:
+            bottom = j * dy
+            continue
+        if T[j+1, n_x // 2] <= 0.0 and T[j, n_x // 2] > 0.0:
+            top = j * dy
+            break
+    return top - bottom
 
 
 if __name__ == '__main__':
     geometry = DomainGeometry(
-        width=WIDTH,
-        height=HEIGHT,
-        end_time=FULL_TIME,
-        n_x=N_X,
-        n_y=N_Y,
-        n_t=N_T
+        width=200.0,
+        height=48.0,
+        end_time=60.0*60.0*24.0*365.0*40.0,
+        n_x=2001,
+        n_y=500,
+        n_t=8*365*40
     )
 
     print(geometry)
 
-    # F = init_boundary()
+    # F = init_boundary(geometry)
 
-    T = init_temperature_circle(geom=geometry, water_temp=T_WATER_MAX, ice_temp=T_ICE_MIN)
+    # T = init_temperature(geometry, F)
+
+    T = init_temperature_lake(geometry, water_temp=2.0, ice_temp=-8.5)
 
     print(f"Delta for initial temperature distribution: {get_max_delta(T)}")
 
@@ -31,43 +51,67 @@ if __name__ == '__main__':
         time=0.0,
         graph_id=0,
         plot_boundary=True,
-        show_graph=True,
-        min_temp=T_ICE_MIN,
-        max_temp=T_WATER_MAX
+        show_graph=False,
+        min_temp=-32.0,
+        max_temp=2.0,
+        invert_yaxis=True,
     )
 
-    T_full = [T]
-    times = [0]
+    # T_full = [T]
+    # times = [0]
+
+    wt = []
+
+    print(get_water_thickness(T, geometry.dy))
+
+    wt.append(get_water_thickness(T, geometry.dy))
 
     start_time = time.process_time()
-    for n in range(1, N_T):
+    for n in range(1, geometry.n_t):
         t = n * geometry.dt
         T = solve(T,
-                  top_cond_type=1,
-                  right_cond_type=1,
+                  top_cond_type=3,
+                  right_cond_type=2,
                   bottom_cond_type=1,
-                  left_cond_type=1,
+                  left_cond_type=2,
                   dx=geometry.dx,
                   dy=geometry.dy,
                   dt=geometry.dt,
                   time=t,
                   fixed_delta=False
                   )
-        if n % 60 == 0:
-            T_full.append(T)
-            times.append(t)
+        if n % 800 == 0:
+            # T_full.append(T)
+            # times.append(t)
+            wt.append(get_water_thickness(T, geometry.dy))
+            plot_temperature(
+                T=T,
+                geom=geometry,
+                time=t,
+                graph_id=n,
+                plot_boundary=True,
+                show_graph=False,
+                min_temp=-32.0,
+                max_temp=2.0,
+                invert_yaxis=True,
+            )
             print(f"ВРЕМЯ МОДЕЛИРОВАНИЯ: {n} М, ВРЕМЯ ВЫПОЛНЕНИЯ: {time.process_time() - start_time}")
 
-    print("СОЗДАНИЕ АНИМАЦИИ...")
-    animate(
-        T_full=T_full,
-        geom=geometry,
-        times=times,
-        t_step=60,
-        filename="test_animation",
-        min_temp=T_ICE_MIN,
-        max_temp=T_WATER_MAX
-    )
+    print(wt)
+    np.savez_compressed("../data/water_thickness.npz", wt=wt)
+
+    # np.savez_compressed("../data/lake_test_data.npz", T_full=T_full, times=times)
+
+    # print("СОЗДАНИЕ АНИМАЦИИ...")
+    # animate(
+    #     T_full=T_full,
+    #     geom=geometry,
+    #     times=times,
+    #     t_step=1440,
+    #     filename="lake_test_data",
+    #     min_temp=-8.5,
+    #     max_temp=2.0
+    # )
     plot_temperature(
         T=T,
         geom=geometry,
@@ -75,6 +119,6 @@ if __name__ == '__main__':
         graph_id=int(geometry.n_t / 60),
         plot_boundary=True,
         show_graph=True,
-        min_temp=T_ICE_MIN,
-        max_temp=T_WATER_MAX
+        min_temp=-32.0,
+        max_temp=2.0
     )

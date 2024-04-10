@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 import numba
 from numpy import ndarray
@@ -143,13 +145,47 @@ def init_temperature_2f_test(geom: DomainGeometry, water_temp: float, ice_temp: 
 
 
 def init_temperature_lake(geom: DomainGeometry, water_temp: float, ice_temp: float):
+    water_th_grid = np.load("../data/lake.npz")["water"]
+    ice_th_grid = np.load("../data/lake.npz")["ice"]
+
+    grid_x = water_th_grid[0]
+    grid_step = grid_x[1] - grid_x[0]
+    print(f"Grid step: {grid_step}")
+
+    lake_width = grid_x[-1]
+    print(f"Lake width: {lake_width}")
+
+    new_x = [i * geom.dx for i in range(int(lake_width / geom.dx + 1))]
+    print(new_x[-1], len(new_x))
+
+    water_th_interp = np.interp(
+        new_x,
+        grid_x,
+        water_th_grid[1]
+    )
+
+    ice_th_interp = np.interp(
+        new_x,
+        grid_x,
+        ice_th_grid[1]
+    )
+
+    print(f"Max lake thickness {max(water_th_interp)}")
+
     T = np.empty((geom.n_y, geom.n_x))
 
     for i in range(geom.n_x):
+        x = i * geom.dx
+        ice_th_at_x, water_th_at_x = 0.0, 0.0
+
+        if (geom.width - lake_width) / 2.0 <= x <= (geom.width + lake_width) / 2.0:
+            water_th_at_x = water_th_interp[i + int((len(new_x) - geom.n_x) / 2)]
+            ice_th_at_x = ice_th_interp[i + int((len(new_x) - geom.n_x) / 2)]
+
         for j in range(geom.n_y):
-            if (i * geom.dx - geom.width / 1.0)**2 / 0.4 + (j * geom.dy - geom.height / 1.5)**2 / 0.025 < 1.0:
+            y = geom.height - j * geom.dy
+            if water_th_at_x > 0.0 and ice_th_at_x <= y <= ice_th_at_x + water_th_at_x:
                 T[j, i] = water_temp
             else:
-                T[j, i] = ice_temp
-    T[geom.n_y - 1, :] = 0.0
+                T[j, i] = ice_temp * (1.0 - j / geom.n_y)
     return T
