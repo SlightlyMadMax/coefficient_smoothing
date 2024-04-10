@@ -7,7 +7,8 @@ from numpy import ndarray
 from typing import Callable, Optional
 from enum import Enum
 from numba.typed import Dict
-from src.parameters import T_ICE_MIN, T_WATER_MAX, K_WATER, CONV_COEF, Q_SOL, LAT, DECL, RAD_SPEED, T_air, T_amp
+from src.parameters import (T_ICE_MIN, T_WATER_MAX, K_WATER, CONV_COEF, Q_SOL, LAT, DECL, RAD_SPEED, T_air,
+                            T_amp_day, T_amp_year)
 
 
 @numba.jit(nopython=True)
@@ -17,7 +18,7 @@ def get_left_bc_1(time: float, n_y: int) -> ndarray:
 
 @numba.jit(nopython=True)
 def get_top_bc_1(time: float, n_x: int) -> ndarray:
-    return 5.0 * np.ones(n_x)
+    return -8.5 * np.ones(n_x)
     # return T_WATER_MAX * np.ones(n_x)
 
 
@@ -28,7 +29,7 @@ def get_right_bc_1(time: float, n_y: int) -> ndarray:
 
 @numba.jit(nopython=True)
 def get_bottom_bc_1(time: float, n_x: int) -> ndarray:
-    return -5.0 * np.ones(n_x)
+    return -8.5 * np.ones(n_x)
     # return T_ICE_MIN * np.ones(n_x)
 
 
@@ -53,7 +54,8 @@ def air_temperature(t: float):
     :param t: Время в секундах
     :return: Температура воздуха в заданный момент времени
     """
-    return T_air + T_amp * sin(2 * pi * t / (24.0 * 3600.0) - pi / 2)
+    return (T_air + T_amp_day * sin(2 * pi * t / (24.0 * 3600.0) - pi / 2) +
+            T_amp_year * sin(2 * pi * t / (365 * 24.0 * 3600.0) - pi / 2))
 
 
 @numba.jit(nopython=True)
