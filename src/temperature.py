@@ -31,7 +31,7 @@ def get_max_delta(T: ndarray) -> float:
     return delta
 
 
-def init_temperature(geom: DomainGeometry, F: Optional[list | ndarray] = None):
+def init_temperature(geom: DomainGeometry, F = None):
     T = np.empty((geom.n_y, geom.n_x))
 
     if F is None:
