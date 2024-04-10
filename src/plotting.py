@@ -66,9 +66,9 @@ def plot_temperature(T: ndarray,
         plt.close()
 
 
-def animate(T_full: list | ndarray,
+def animate(T_full:,
             geom: DomainGeometry,
-            times: list | ndarray,
+            times,
             t_step: int,
             filename: str,
             directory: str = "../graphs/animations/",
