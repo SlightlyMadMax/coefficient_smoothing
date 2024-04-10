@@ -41,8 +41,8 @@ def plot_temperature(T: ndarray,
         plt.scatter(X_b, Y_b, s=1, linewidths=0.1, color='r', label='Граница ф.п.')
         ax.legend()
 
-    ax.set_title(f"t = {int(time/60)} м.\n dx = {round(geom.dx, 3)} m, "
-                 f"dy = {round(geom.dy, 3)} m, dt = {round(geom.dt)} с")
+    ax.set_title(f"t = {int(time/(24*60*60))} д.\n dx = {round(geom.dx, 3)} м, "
+                 f"dy = {round(geom.dy, 3)} м, dt = {round(geom.dt/3600)} ч")
 
     if invert_xaxis:
         labels = [item.get_text() for item in ax.get_xticklabels()]
