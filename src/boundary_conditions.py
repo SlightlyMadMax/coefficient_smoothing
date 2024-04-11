@@ -7,24 +7,23 @@ from numpy import ndarray
 from typing import Callable, Optional
 from enum import Enum
 from numba.typed import Dict
-from src.parameters import (T_ICE_MIN, T_WATER_MAX, K_WATER, CONV_COEF, Q_SOL, LAT, DECL, RAD_SPEED, T_air,
-                            T_amp_day, T_amp_year)
+import src.parameters as cfg
 
 
 @numba.jit(nopython=True)
 def get_left_bc_1(time: float, n_y: int) -> ndarray:
-    return T_ICE_MIN * np.ones(n_y)
+    return cfg.T_ICE_MIN * np.ones(n_y)
 
 
 @numba.jit(nopython=True)
 def get_top_bc_1(time: float, n_x: int) -> ndarray:
     return -8.5 * np.ones(n_x)
-    # return T_WATER_MAX * np.ones(n_x)
+    # return cfg.T_WATER_MAX * np.ones(n_x)
 
 
 @numba.jit(nopython=True)
 def get_right_bc_1(time: float, n_y: int) -> ndarray:
-    return T_ICE_MIN * np.ones(n_y)
+    return cfg.T_ICE_MIN * np.ones(n_y)
 
 
 @numba.jit(nopython=True)
@@ -41,9 +40,9 @@ def solar_heat(t: float):
     :return: Величина солнечного потока радиации на горизонтальную поверхность при заданных параметрах
     в момент времени t. [Вт/м^2]
     """
-    return Q_SOL * (
-            sin(LAT) * sin(DECL) +
-            cos(LAT) * cos(DECL) * cos(RAD_SPEED * t + 12.0 * 3600.0)
+    return cfg.Q_SOL * (
+            sin(cfg.LAT) * sin(cfg.DECL) +
+            cos(cfg.LAT) * cos(cfg.DECL) * cos(cfg.RAD_SPEED * t + 12.0 * 3600.0)
     )
 
 
@@ -54,8 +53,8 @@ def air_temperature(t: float):
     :param t: Время в секундах
     :return: Температура воздуха в заданный момент времени
     """
-    return (T_air + T_amp_day * sin(2 * pi * t / (24.0 * 3600.0) - pi / 2) +
-            T_amp_year * sin(2 * pi * t / (365 * 24.0 * 3600.0) - pi / 2))
+    return (cfg.T_air + cfg.T_amp_day * sin(2 * pi * t / (24.0 * 3600.0) - pi / 2) +
+            cfg.T_amp_year * sin(2 * pi * t / (365 * 24.0 * 3600.0) - pi / 2))
 
 
 @numba.jit(nopython=True)
@@ -64,8 +63,8 @@ def get_top_bc_3(time: float) -> (float, float):
     T_air_t = air_temperature(time)
     # Определяем тепловой поток солнечной энергии
     Q_sol = solar_heat(time)
-    psi = Q_sol - CONV_COEF * T_air_t / K_WATER
-    phi = CONV_COEF / K_WATER
+    psi = Q_sol - cfg.CONV_COEF * T_air_t / cfg.K_ICE
+    phi = cfg.CONV_COEF / cfg.K_ICE
     return psi, phi
 
 
@@ -162,15 +161,15 @@ def init_bc() -> Dict:
 
     bc_bottom = Dict()
     bc_bottom["type"] = 1.0
-    bc_bottom["temp"] = T_ICE_MIN
+    bc_bottom["temp"] = cfg.T_ICE_MIN
 
     bc_top = Dict()
     bc_top["type"] = 1.0
-    bc_top["temp"] = T_ICE_MIN
+    bc_top["temp"] = cfg.T_ICE_MIN
 
     bc_sides = Dict()
     bc_sides["type"] = 1.0
-    bc_sides["temp"] = T_ICE_MIN
+    bc_sides["temp"] = cfg.T_ICE_MIN
 
     boundary_conditions["left"] = bc_sides
     boundary_conditions["right"] = bc_sides

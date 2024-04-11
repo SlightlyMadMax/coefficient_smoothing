@@ -6,7 +6,6 @@ import numpy as np
 from src.temperature import get_max_delta, init_temperature_circle, init_temperature_lake, init_temperature
 from src.plotting import plot_temperature, animate
 from src.solver import solve
-from src.parameters import WIDTH, HEIGHT, FULL_TIME, N_X, N_Y, N_T
 from src.geometry import DomainGeometry
 from src.boundary import init_boundary
 

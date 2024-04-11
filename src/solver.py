@@ -3,7 +3,7 @@ from numpy import ndarray
 import numba
 
 from src.coefficients import c_smoothed, k_smoothed
-from src.parameters import T_ICE_MIN, T_WATER_MAX, delta
+import src.parameters as cfg
 from src.temperature import get_max_delta
 from src.boundary_conditions import get_bottom_bc_1, get_left_bc_1, get_right_bc_1, get_top_bc_1, get_top_bc_3
 
@@ -39,7 +39,7 @@ def solve(T: ndarray,
     alpha = np.empty((n_x - 1), )
     beta = np.empty((n_x - 1), )
 
-    _delta = delta
+    _delta = cfg.delta
 
     lbc = get_left_bc_1(time, n_y)
     rbc = get_right_bc_1(time, n_y)
@@ -198,8 +198,8 @@ def solve_alt_dir(T: ndarray, dx: float, dy: float, dt: float, _delta: float):
         for i in range(n_x - 2, -1, -1):
             tempT[j, i] = alpha[i] * tempT[j, i + 1] + beta[i]
 
-    tempT[0, :] = T_ICE_MIN
-    tempT[n_y-1, :] = T_WATER_MAX
+    tempT[0, :] = cfg.T_ICE_MIN
+    tempT[n_y-1, :] = cfg.T_WATER_MAX
 
     new_T = np.empty((n_y, n_x))
 
@@ -207,7 +207,7 @@ def solve_alt_dir(T: ndarray, dx: float, dy: float, dt: float, _delta: float):
     beta = np.empty((n_y - 1), )
 
     alpha[0] = 0  # из левого граничного условия первого рода
-    beta[0] = T_ICE_MIN  # из левого граничного условия первого рода
+    beta[0] = cfg.T_ICE_MIN  # из левого граничного условия первого рода
 
     for i in range(1, n_x - 1):
         for j in range(1, n_y - 1):
