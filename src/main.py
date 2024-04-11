@@ -95,7 +95,8 @@ if __name__ == '__main__':
                 max_temp=2.0,
                 invert_yaxis=True,
             )
-            print(f"ВРЕМЯ МОДЕЛИРОВАНИЯ: {n} М, ВРЕМЯ ВЫПОЛНЕНИЯ: {time.process_time() - start_time}")
+            print(time.process_time() - start_time)
+            # print(f"ВРЕМЯ МОДЕЛИРОВАНИЯ: {n} М, ВРЕМЯ ВЫПОЛНЕНИЯ: {time.process_time() - start_time}")
 
     print(wt)
     np.savez_compressed("../data/water_thickness.npz", wt=wt)

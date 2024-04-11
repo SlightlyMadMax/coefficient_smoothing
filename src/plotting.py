@@ -25,6 +25,9 @@ def plot_temperature(T: ndarray,
                      ):
     X, Y = geom.mesh_grid
 
+    import matplotlib
+    matplotlib.use('Agg')
+
     plt.rcParams["figure.figsize"] = (16, 9)
 
     ax = plt.axes(xlim=(0, geom.width), ylim=(0, geom.height), xlabel="x, м", ylabel="y, м")
