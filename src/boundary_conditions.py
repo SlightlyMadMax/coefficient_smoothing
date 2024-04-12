@@ -40,9 +40,12 @@ def solar_heat(t: float):
     :return: Величина солнечного потока радиации на горизонтальную поверхность при заданных параметрах
     в момент времени t. [Вт/м^2]
     """
+    # вычисляем склонение солнца
+    decl = cfg.DECL * sin(2 * pi * t / (365 * 24.0 * 3600.0) - pi / 2)
+
     return cfg.Q_SOL * (
-            sin(cfg.LAT) * sin(cfg.DECL) +
-            cos(cfg.LAT) * cos(cfg.DECL) * cos(cfg.RAD_SPEED * t + 12.0 * 3600.0)
+            sin(cfg.LAT) * sin(decl) +
+            cos(cfg.LAT) * cos(decl) * cos(cfg.RAD_SPEED * t + 12.0 * 3600.0)
     )
 
 
