@@ -28,10 +28,10 @@ if __name__ == '__main__':
     geometry = DomainGeometry(
         width=200.0,
         height=48.0,
-        end_time=60.0*60.0*24.0*365.0*40.0,
+        end_time=60.0*60.0*24.0*365.0*50.0,
         n_x=2001,
         n_y=500,
-        n_t=8*365*40
+        n_t=8*365*50
     )
 
     print(geometry)
@@ -56,14 +56,11 @@ if __name__ == '__main__':
         invert_yaxis=True,
     )
 
-    # T_full = [T]
-    # times = [0]
+    vertical_temp_slice = []
+    horizontal_temp_slice = []
 
-    wt = []
-
-    print(get_water_thickness(T, geometry.dy))
-
-    wt.append(get_water_thickness(T, geometry.dy))
+    wt = get_water_thickness(T, geometry.dy)
+    print(wt)
 
     start_time = time.process_time()
     for n in range(1, geometry.n_t):
@@ -80,9 +77,6 @@ if __name__ == '__main__':
                   fixed_delta=False
                   )
         if n % 800 == 0:
-            # T_full.append(T)
-            # times.append(t)
-            wt.append(get_water_thickness(T, geometry.dy))
             plot_temperature(
                 T=T,
                 geom=geometry,
@@ -94,11 +88,16 @@ if __name__ == '__main__':
                 max_temp=2.0,
                 invert_yaxis=True,
             )
-            print(time.process_time() - start_time)
-            # print(f"ВРЕМЯ МОДЕЛИРОВАНИЯ: {n} М, ВРЕМЯ ВЫПОЛНЕНИЯ: {time.process_time() - start_time}")
+            print(f"ВРЕМЯ МОДЕЛИРОВАНИЯ: {n} М, ВРЕМЯ ВЫПОЛНЕНИЯ: {time.process_time() - start_time}")
+            print(f"Максимальная температура: {max(T)}")
+            vertical_temp_slice.append(T[:, geometry.n_x // 2])
+            horizontal_temp_slice.append(T[int((geometry.height - wt) / geometry.dy), :])
 
-    print(wt)
-    np.savez_compressed("../data/water_thickness.npz", wt=wt)
+    np.savez_compressed(
+        "../data/lake_temp_slices.npz",
+        vertical_temp_slice=vertical_temp_slice,
+        horizontal_temp_slice=horizontal_temp_slice
+    )
 
     # np.savez_compressed("../data/lake_test_data.npz", T_full=T_full, times=times)
 
