@@ -56,8 +56,8 @@ def air_temperature(t: float):
     :param t: Время в секундах
     :return: Температура воздуха в заданный момент времени
     """
-    return (cfg.T_air + cfg.T_amp_day * sin(2 * pi * t / (24.0 * 3600.0) - pi / 2) +
-            cfg.T_amp_year * sin(2 * pi * t / (365 * 24.0 * 3600.0) - pi / 2))
+    return (cfg.T_air + cfg.T_amp_day * sin(2 * pi * t / (24.0 * 3600.0) + pi / 2) +
+            cfg.T_amp_year * sin(2 * pi * t / (365 * 24.0 * 3600.0) + pi / 2))
 
 
 @numba.jit(nopython=True)
@@ -66,8 +66,8 @@ def get_top_bc_3(time: float) -> (float, float):
     T_air_t = air_temperature(time)
     # Определяем тепловой поток солнечной энергии
     Q_sol = solar_heat(time)
-    psi = (Q_sol - cfg.CONV_COEF * T_air_t) / cfg.K_ICE
-    phi = cfg.CONV_COEF / cfg.K_ICE
+    psi = (cfg.CONV_COEF * T_air_t + Q_sol) / cfg.K_ICE
+    phi = - cfg.CONV_COEF / cfg.K_ICE
     return psi, phi
 
 
