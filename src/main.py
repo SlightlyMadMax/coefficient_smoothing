@@ -89,7 +89,8 @@ if __name__ == '__main__':
                 invert_yaxis=True,
             )
             print(f"ВРЕМЯ МОДЕЛИРОВАНИЯ: {n} М, ВРЕМЯ ВЫПОЛНЕНИЯ: {time.process_time() - start_time}")
-            print(f"Максимальная температура: {max(T)}")
+            print(f"Максимальная температура: {np.max(T)}")
+            print(f"Минимальная температура: {np.min(T)}")
             vertical_temp_slice.append(T[:, geometry.n_x // 2])
             horizontal_temp_slice.append(T[int((geometry.height - wt) / geometry.dy), :])
 
@@ -117,7 +118,7 @@ if __name__ == '__main__':
         time=geometry.n_t * geometry.dt,
         graph_id=int(geometry.n_t / 60),
         plot_boundary=True,
-        show_graph=True,
+        show_graph=False,
         min_temp=-32.0,
         max_temp=2.0
     )
