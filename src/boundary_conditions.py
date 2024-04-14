@@ -66,7 +66,7 @@ def get_top_bc_3(time: float) -> (float, float):
     T_air_t = air_temperature(time)
     # Определяем тепловой поток солнечной энергии
     Q_sol = solar_heat(time)
-    psi = Q_sol - cfg.CONV_COEF * T_air_t / cfg.K_ICE
+    psi = (Q_sol - cfg.CONV_COEF * T_air_t) / cfg.K_ICE
     phi = cfg.CONV_COEF / cfg.K_ICE
     return psi, phi
 
