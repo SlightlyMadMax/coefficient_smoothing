@@ -61,7 +61,7 @@ def solve(T: ndarray,
         for i in range(1, n_x - 1):
             inv_c = 1.0 / c_smoothed(T[j, i], _delta)
 
-            # Коэффициент при T_(i-1,j)^(n+1/2)
+            # Коэффициент при T_(i+1,j)^(n+1/2)
             a_i = -dt * k_smoothed(0.5 * (T[j, i + 1] + T[j, i]), _delta) * inv_c * inv_dx * inv_dx
             # Коэффициент при T_(i,j)^(n+1/2)
             b_i = (
@@ -69,7 +69,7 @@ def solve(T: ndarray,
                     dt * (k_smoothed(0.5 * (T[j, i + 1] + T[j, i]), _delta) + k_smoothed(0.5 * (T[j, i] + T[j, i - 1]), _delta)) *
                     inv_c * inv_dx * inv_dx
             )
-            # Коэффициент при T_(i+1,j)^(n+1/2)
+            # Коэффициент при T_(i-1,j)^(n+1/2)
             c_i = -dt * k_smoothed(0.5 * (T[j, i] + T[j, i - 1]), _delta) * inv_c * inv_dx * inv_dx
 
             # Расчет прогоночных коэффициентов
