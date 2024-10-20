@@ -45,17 +45,26 @@ if __name__ == "__main__":
         invert_yaxis=False,
     )
 
+    temp_T = np.empty((geometry.n_y, geometry.n_x))
+    new_T = np.empty((geometry.n_y, geometry.n_x))
+    alpha = np.empty(geometry.n_x - 1)
+    beta = np.empty(geometry.n_x - 1)
+
     T_full = [T]
     times = [0.0]
     start_time = time.process_time()
     for n in range(1, geometry.n_t):
         t = n * geometry.dt
         T = solve(
-            T,
-            top_cond_type=1,
-            right_cond_type=1,
-            bottom_cond_type=1,
-            left_cond_type=1,
+            T=T,
+            temp_T=temp_T,
+            new_T=new_T,
+            alpha=alpha,
+            beta=beta,
+            top_cond_type=cfg.DIRICHLET,
+            right_cond_type=cfg.DIRICHLET,
+            bottom_cond_type=cfg.DIRICHLET,
+            left_cond_type=cfg.DIRICHLET,
             dx=geometry.dx,
             dy=geometry.dy,
             dt=geometry.dt,
@@ -75,7 +84,7 @@ if __name__ == "__main__":
                 max_temp=water_temp - cfg.T_0,
                 invert_yaxis=False,
             )
-            T_full.append(T)
+            T_full.append(T.copy())
             times.append(t)
             print(
                 f"ВРЕМЯ МОДЕЛИРОВАНИЯ: {n} М, ВРЕМЯ ВЫПОЛНЕНИЯ: {time.process_time() - start_time}"

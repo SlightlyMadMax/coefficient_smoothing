@@ -1,12 +1,24 @@
 import numba
+import numpy as np
 from enum import Enum
+
+from numpy import ndarray
 
 import src.parameters as cfg
 
 
 class TemperatureUnit(Enum):
     CELSIUS = 1, "Celsius"
-    KELVIN = 2, "KELVIN"
+    KELVIN = 2, "Kelvin"
+
+
+@numba.jit(nopython=True)
+def solve_tridiagonal(alpha: ndarray, beta: ndarray, n: int, boundary_val: float):
+    result = np.empty(n)
+    result[-1] = boundary_val
+    for i in range(n - 2, -1, -1):
+        result[i] = alpha[i] * result[i + 1] + beta[i]
+    return result
 
 
 @numba.jit(nopython=True)
