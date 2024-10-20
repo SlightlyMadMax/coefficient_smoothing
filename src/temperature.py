@@ -67,7 +67,6 @@ def init_temperature_angle(geom: DomainGeometry):
 def init_temperature_test(geom: DomainGeometry):
     T = np.empty((geom.n_y, geom.n_x))
     T[:, :] = cfg.T_WATER_MAX
-    T[0, :] = cfg.T_ICE_MIN
 
     return T
 
@@ -145,8 +144,8 @@ def init_temperature_2f_test(geom: DomainGeometry, water_temp: float, ice_temp: 
 
 
 def init_temperature_lake(geom: DomainGeometry, water_temp: float, ice_temp: float):
-    water_th_grid = np.load("../data/lake.npz")["water"]
-    ice_th_grid = np.load("../data/lake.npz")["ice"]
+    water_th_grid = np.load("data/lake.npz")["water"]
+    ice_th_grid = np.load("data/lake.npz")["ice"]
 
     grid_x = water_th_grid[0]
     grid_step = grid_x[1] - grid_x[0]
@@ -187,5 +186,5 @@ def init_temperature_lake(geom: DomainGeometry, water_temp: float, ice_temp: flo
             if water_th_at_x > 0.0 and ice_th_at_x <= y <= ice_th_at_x + water_th_at_x:
                 T[j, i] = water_temp
             else:
-                T[j, i] = ice_temp * (1.0 - j / geom.n_y)
+                T[j, i] = ice_temp + (j / geom.n_y) * (cfg.T_0 - ice_temp)
     return T

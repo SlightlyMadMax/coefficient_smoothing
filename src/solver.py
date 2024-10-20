@@ -5,7 +5,7 @@ import numba
 from src.coefficients import c_smoothed, k_smoothed
 import src.parameters as cfg
 from src.temperature import get_max_delta
-from src.boundary_conditions import get_bottom_bc_1, get_left_bc_1, get_right_bc_1, get_top_bc_1, get_top_bc_3
+from src import boundary_conditions as bc
 
 
 @numba.jit(nopython=True)
@@ -41,11 +41,12 @@ def solve(T: ndarray,
 
     _delta = cfg.delta
 
-    lbc = get_left_bc_1(time, n_y)
-    rbc = get_right_bc_1(time, n_y)
-    bbc = get_bottom_bc_1(time, n_x)
-    tbc = get_top_bc_1(time, n_x)
-    psi, phi = get_top_bc_3(time)
+    lbc = bc.get_left_bc_1(time, n_y)
+    rbc = bc.get_right_bc_1(time, n_y)
+    bbc = bc.get_bottom_bc_1(time, n_x)
+    tbc = bc.get_top_bc_1(time, n_x)
+    phi = bc.get_top_bc_2(time)
+    psi, ksi = bc.get_top_bc_3(time)
 
     if not fixed_delta:
         _delta = get_max_delta(T)
@@ -90,9 +91,9 @@ def solve(T: ndarray,
     if top_cond_type == 1:
         tempT[n_y - 1, :] = tbc
     elif top_cond_type == 2:
-        tempT[n_y - 1, :] = beta[n_y - 2] / (1.0 - alpha[n_y - 2])
+        tempT[n_y - 1, :] = (dy * phi + beta[n_y - 2]) / (1.0 - alpha[n_y - 2])
     else:
-        tempT[n_y - 1, :] = (dy * psi + beta[n_y - 2]) / (1 - alpha[n_y - 2] - dy * phi)
+        tempT[n_y - 1, :] = (dy * psi + beta[n_y - 2]) / (1 - alpha[n_y - 2] - dy * ksi)
 
     # Массив для хранения значений температуры на новом временном слое
     new_T = np.empty((n_y, n_x))
@@ -133,9 +134,9 @@ def solve(T: ndarray,
         if top_cond_type == 1:
             new_T[n_y - 1, i] = tbc[i]
         elif top_cond_type == 2:
-            new_T[n_y - 1, i] = beta[n_y - 2]/(1.0 - alpha[n_y - 2])
+            new_T[n_y - 1, i] = (dy * phi + beta[n_y - 2])/(1.0 - alpha[n_y - 2])
         else:
-            new_T[n_y - 1, i] = (dy * psi + beta[n_y - 2])/(1 - alpha[n_y - 2] - dy * phi)
+            new_T[n_y - 1, i] = (dy * psi + beta[n_y - 2])/(1 - alpha[n_y - 2] - dy * ksi)
 
         # Вычисление температуры на новом временном слое
         for j in range(n_y - 2, -1, -1):
