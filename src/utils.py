@@ -13,7 +13,9 @@ def is_frozen(T) -> bool:
     N_X, N_Y = T.shape
     for i in range(N_X - 1):
         for j in range(N_Y - 1):
-            if (T[j + 1, i] - cfg.T_0) * (T[j, i] - cfg.T_0) < 0.0 or (T[j, i + 1] - cfg.T_0) * (T[j, i] - cfg.T_0) < 0.0:
+            if (T[j + 1, i] - cfg.T_0) * (T[j, i] - cfg.T_0) < 0.0 or (
+                T[j, i + 1] - cfg.T_0
+            ) * (T[j, i] - cfg.T_0) < 0.0:
                 return False
     return True
 
@@ -26,7 +28,23 @@ def get_crev_depth(T) -> float:
     :return: максимальная глубина трещины
     """
     N_X, N_Y = T.shape
-    i = int(N_X/2)
+    i = int(N_X / 2)
     for j in range(N_Y - 1):
-        if (T[j + 1, i] - cfg.T_0) * (T[j, i] - cfg.T_0) < 0.0 or (T[j, i + 1] - cfg.T_0) * (T[j, i] - cfg.T_0) < 0.0:
-            return cfg.HEIGHT - cfg.WATER_H - j*cfg.dy
+        if (T[j + 1, i] - cfg.T_0) * (T[j, i] - cfg.T_0) < 0.0 or (
+            T[j, i + 1] - cfg.T_0
+        ) * (T[j, i] - cfg.T_0) < 0.0:
+            return cfg.HEIGHT - cfg.WATER_H - j * cfg.dy
+
+
+@numba.jit(nopython=True)
+def get_water_thickness(T, dy: float):
+    n_y, n_x = T.shape
+    bottom, top = 0.0, 0.0
+    for j in range(n_y - 1):
+        if T[j + 1, n_x // 2] > cfg.T_0 and T[j, n_x // 2] <= cfg.T_0:
+            bottom = j * dy
+            continue
+        if T[j + 1, n_x // 2] <= cfg.T_0 and T[j, n_x // 2] > cfg.T_0:
+            top = j * dy
+            break
+    return top - bottom

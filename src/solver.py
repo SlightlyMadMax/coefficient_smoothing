@@ -9,16 +9,18 @@ from src import boundary_conditions as bc
 
 
 @numba.jit(nopython=True)
-def solve(T: ndarray,
-          top_cond_type: int,
-          right_cond_type: int,
-          bottom_cond_type: int,
-          left_cond_type: int,
-          dx: float,
-          dy: float,
-          dt: float,
-          time: float = 0.0,
-          fixed_delta: bool = True):
+def solve(
+    T: ndarray,
+    top_cond_type: int,
+    right_cond_type: int,
+    bottom_cond_type: int,
+    left_cond_type: int,
+    dx: float,
+    dy: float,
+    dt: float,
+    time: float = 0.0,
+    fixed_delta: bool = True,
+):
     """
     Функция для нахождения решения задачи Стефана в обобщенной формулировке с помощью локально-одномерной
     линеаризованной разностной схемы.
@@ -36,8 +38,12 @@ def solve(T: ndarray,
 
     # Векторы для хранения значений прогоночных коэффициентов (см. Кольцова Э. М. и др.
     # "Численные методы решения уравнений математической физики и химии" 2021, стр. 43)
-    alpha = np.empty((n_x - 1), )
-    beta = np.empty((n_x - 1), )
+    alpha = np.empty(
+        (n_x - 1),
+    )
+    beta = np.empty(
+        (n_x - 1),
+    )
 
     _delta = cfg.delta
 
@@ -63,15 +69,33 @@ def solve(T: ndarray,
             inv_c = 1.0 / c_smoothed(T[j, i], _delta)
 
             # Коэффициент при T_(i+1,j)^(n+1/2)
-            a_i = -dt * k_smoothed(0.5 * (T[j, i + 1] + T[j, i]), _delta) * inv_c * inv_dx * inv_dx
+            a_i = (
+                -dt
+                * k_smoothed(0.5 * (T[j, i + 1] + T[j, i]), _delta)
+                * inv_c
+                * inv_dx
+                * inv_dx
+            )
             # Коэффициент при T_(i,j)^(n+1/2)
             b_i = (
-                    1.0 +
-                    dt * (k_smoothed(0.5 * (T[j, i + 1] + T[j, i]), _delta) + k_smoothed(0.5 * (T[j, i] + T[j, i - 1]), _delta)) *
-                    inv_c * inv_dx * inv_dx
+                1.0
+                + dt
+                * (
+                    k_smoothed(0.5 * (T[j, i + 1] + T[j, i]), _delta)
+                    + k_smoothed(0.5 * (T[j, i] + T[j, i - 1]), _delta)
+                )
+                * inv_c
+                * inv_dx
+                * inv_dx
             )
             # Коэффициент при T_(i-1,j)^(n+1/2)
-            c_i = -dt * k_smoothed(0.5 * (T[j, i] + T[j, i - 1]), _delta) * inv_c * inv_dx * inv_dx
+            c_i = (
+                -dt
+                * k_smoothed(0.5 * (T[j, i] + T[j, i - 1]), _delta)
+                * inv_c
+                * inv_dx
+                * inv_dx
+            )
 
             # Расчет прогоночных коэффициентов
             alpha[i] = -a_i / (b_i + c_i * alpha[i - 1])
@@ -80,7 +104,7 @@ def solve(T: ndarray,
         if right_cond_type == 1:
             tempT[j, n_x - 1] = rbc[j]
         else:
-            tempT[j, n_x - 1] = beta[n_x - 2]/(1.0 - alpha[n_x - 2])
+            tempT[j, n_x - 1] = beta[n_x - 2] / (1.0 - alpha[n_x - 2])
 
         # Вычисление температуры на промежуточном временном слое
         for i in range(n_x - 2, -1, -1):
@@ -98,8 +122,12 @@ def solve(T: ndarray,
     # Массив для хранения значений температуры на новом временном слое
     new_T = np.empty((n_y, n_x))
 
-    alpha = np.empty((n_y - 1), )
-    beta = np.empty((n_y - 1), )
+    alpha = np.empty(
+        (n_y - 1),
+    )
+    beta = np.empty(
+        (n_y - 1),
+    )
 
     if not fixed_delta:
         _delta = get_max_delta(tempT)
@@ -116,16 +144,33 @@ def solve(T: ndarray,
             inv_c = 1.0 / c_smoothed(tempT[j, i], _delta)
 
             # Коэффициент при T_(i,j-1)^n
-            a_j = -dt * k_smoothed(0.5 * (tempT[j + 1, i] + tempT[j, i]), _delta) * inv_c * inv_dy * inv_dy
+            a_j = (
+                -dt
+                * k_smoothed(0.5 * (tempT[j + 1, i] + tempT[j, i]), _delta)
+                * inv_c
+                * inv_dy
+                * inv_dy
+            )
             # Коэффициент при T_(i,j)^n
             b_j = (
-                    1.0 +
-                    dt * (k_smoothed(0.5 * (tempT[j + 1, i] + tempT[j, i]), _delta) +
-                          k_smoothed(0.5 * (tempT[j, i] + tempT[j - 1, i]), _delta)) *
-                    inv_c * inv_dy * inv_dy
+                1.0
+                + dt
+                * (
+                    k_smoothed(0.5 * (tempT[j + 1, i] + tempT[j, i]), _delta)
+                    + k_smoothed(0.5 * (tempT[j, i] + tempT[j - 1, i]), _delta)
+                )
+                * inv_c
+                * inv_dy
+                * inv_dy
             )
             # Коэффициент при T_(i,j+1)^n
-            c_j = -dt * k_smoothed(0.5 * (tempT[j, i] + tempT[j - 1, i]), _delta) * inv_c * inv_dy * inv_dy
+            c_j = (
+                -dt
+                * k_smoothed(0.5 * (tempT[j, i] + tempT[j - 1, i]), _delta)
+                * inv_c
+                * inv_dy
+                * inv_dy
+            )
 
             # Расчет прогоночных коэффициентов
             alpha[j] = -a_j / (b_j + c_j * alpha[j - 1])
@@ -134,9 +179,11 @@ def solve(T: ndarray,
         if top_cond_type == 1:
             new_T[n_y - 1, i] = tbc[i]
         elif top_cond_type == 2:
-            new_T[n_y - 1, i] = (dy * phi + beta[n_y - 2])/(1.0 - alpha[n_y - 2])
+            new_T[n_y - 1, i] = (dy * phi + beta[n_y - 2]) / (1.0 - alpha[n_y - 2])
         else:
-            new_T[n_y - 1, i] = (dy * psi + beta[n_y - 2])/(1 - alpha[n_y - 2] - dy * ksi)
+            new_T[n_y - 1, i] = (dy * psi + beta[n_y - 2]) / (
+                1 - alpha[n_y - 2] - dy * ksi
+            )
 
         # Вычисление температуры на новом временном слое
         for j in range(n_y - 2, -1, -1):
@@ -170,8 +217,12 @@ def solve_alt_dir(T: ndarray, dx: float, dy: float, dt: float, _delta: float):
 
     tempT = np.empty((n_y, n_x))
 
-    alpha = np.empty((n_x - 1), )
-    beta = np.empty((n_x - 1), )
+    alpha = np.empty(
+        (n_x - 1),
+    )
+    beta = np.empty(
+        (n_x - 1),
+    )
 
     alpha[0] = 1  # из левого граничного условия второго рода
     beta[0] = 0  # из левого граничного условия второго рода
@@ -179,33 +230,63 @@ def solve_alt_dir(T: ndarray, dx: float, dy: float, dt: float, _delta: float):
     for j in range(1, n_y - 1):
         for i in range(1, n_x - 1):
             inv_c = 1.0 / c_smoothed(T[j, i], _delta)
-            a_i = -dt * 0.5 * k_smoothed(0.5 * (T[j, i + 1] + T[j, i]), _delta) * inv_c * inv_dx * inv_dx
-            b_i = (
-                    1.0 +
-                    dt * (k_smoothed(0.5 * (T[j, i + 1] + T[j, i]), _delta) + k_smoothed(0.5 * (T[j, i] + T[j, i - 1]), _delta)) *
-                    inv_c * inv_dx * inv_dx * 0.5
+            a_i = (
+                -dt
+                * 0.5
+                * k_smoothed(0.5 * (T[j, i + 1] + T[j, i]), _delta)
+                * inv_c
+                * inv_dx
+                * inv_dx
             )
-            c_i = -dt * 0.5 * k_smoothed(0.5 * (T[j, i] + T[j, i - 1]), _delta) * inv_c * inv_dx * inv_dx
+            b_i = (
+                1.0
+                + dt
+                * (
+                    k_smoothed(0.5 * (T[j, i + 1] + T[j, i]), _delta)
+                    + k_smoothed(0.5 * (T[j, i] + T[j, i - 1]), _delta)
+                )
+                * inv_c
+                * inv_dx
+                * inv_dx
+                * 0.5
+            )
+            c_i = (
+                -dt
+                * 0.5
+                * k_smoothed(0.5 * (T[j, i] + T[j, i - 1]), _delta)
+                * inv_c
+                * inv_dx
+                * inv_dx
+            )
 
-            rhs_i = T[j, i] + dt * 0.5 * inv_c * inv_dy * inv_dy * \
-                    (k_smoothed(0.5 * (T[j + 1, i] + T[j, i]), _delta) * (T[j + 1, i] - T[j, i]) -
-                     k_smoothed(0.5 * (T[j, i] + T[j - 1, i]), _delta) * (T[j, i] - T[j - 1, i]))
+            rhs_i = T[j, i] + dt * 0.5 * inv_c * inv_dy * inv_dy * (
+                k_smoothed(0.5 * (T[j + 1, i] + T[j, i]), _delta)
+                * (T[j + 1, i] - T[j, i])
+                - k_smoothed(0.5 * (T[j, i] + T[j - 1, i]), _delta)
+                * (T[j, i] - T[j - 1, i])
+            )
 
             alpha[i] = -a_i / (b_i + c_i * alpha[i - 1])
             beta[i] = (rhs_i - c_i * beta[i - 1]) / (b_i + c_i * alpha[i - 1])
 
-        tempT[j, n_x - 1] = beta[n_x - 2]/(1.0 - alpha[n_x - 2])  # из правого граничного условия второго рода
+        tempT[j, n_x - 1] = beta[n_x - 2] / (
+            1.0 - alpha[n_x - 2]
+        )  # из правого граничного условия второго рода
 
         for i in range(n_x - 2, -1, -1):
             tempT[j, i] = alpha[i] * tempT[j, i + 1] + beta[i]
 
     tempT[0, :] = cfg.T_ICE_MIN
-    tempT[n_y-1, :] = cfg.T_WATER_MAX
+    tempT[n_y - 1, :] = cfg.T_WATER_MAX
 
     new_T = np.empty((n_y, n_x))
 
-    alpha = np.empty((n_y - 1), )
-    beta = np.empty((n_y - 1), )
+    alpha = np.empty(
+        (n_y - 1),
+    )
+    beta = np.empty(
+        (n_y - 1),
+    )
 
     alpha[0] = 0  # из левого граничного условия первого рода
     beta[0] = cfg.T_ICE_MIN  # из левого граничного условия первого рода
@@ -213,22 +294,48 @@ def solve_alt_dir(T: ndarray, dx: float, dy: float, dt: float, _delta: float):
     for i in range(1, n_x - 1):
         for j in range(1, n_y - 1):
             inv_c = 1.0 / c_smoothed(tempT[j, i], _delta)
-            a_j = -dt * 0.5 * k_smoothed(0.5 * (tempT[j + 1, i] + tempT[j, i]), _delta) * inv_c * inv_dy * inv_dy
-            b_j = (
-                    1.0 +
-                    dt * (k_smoothed(0.5 * (tempT[j + 1, i] + tempT[j, i]), _delta) + k_smoothed(0.5 * (tempT[j, i] + tempT[j - 1, i]), _delta)) *
-                    inv_c * inv_dy * inv_dy * 0.5
+            a_j = (
+                -dt
+                * 0.5
+                * k_smoothed(0.5 * (tempT[j + 1, i] + tempT[j, i]), _delta)
+                * inv_c
+                * inv_dy
+                * inv_dy
             )
-            c_j = -dt * 0.5 * k_smoothed(0.5 * (tempT[j, i] + tempT[j - 1, i]), _delta) * inv_c * inv_dy * inv_dy
+            b_j = (
+                1.0
+                + dt
+                * (
+                    k_smoothed(0.5 * (tempT[j + 1, i] + tempT[j, i]), _delta)
+                    + k_smoothed(0.5 * (tempT[j, i] + tempT[j - 1, i]), _delta)
+                )
+                * inv_c
+                * inv_dy
+                * inv_dy
+                * 0.5
+            )
+            c_j = (
+                -dt
+                * 0.5
+                * k_smoothed(0.5 * (tempT[j, i] + tempT[j - 1, i]), _delta)
+                * inv_c
+                * inv_dy
+                * inv_dy
+            )
 
-            rhs_j = tempT[j, i] + dt * 0.5 * inv_c * inv_dx * inv_dx * \
-                    (k_smoothed(0.5 * (tempT[j, i + 1] + tempT[j, i]), _delta) * (tempT[j, i + 1] - tempT[j, i]) -
-                     k_smoothed(0.5 * (tempT[j, i] + tempT[j, i - 1]), _delta) * (tempT[j, i] - tempT[j, i - 1]))
+            rhs_j = tempT[j, i] + dt * 0.5 * inv_c * inv_dx * inv_dx * (
+                k_smoothed(0.5 * (tempT[j, i + 1] + tempT[j, i]), _delta)
+                * (tempT[j, i + 1] - tempT[j, i])
+                - k_smoothed(0.5 * (tempT[j, i] + tempT[j, i - 1]), _delta)
+                * (tempT[j, i] - tempT[j, i - 1])
+            )
 
             alpha[j] = -a_j / (b_j + c_j * alpha[j - 1])
             beta[j] = (rhs_j - c_j * beta[j - 1]) / (b_j + c_j * alpha[j - 1])
 
-        new_T[n_y - 1, i] = beta[n_y - 2]/(1.0 - alpha[n_y - 2])  # из правого граничного условия второго рода
+        new_T[n_y - 1, i] = beta[n_y - 2] / (
+            1.0 - alpha[n_y - 2]
+        )  # из правого граничного условия второго рода
 
         for j in range(n_y - 2, -1, -1):
             new_T[j, i] = alpha[j] * new_T[j + 1, i] + beta[j]

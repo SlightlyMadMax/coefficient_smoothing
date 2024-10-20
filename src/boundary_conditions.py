@@ -17,7 +17,7 @@ def get_left_bc_1(time: float, n_y: int) -> ndarray:
 
 @numba.jit(nopython=True)
 def get_top_bc_1(time: float, n_x: int) -> ndarray:
-    return 268.15 * np.ones(n_x)
+    return cfg.T_ICE_MIN * np.ones(n_x)
     # return cfg.T_WATER_MAX * np.ones(n_x)
 
 
@@ -28,13 +28,14 @@ def get_right_bc_1(time: float, n_y: int) -> ndarray:
 
 @numba.jit(nopython=True)
 def get_bottom_bc_1(time: float, n_x: int) -> ndarray:
-    return cfg.T_0 * np.ones(n_x)
+    return cfg.T_ICE_MIN * np.ones(n_x)
     # return T_ICE_MIN * np.ones(n_x)
 
 
 @numba.jit(nopython=True)
 def get_top_bc_2(time: float) -> float:
-    return -10.0 / cfg.K_ICE
+    return 0.0
+    # return -10.0 / cfg.K_ICE
 
 
 @numba.jit(nopython=True)
@@ -49,8 +50,8 @@ def solar_heat(t: float):
     decl = cfg.DECL * sin(2 * pi * t / (365 * 24.0 * 3600.0) - pi / 2)
 
     return cfg.Q_SOL * (
-            sin(cfg.LAT) * sin(decl) +
-            cos(cfg.LAT) * cos(decl) * cos(cfg.RAD_SPEED * t + 12.0 * 3600.0)
+        sin(cfg.LAT) * sin(decl)
+        + cos(cfg.LAT) * cos(decl) * cos(cfg.RAD_SPEED * t + 12.0 * 3600.0)
     )
 
 
@@ -61,8 +62,11 @@ def air_temperature(t: float):
     :param t: Время в секундах
     :return: Температура воздуха в заданный момент времени
     """
-    return (cfg.T_air + cfg.T_amp_day * sin(2 * pi * t / (24.0 * 3600.0) + pi / 2) +
-            cfg.T_amp_year * sin(2 * pi * t / (365 * 24.0 * 3600.0) + pi / 2))
+    return (
+        cfg.T_air
+        + cfg.T_amp_day * sin(2 * pi * t / (24.0 * 3600.0) + pi / 2)
+        + cfg.T_amp_year * sin(2 * pi * t / (365 * 24.0 * 3600.0) + pi / 2)
+    )
 
 
 @numba.jit(nopython=True)
@@ -82,7 +86,7 @@ def get_top_bc_3(time: float) -> (float, float):
     c = conv_coef(cfg.WIND_SPEED)
 
     # Приведенный коэффициент теплообмена
-    c_r = c * (1.0 + 0.0195 * cfg.A) + 0.205 * (T_air_t / 100.0)**3
+    c_r = c * (1.0 + 0.0195 * cfg.A) + 0.205 * (T_air_t / 100.0) ** 3
 
     # Давление насыщенного водяного пара
     p = cfg.A * T_air_t + cfg.B
@@ -91,10 +95,14 @@ def get_top_bc_3(time: float) -> (float, float):
     h_c = Q_sol * (1.0 - 0.38 * cfg.CLOUDINESS * (1.0 + cfg.CLOUDINESS))
 
     # Приведенная температура окружающей среды
-    T_r = (c * (T_air_t - 0.0195 * (cfg.B - p * cfg.REL_HUMIDITY)) + 19.9 * (T_air_t / 100.0)**4 + h_c) / c_r
+    T_r = (
+        c * (T_air_t - 0.0195 * (cfg.B - p * cfg.REL_HUMIDITY))
+        + 19.9 * (T_air_t / 100.0) ** 4
+        + h_c
+    ) / c_r
 
     psi = T_r * c_r / cfg.K_ICE
-    phi = - c_r / cfg.K_ICE
+    phi = -c_r / cfg.K_ICE
 
     # psi = (cfg.CONV_COEF * T_air_t + Q_sol) / cfg.K_ICE
     # phi = - cfg.CONV_COEF / cfg.K_ICE
@@ -108,8 +116,13 @@ class ConditionType(Enum):
 
 
 class BoundaryCondition:
-    def __init__(self, cond_type: ConditionType, init_value: ndarray,
-                 eval_func: Optional[Callable[[float], ndarray]] = None, is_constant: bool = True):
+    def __init__(
+        self,
+        cond_type: ConditionType,
+        init_value: ndarray,
+        eval_func: Optional[Callable[[float], ndarray]] = None,
+        is_constant: bool = True,
+    ):
         self._init_value = init_value
         self._cond_type = cond_type
         self._eval_func = eval_func
@@ -149,8 +162,13 @@ class BoundaryCondition:
 
 
 class BoundaryConditions:
-    def __init__(self, left: BoundaryCondition, right: BoundaryCondition,
-                 bottom: BoundaryCondition, top: BoundaryCondition):
+    def __init__(
+        self,
+        left: BoundaryCondition,
+        right: BoundaryCondition,
+        bottom: BoundaryCondition,
+        top: BoundaryCondition,
+    ):
         self._left = left
         self._right = right
         self._bottom = bottom
@@ -181,8 +199,10 @@ class BoundaryConditions:
         return bcs
 
     def __str__(self):
-        return (f"Top (y = HEIGHT). {self.top}\nRight (x = WIDTH). {self.right}"
-                f"\nBottom (y = 0). {self.bottom}\nLeft (x = 0). {self.left}")
+        return (
+            f"Top (y = HEIGHT). {self.top}\nRight (x = WIDTH). {self.right}"
+            f"\nBottom (y = 0). {self.bottom}\nLeft (x = 0). {self.left}"
+        )
 
 
 def init_bc() -> Dict:

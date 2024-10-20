@@ -3,8 +3,9 @@ from decimal import Decimal
 
 
 class DomainGeometry:
-    def __init__(self, width: float, height: float,
-                 end_time: float, n_x: int, n_y: int, n_t: int):
+    def __init__(
+        self, width: float, height: float, end_time: float, n_x: int, n_y: int, n_t: int
+    ):
         self._width = width
         self._height = height
         self._end_time = end_time
@@ -59,5 +60,7 @@ class DomainGeometry:
         return X, Y
 
     def __str__(self):
-        return (f"Width: {self.width}. Height: {self.height}. End time: {int(self.end_time)} s.\n"
-                f"x step = {Decimal(self.dx):.2E} m. y step = {Decimal(self.dy):.2E} m. Time step = {round(self.dt)} s")
+        return (
+            f"Width: {self.width}. Height: {self.height}. End time: {int(self.end_time)} s.\n"
+            f"x step = {Decimal(self.dx):.2E} m. y step = {Decimal(self.dy):.2E} m. Time step = {round(self.dt)} s"
+        )

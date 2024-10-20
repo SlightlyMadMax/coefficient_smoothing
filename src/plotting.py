@@ -9,32 +9,36 @@ from src.boundary import get_phase_trans_boundary
 from src.geometry import DomainGeometry
 
 
-def plot_temperature(T: ndarray,
-                     geom: DomainGeometry,
-                     time: float,
-                     graph_id: int,
-                     plot_boundary: bool = False,
-                     show_graph: bool = True,
-                     show_grid: bool = False,
-                     directory: str = "../graphs/temperature/",
-                     min_temp: Optional[float] = None,
-                     max_temp: Optional[float] = None,
-                     equal_aspect: Optional[bool] = True,
-                     invert_xaxis: Optional[bool] = False,
-                     invert_yaxis: Optional[bool] = False,
-                     ):
+def plot_temperature(
+    T: ndarray,
+    geom: DomainGeometry,
+    time: float,
+    graph_id: int,
+    plot_boundary: bool = False,
+    show_graph: bool = True,
+    show_grid: bool = False,
+    directory: str = "../graphs/temperature/",
+    min_temp: Optional[float] = None,
+    max_temp: Optional[float] = None,
+    equal_aspect: Optional[bool] = True,
+    invert_xaxis: Optional[bool] = False,
+    invert_yaxis: Optional[bool] = False,
+):
     X, Y = geom.mesh_grid
 
     if not show_graph:
         import matplotlib
-        matplotlib.use('Agg')
+
+        matplotlib.use("Agg")
 
     plt.rcParams["figure.figsize"] = (16, 9)
 
-    ax = plt.axes(xlim=(0, geom.width), ylim=(0, geom.height), xlabel="x, м", ylabel="y, м")
+    ax = plt.axes(
+        xlim=(0, geom.width), ylim=(0, geom.height), xlabel="x, м", ylabel="y, м"
+    )
 
     if show_grid:
-        plt.plot(X, Y, marker=".", markersize=0.5, color='k', linestyle='none')
+        plt.plot(X, Y, marker=".", markersize=0.5, color="k", linestyle="none")
 
     plt.contourf(X, Y, T, 50, cmap="viridis", vmin=min_temp, vmax=max_temp)
     plt.clim(min_temp, max_temp)
@@ -42,11 +46,13 @@ def plot_temperature(T: ndarray,
 
     if plot_boundary:
         X_b, Y_b = get_phase_trans_boundary(T=T, geom=geom)
-        plt.scatter(X_b, Y_b, s=1, linewidths=0.1, color='r', label='Граница ф.п.')
+        plt.scatter(X_b, Y_b, s=1, linewidths=0.1, color="r", label="Граница ф.п.")
         ax.legend()
 
-    ax.set_title(f"t = {int(time/(24*60*60))} д.\n dx = {round(geom.dx, 3)} м, "
-                 f"dy = {round(geom.dy, 3)} м, dt = {round(geom.dt/3600)} ч")
+    ax.set_title(
+        f"t = {int(time/(24*60*60))} д.\n dx = {round(geom.dx, 3)} м, "
+        f"dy = {round(geom.dy, 3)} м, dt = {round(geom.dt/3600)} ч"
+    )
 
     if invert_xaxis:
         labels = [item.get_text() for item in ax.get_xticklabels()]
@@ -70,21 +76,26 @@ def plot_temperature(T: ndarray,
         plt.close()
 
 
-def animate(T_full,
-            geom: DomainGeometry,
-            times,
-            t_step: int,
-            filename: str,
-            directory: str = "../graphs/animations/",
-            min_temp: Optional[float] = None,
-            max_temp: Optional[float] = None,
-            equal_aspect: Optional[bool] = True
-            ):
+def animate(
+    T_full,
+    geom: DomainGeometry,
+    times,
+    t_step: int,
+    filename: str,
+    directory: str = "../graphs/animations/",
+    min_temp: Optional[float] = None,
+    max_temp: Optional[float] = None,
+    equal_aspect: Optional[bool] = True,
+):
     # plt.rcParams["animation.ffmpeg_path"] = r"C:\Users\ZZZ\ffmpeg\ffmpeg.exe"
-    plt.rcParams["animation.convert_path"] = r"C:\Program Files\ImageMagick-7.1.1-Q16-HDRI\magick.exe"
+    plt.rcParams["animation.convert_path"] = (
+        r"C:\Program Files\ImageMagick-7.1.1-Q16-HDRI\magick.exe"
+    )
 
     fig = plt.figure()
-    ax = plt.axes(xlim=(0, geom.width), ylim=(0, geom.height), xlabel="x, м", ylabel="y, м")
+    ax = plt.axes(
+        xlim=(0, geom.width), ylim=(0, geom.height), xlabel="x, м", ylabel="y, м"
+    )
 
     if equal_aspect:
         ax.set_aspect("equal")
@@ -96,20 +107,26 @@ def animate(T_full,
     X, Y = geom.mesh_grid
 
     # define the first frame
-    cont = plt.contourf(X, Y, T_full[0], 50, cmap="viridis", vmin=min_temp, vmax=max_temp)
+    cont = plt.contourf(
+        X, Y, T_full[0], 50, cmap="viridis", vmin=min_temp, vmax=max_temp
+    )
     plt.title("t = 0 min")
     plt.colorbar()
     plt.clim(min_temp, max_temp)
-    plt.scatter(B[0][0], B[0][1], s=1, linewidths=0.1, color='r', label='Граница ф.п.')
+    plt.scatter(B[0][0], B[0][1], s=1, linewidths=0.1, color="r", label="Граница ф.п.")
     plt.legend()
 
     def update(i):
         cont = plt.contourf(X, Y, T_full[i], 50, cmap="viridis")
-        plt.scatter(B[i][0], B[i][1], s=1, linewidths=0.1, color='r', label='Граница ф.п.')
+        plt.scatter(
+            B[i][0], B[i][1], s=1, linewidths=0.1, color="r", label="Граница ф.п."
+        )
         plt.title(f"t = {round(i * t_step)} min")
         return cont
 
-    anim = animation.FuncAnimation(fig, update, frames=len(times), interval=100, blit=False, repeat=True)
+    anim = animation.FuncAnimation(
+        fig, update, frames=len(times), interval=100, blit=False, repeat=True
+    )
 
     if not os.path.exists(directory):
         os.makedirs(directory)
