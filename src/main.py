@@ -14,7 +14,7 @@ if __name__ == "__main__":
     geometry = DomainGeometry(
         width=1.0,
         height=1.0,
-        end_time=60.0 * 60.0 * 24.0 * 3.0,
+        end_time=60.0 * 60.0 * 24.0 * 7.0,
         n_x=500,
         n_y=500,
         n_t=60 * 24 * 3,
@@ -26,7 +26,7 @@ if __name__ == "__main__":
 
     # T = init_temperature(geometry, F)
 
-    ice_temp = 263.15
+    ice_temp = 264.15
     water_temp = 274.15
 
     T = init_temperature_circle(geom=geometry, water_temp=water_temp, ice_temp=ice_temp)
@@ -34,7 +34,7 @@ if __name__ == "__main__":
     print(f"Delta for initial temperature distribution: {get_max_delta(T)}")
 
     plot_temperature(
-        T=T - cfg.T_0,
+        T=T,
         geom=geometry,
         time=0.0,
         graph_id=0,
@@ -52,10 +52,10 @@ if __name__ == "__main__":
         t = n * geometry.dt
         T = solve(
             T,
-            top_cond_type=2,
-            right_cond_type=2,
-            bottom_cond_type=2,
-            left_cond_type=2,
+            top_cond_type=1,
+            right_cond_type=1,
+            bottom_cond_type=1,
+            left_cond_type=1,
             dx=geometry.dx,
             dy=geometry.dy,
             dt=geometry.dt,
@@ -65,7 +65,7 @@ if __name__ == "__main__":
 
         if n % 60 == 0:
             plot_temperature(
-                T=T - cfg.T_0,
+                T=T,
                 geom=geometry,
                 time=t,
                 graph_id=n,
@@ -94,7 +94,7 @@ if __name__ == "__main__":
         max_temp=water_temp - cfg.T_0,
     )
     plot_temperature(
-        T=T - cfg.T_0,
+        T=T,
         geom=geometry,
         time=geometry.n_t * geometry.dt,
         graph_id=int(geometry.n_t / 60),

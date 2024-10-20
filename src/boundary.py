@@ -28,20 +28,19 @@ def init_boundary(geom: DomainGeometry):
 def get_phase_trans_boundary(T: ndarray, geom: DomainGeometry):
     X = []
     Y = []
-
     for j in range(1, geom.n_y - 1):
         for i in range(1, geom.n_x - 1):
-            if (T[j, i] - cfg.T_0) * (T[j + 1, i] - cfg.T_0) < 0.0:
-                y_0 = abs(
-                    (T[j, i] * (j + 1) * geom.dy - T[j + 1, i] * j * geom.dy)
-                    / (T[j, i] - T[j + 1, i])
+            if (T[j, i] - cfg.T_0) * (T[j + 1, i] - cfg.T_0) <= 0.0:
+                y_0 = (
+                    j * geom.dy
+                    + ((cfg.T_0 - T[j, i]) / (T[j + 1, i] - T[j, i])) * geom.dy
                 )
                 Y.append(y_0)
                 X.append(i * geom.dx)
-            elif (T[j, i] - cfg.T_0) * (T[j, i + 1] - cfg.T_0) < 0.0:
-                x_0 = abs(
-                    (T[j, i] * (i + 1) * geom.dx - T[j, i + 1] * i * geom.dx)
-                    / (T[j, i] - T[j, i + 1])
+            if (T[j, i] - cfg.T_0) * (T[j, i + 1] - cfg.T_0) <= 0.0:
+                x_0 = (
+                    i * geom.dx
+                    + ((cfg.T_0 - T[j, i]) / (T[j, i + 1] - T[j, i])) * geom.dx
                 )
                 X.append(x_0)
                 Y.append(j * geom.dy)

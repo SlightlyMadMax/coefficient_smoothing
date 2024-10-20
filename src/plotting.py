@@ -7,6 +7,25 @@ from numpy import ndarray
 
 from src.boundary import get_phase_trans_boundary
 from src.geometry import DomainGeometry
+from src.utils import TemperatureUnit
+import parameters as cfg
+
+
+def _get_temp_in_display_units(
+    T: ndarray,
+    actual_temp_units: TemperatureUnit = TemperatureUnit.KELVIN,
+    display_temp_units: TemperatureUnit = TemperatureUnit.CELSIUS,
+):
+    """
+    Перевод температуры в желаемые единицы измерения
+    :param T: массив со значениями температур
+    :param actual_temp_units: исходные единица измерения
+    :param display_temp_units: желаемая единица измерения
+    :return: массив температур в желаемых единицах измерения
+    """
+    if actual_temp_units == display_temp_units:
+        return T
+    return T - cfg.T_0 if display_temp_units == TemperatureUnit.CELSIUS else T + cfg.T_0
 
 
 def plot_temperature(
@@ -14,6 +33,8 @@ def plot_temperature(
     geom: DomainGeometry,
     time: float,
     graph_id: int,
+    actual_temp_units: TemperatureUnit = TemperatureUnit.KELVIN,
+    display_temp_units: TemperatureUnit = TemperatureUnit.CELSIUS,
     plot_boundary: bool = False,
     show_graph: bool = True,
     show_grid: bool = False,
@@ -40,26 +61,39 @@ def plot_temperature(
     if show_grid:
         plt.plot(X, Y, marker=".", markersize=0.5, color="k", linestyle="none")
 
-    plt.contourf(X, Y, T, 50, cmap="viridis", vmin=min_temp, vmax=max_temp)
+    plt.contourf(
+        X,
+        Y,
+        _get_temp_in_display_units(T, actual_temp_units, display_temp_units),
+        50,
+        cmap="viridis",
+        vmin=min_temp,
+        vmax=max_temp,
+    )
     plt.clim(min_temp, max_temp)
     plt.colorbar()
 
     if plot_boundary:
-        X_b, Y_b = get_phase_trans_boundary(T=T, geom=geom)
+        X_b, Y_b = get_phase_trans_boundary(
+            T=T if actual_temp_units == TemperatureUnit.KELVIN else T + cfg.T_0,
+            geom=geom,
+        )
         plt.scatter(X_b, Y_b, s=1, linewidths=0.1, color="r", label="Граница ф.п.")
         ax.legend()
 
     ax.set_title(
-        f"t = {int(time/(24*60*60))} д.\n dx = {round(geom.dx, 3)} м, "
+        f"t = {int(time/(24*60))} ч.\n dx = {round(geom.dx, 3)} м, "
         f"dy = {round(geom.dy, 3)} м, dt = {round(geom.dt/3600)} ч"
     )
 
     if invert_xaxis:
         labels = [item.get_text() for item in ax.get_xticklabels()]
+        ax.set_xticks(ax.get_xticks())
         ax.set_xticklabels(reversed(labels))
 
     if invert_yaxis:
         labels = [item.get_text() for item in ax.get_yticklabels()]
+        ax.set_yticks(ax.get_yticks())
         ax.set_yticklabels(reversed(labels))
 
     if equal_aspect:
@@ -82,6 +116,8 @@ def animate(
     times,
     t_step: int,
     filename: str,
+    actual_temp_units: TemperatureUnit = TemperatureUnit.KELVIN,
+    display_temp_units: TemperatureUnit = TemperatureUnit.CELSIUS,
     directory: str = "../graphs/animations/",
     min_temp: Optional[float] = None,
     max_temp: Optional[float] = None,
@@ -102,13 +138,24 @@ def animate(
 
     B = []
     for T in T_full:
-        B.append(get_phase_trans_boundary(T, geom=geom))
+        B.append(
+            get_phase_trans_boundary(
+                T=T if actual_temp_units == TemperatureUnit.KELVIN else T + cfg.T_0,
+                geom=geom,
+            )
+        )
 
     X, Y = geom.mesh_grid
 
     # define the first frame
     cont = plt.contourf(
-        X, Y, T_full[0], 50, cmap="viridis", vmin=min_temp, vmax=max_temp
+        X,
+        Y,
+        _get_temp_in_display_units(T_full[0], actual_temp_units, display_temp_units),
+        50,
+        cmap="viridis",
+        vmin=min_temp,
+        vmax=max_temp,
     )
     plt.title("t = 0 min")
     plt.colorbar()
@@ -117,7 +164,15 @@ def animate(
     plt.legend()
 
     def update(i):
-        cont = plt.contourf(X, Y, T_full[i], 50, cmap="viridis")
+        cont = plt.contourf(
+            X,
+            Y,
+            _get_temp_in_display_units(
+                T_full[i], actual_temp_units, display_temp_units
+            ),
+            50,
+            cmap="viridis",
+        )
         plt.scatter(
             B[i][0], B[i][1], s=1, linewidths=0.1, color="r", label="Граница ф.п."
         )

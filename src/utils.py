@@ -1,6 +1,12 @@
 import numba
+from enum import Enum
 
 import src.parameters as cfg
+
+
+class TemperatureUnit(Enum):
+    CELSIUS = 1, "Celsius"
+    KELVIN = 2, "KELVIN"
 
 
 @numba.jit(nopython=True)
