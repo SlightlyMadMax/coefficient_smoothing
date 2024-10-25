@@ -2,7 +2,7 @@ import numpy as np
 import os
 import shutil
 
-from src.solver import solve
+from src.stefan_solver import solve
 from src.parameters import N_Y, N_X, N_T, T_0, WIDTH, HEIGHT, FULL_TIME
 from compare_boundary import compare_num_with_analytic
 from src.tests.one_dim.analytic_solution_1d_2f import get_analytic_solution

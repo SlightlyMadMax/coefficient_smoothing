@@ -4,7 +4,7 @@ import numpy as np
 
 from src.temperature import get_max_delta, init_temperature_circle
 from src.plotting import plot_temperature, animate
-from src.solver import solve
+from src.stefan_solver import solve
 from src.geometry import DomainGeometry
 from src.boundary import init_boundary
 import src.parameters as cfg
