@@ -1,12 +1,19 @@
-import math
-
 import numpy as np
 import numba
+from enum import Enum
 from numpy import ndarray
-from typing import Optional
+from typing import Tuple
 
 import src.parameters as cfg
 from src.geometry import DomainGeometry
+
+
+class TemperatureShape(Enum):
+    LINEAR = "linear"
+    CIRCLE = "circle"
+    DOUBLE_CIRCLE = "double_circle"
+    PACMAN = "pacman"
+    SQUARE = "square"
 
 
 @numba.jit(nopython=True)
@@ -31,136 +38,111 @@ def get_max_delta(T: ndarray) -> float:
     return delta
 
 
-def init_temperature(geom: DomainGeometry, F=None):
-    T = np.empty((geom.n_y, geom.n_x))
+def init_temperature(geom: DomainGeometry, F: ndarray) -> ndarray:
+    """
+    Initializes the temperature field based on the given interface F.
 
-    if F is None:
-        # Линейное изменение температуры от T_ICE_MIN на нижней границе y = 0 до T_WATER_MAX на верхней границе
-        T[0, :] = cfg.T_ICE_MIN
-        T[geom.n_y - 1, :] = cfg.T_WATER_MAX
-        for j in range(1, geom.n_y):
-            T[j, :] = cfg.T_ICE_MIN + j * (cfg.T_WATER_MAX - cfg.T_ICE_MIN) / geom.n_y
-    else:
-        # Линейное изменение температуры с учетом начального положения границы ф.п.
-        for i in range(geom.n_x):
-            for j in range(geom.n_y):
-                if j * geom.dy < F[i]:
-                    # T[j, i] = T_ICE_MIN
-                    T[j, i] = cfg.T_ICE_MIN + j * geom.dy * (
-                        cfg.T_0 - cfg.T_ICE_MIN
-                    ) / (geom.height - cfg.WATER_H)
-                elif j * geom.dy > F[i]:
-                    T[j, i] = cfg.T_WATER_MAX
-                else:
-                    T[j, i] = cfg.T_0
-
-    return T
-
-
-def init_temperature_angle(geom: DomainGeometry):
-    T = np.empty((geom.n_y, geom.n_x))
-    T[:, :] = cfg.T_WATER_MAX
-    T[0, :] = cfg.T_ICE_MIN
-    T[:, 0] = cfg.T_ICE_MIN
-
-    return T
-
-
-def init_temperature_test(geom: DomainGeometry):
-    T = np.empty((geom.n_y, geom.n_x))
-    T[:, :] = cfg.T_WATER_MAX
-
-    return T
-
-
-def init_temperature_circle(
-    geom: DomainGeometry, water_temp: float, ice_temp: float
-) -> ndarray:
-    T = np.empty((geom.n_y, geom.n_x))
-
-    for i in range(geom.n_x):
-        for j in range(geom.n_y):
-            if (i * geom.dx - geom.width / 2.0) ** 2 + (
-                j * geom.dy - geom.height / 2.0
-            ) ** 2 < 0.0625:
-                T[j, i] = water_temp
-            else:
-                T[j, i] = ice_temp
-
-    return T
-
-
-def init_temperature_pacman(geom: DomainGeometry):
-    T = np.empty((geom.n_y, geom.n_x))
-
-    for i in range(geom.n_x):
-        for j in range(geom.n_y):
-            if (i * geom.dx - geom.width / 2.0) ** 2 + (
-                j * geom.dy - geom.height / 2.0
-            ) ** 2 < 0.0625:
-                if i * geom.dx <= j * geom.dy <= -i * geom.dx + 1:
-                    T[j, i] = cfg.T_ICE_MIN
-                elif (i * geom.dx - 0.6) ** 2 + (j * geom.dy - 0.6) ** 2 < 0.0025:
-                    T[j, i] = cfg.T_ICE_MIN
-                else:
-                    T[j, i] = cfg.T_WATER_MAX
-            else:
-                T[j, i] = cfg.T_ICE_MIN
-
-    return T
-
-
-def init_temperature_double_circle(geom: DomainGeometry):
-    T = np.empty((geom.n_y, geom.n_x))
-
-    for i in range(geom.n_x):
-        for j in range(geom.n_y):
-            if (i * geom.dx - geom.width / 2.0) ** 2 + (j * geom.dy - 0.75) ** 2 < 0.04:
-                T[j, i] = cfg.T_WATER_MAX
-            elif (i * geom.dx - geom.width / 2.0) ** 2 + (
-                j * geom.dy - 0.25
-            ) ** 2 < 0.04:
-                T[j, i] = cfg.T_WATER_MAX
-            else:
-                T[j, i] = cfg.T_ICE_MIN * (1.0 - j / geom.n_y)
-
-    return T
-
-
-def init_temperature_square(geom: DomainGeometry):
-    T = np.empty((geom.n_y, geom.n_x))
-
-    for i in range(geom.n_x):
-        for j in range(geom.n_y):
-            if (
-                abs(i * geom.dx - geom.width / 2.0) < 0.25
-                and abs(j * geom.dy - geom.height / 2.0) < 0.25
-            ):
-                T[j, i] = cfg.T_WATER_MAX
-            else:
-                T[j, i] = cfg.T_ICE_MIN
-
-    return T
-
-
-def init_temperature_2f_test(
-    geom: DomainGeometry, water_temp: float, ice_temp: float, F: ndarray
-) -> ndarray:
+    :param geom: Domain geometry containing grid dimensions.
+    :param F: 1D array representing the interface position for the phase transition.
+    :return: 2D array of temperatures initialized based on the interface.
+    """
     T = np.empty((geom.n_y, geom.n_x))
 
     for i in range(geom.n_x):
         for j in range(geom.n_y):
             if j * geom.dy < F[i]:
-                T[j][i] = ice_temp
+                T[j, i] = cfg.T_ICE_MIN + j * geom.dy * (cfg.T_0 - cfg.T_ICE_MIN) / (
+                    geom.height - cfg.WATER_H
+                )
+            elif j * geom.dy > F[i]:
+                T[j, i] = cfg.T_WATER_MAX
             else:
-                T[j][i] = water_temp
+                T[j, i] = cfg.T_0
 
     return T
 
 
-def init_temperature_lake(geom: DomainGeometry, water_temp: float, ice_temp: float):
-    water_th_grid = np.load("data/lake.npz")["water"]
-    ice_th_grid = np.load("data/lake.npz")["ice"]
+def init_temperature_shape(
+    geom: DomainGeometry,
+    shape: TemperatureShape,
+    water_temp: float = cfg.T_WATER_MAX,
+    ice_temp: float = cfg.T_ICE_MIN,
+    radius: float = 0.25,
+    small_radius: float = 0.1,
+    square_size: float = 0.5,
+    eye_radius: float = 0.05,
+    eye_offset: float = 0.6,
+) -> ndarray:
+    T = np.full((geom.n_y, geom.n_x), ice_temp)
+
+    X, Y = geom.mesh_grid
+
+    if shape == TemperatureShape.LINEAR:
+        # Linear temperature gradient from bottom (ice) to top (water)
+        T[:, :] = np.linspace(ice_temp, water_temp, geom.n_y).reshape(1, -1)
+
+    elif shape == TemperatureShape.CIRCLE:
+        # Single circle centered at domain center with radius threshold
+        mask = (X - geom.width / 2) ** 2 + (Y - geom.height / 2) ** 2 < radius**2
+        T[mask] = water_temp
+
+    elif shape == TemperatureShape.DOUBLE_CIRCLE:
+        # Two circles centered vertically with specified radius
+        mask1 = (X - geom.width / 2) ** 2 + (
+            Y - 0.75 * geom.height
+        ) ** 2 < small_radius**2
+        mask2 = (X - geom.width / 2) ** 2 + (
+            Y - 0.25 * geom.height
+        ) ** 2 < small_radius**2
+        T[mask1 | mask2] = water_temp
+
+    elif shape == TemperatureShape.PACMAN:
+        for i in range(geom.n_x):
+            for j in range(geom.n_y):
+                if (i * geom.dx - geom.width / 2.0) ** 2 + (
+                    j * geom.dy - geom.height / 2.0
+                ) ** 2 < radius**2:
+                    if i * geom.dx <= j * geom.dy <= -i * geom.dx + 1:
+                        T[j, i] = ice_temp  # Pacman's mouth
+                    elif (i * geom.dx - eye_offset) ** 2 + (
+                        j * geom.dy - eye_offset
+                    ) ** 2 < eye_radius**2:
+                        T[j, i] = ice_temp  # Pacman's eye
+                    else:
+                        T[j, i] = water_temp  # Pacman's body
+                else:
+                    T[j, i] = ice_temp
+
+    elif shape == TemperatureShape.SQUARE:
+        # Square shape centered in the domain with side length "square_size"
+        half_size = square_size / 2
+        mask = (np.abs(X - geom.width / 2) < half_size) & (
+            np.abs(Y - geom.height / 2) < half_size
+        )
+        T[mask] = water_temp
+
+    return T
+
+
+def init_temperature_lake(
+    geom: DomainGeometry,
+    lake_data: Tuple[ndarray, ndarray],
+    water_temp: float,
+    ice_temp: float,
+) -> ndarray:
+    """
+    Initialize temperature for a lake profile using preloaded thickness data.
+
+    Parameters:
+    geom (DomainGeometry): Object containing geometry information.
+    lake_data (Tuple[ndarray, ndarray]): Preloaded water and ice thickness grids.
+    water_temp (float): Temperature for water.
+    ice_temp (float): Temperature for ice.
+
+    Returns:
+    ndarray: 2D temperature field array.
+    """
+    water_th_grid, ice_th_grid = lake_data
 
     grid_x = water_th_grid[0]
     grid_step = grid_x[1] - grid_x[0]
