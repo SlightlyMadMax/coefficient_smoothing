@@ -25,6 +25,7 @@ def solve_tridiagonal(alpha: ndarray, beta: ndarray, n: int, boundary_val: float
 def is_frozen(T) -> bool:
     """
     Определяет, произошло ли замерзание всей воды (отсутствие границы фазового перехода).
+
     :param T: двумерный массив температур
     :return: True -- если граница ф.п. отсутствует, иначе False
     """
@@ -42,6 +43,7 @@ def is_frozen(T) -> bool:
 def get_crev_depth(T) -> float:
     """
     Определяет глубину трещины.
+
     :param T: двумерный массив температур
     :return: максимальная глубина трещины
     """

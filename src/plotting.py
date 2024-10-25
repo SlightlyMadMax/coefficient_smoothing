@@ -18,6 +18,7 @@ def _get_temp_in_display_units(
 ):
     """
     Перевод температуры в желаемые единицы измерения
+
     :param T: массив со значениями температур
     :param actual_temp_units: исходные единица измерения
     :param display_temp_units: желаемая единица измерения
