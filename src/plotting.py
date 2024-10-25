@@ -5,7 +5,7 @@ from typing import Optional
 from matplotlib import animation
 from numpy import ndarray
 
-from src.boundary import get_phase_trans_boundary
+from src.temperature.boundary import get_phase_trans_boundary
 from src.geometry import DomainGeometry
 from src.utils import TemperatureUnit
 import parameters as cfg

@@ -1,5 +1,5 @@
 import numpy as np
-import numba
+
 from enum import Enum
 from numpy import ndarray
 from typing import Tuple
@@ -16,33 +16,11 @@ class TemperatureShape(Enum):
     SQUARE = "square"
 
 
-@numba.jit(nopython=True)
-def get_max_delta(T: ndarray) -> float:
-    """
-    Функция для поиска параметра сглаживания по обоим осям.
-    :param T: Двумерный массив температур на текущем временном слое.
-    :return: Максимальный температурный интервал содержащий границу ф.п.
-    """
-    n_y, n_x = T.shape
-    delta = 0.0
-    for i in range(n_x - 1):
-        for j in range(n_y - 1):
-            if (T[j + 1, i] - cfg.T_0) * (T[j, i] - cfg.T_0) < 0.0:
-                temp = abs(T[j + 1, i] - T[j, i])
-                delta = temp if temp > delta else delta
-                break
-            if (T[j, i + 1] - cfg.T_0) * (T[j, i] - cfg.T_0) < 0.0:
-                temp = abs(T[j, i + 1] - T[j, i])
-                delta = temp if temp > delta else delta
-                break
-    return delta
-
-
 def init_temperature(geom: DomainGeometry, F: ndarray) -> ndarray:
     """
     Initializes the temperature field based on the given interface F.
 
-    :param geom: Domain geometry containing grid dimensions.
+    :param geom: Object containing geometry information.
     :param F: 1D array representing the interface position for the phase transition.
     :return: 2D array of temperatures initialized based on the interface.
     """
@@ -73,6 +51,20 @@ def init_temperature_shape(
     eye_radius: float = 0.05,
     eye_offset: float = 0.6,
 ) -> ndarray:
+    """
+    Initializes the temperature field based on a specified shape.
+
+    :param geom: Object containing geometry information.
+    :param shape: The shape of the temperature distribution (circle, double circle, square, or pacman).
+    :param water_temp: The temperature assigned to water regions (default: T_WATER_MAX).
+    :param ice_temp: The temperature assigned to ice regions (default: T_ICE_MIN).
+    :param radius: The radius used for circular shapes (default: 0.25).
+    :param small_radius: A smaller radius for additional features in shapes (default: 0.1).
+    :param square_size: The size of the square region (default: 0.5).
+    :param eye_radius: The radius of the eye in the Pacman shape (default: 0.05).
+    :param eye_offset: The offset for positioning the eye in the Pacman shape (default: 0.6).
+    :return: A 2D array of temperatures initialized based on the specified shape.
+    """
     T = np.full((geom.n_y, geom.n_x), ice_temp)
 
     X, Y = geom.mesh_grid
@@ -133,14 +125,11 @@ def init_temperature_lake(
     """
     Initialize temperature for a lake profile using preloaded thickness data.
 
-    Parameters:
-    geom (DomainGeometry): Object containing geometry information.
-    lake_data (Tuple[ndarray, ndarray]): Preloaded water and ice thickness grids.
-    water_temp (float): Temperature for water.
-    ice_temp (float): Temperature for ice.
-
-    Returns:
-    ndarray: 2D temperature field array.
+    :param geom: Object containing geometry information.
+    :param lake_data: Preloaded water and ice thickness grids.
+    :param water_temp: Temperature for water.
+    :param ice_temp: Temperature for ice.
+    :return: 2D temperature field array.
     """
     water_th_grid, ice_th_grid = lake_data
 

@@ -2,10 +2,10 @@ import numpy as np
 from numpy import ndarray
 import numba
 
-from src.coefficients import c_smoothed, k_smoothed
+from src.temperature.coefficient_smoothing.coefficients import c_smoothed, k_smoothed
 import src.parameters as cfg
-from src.temperature import get_max_delta
-from src import boundary_conditions as bc
+from src.temperature import boundary_conditions as bc
+from src.temperature.coefficient_smoothing.delta import get_max_delta
 
 
 @numba.jit(nopython=True)
@@ -28,9 +28,10 @@ def solve(
     """
     Функция для нахождения решения задачи Стефана в обобщенной формулировке с помощью локально-одномерной
     линеаризованной разностной схемы.
+
     :param T: двумерный массив температур на текущем временном слое.
     :param temp_T: массив для хранения значений температуры на промежуточном слое
-    :param new_T: массив для хранения температуры на нвоом временном слое
+    :param new_T: массив для хранения температуры на новом временном слое
     :param alpha: массив для хранения коэффициентов обратного хода прогонки
     :param beta: массив для хранения коэффициентов обратного хода прогонки
     :param top_cond_type: тип граничного условия на верхней границе
@@ -194,6 +195,7 @@ def solve_alt_dir(T: ndarray, dx: float, dy: float, dt: float, _delta: float):
     """
     Функция для нахождения решения задачи Стефана в обобщенной формулировке с линеаризованной классической схемы
     переменных направлений (Писмена-Рэкфорда).
+
     :param T: Двумерный массив температур на текущем временном слое.
     :param _delta: Параметр сглаживания
     :return: Двумерный массив температур на новом временном слое.
