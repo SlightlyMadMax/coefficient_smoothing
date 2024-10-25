@@ -2,7 +2,7 @@ import time
 
 import numpy as np
 
-from src.temperature import get_max_delta, init_temperature_circle
+from src.temperature import get_max_delta, init_temperature_shape, TemperatureShape, init_temperature
 from src.plotting import plot_temperature, animate
 from src.stefan_solver import solve
 from src.geometry import DomainGeometry
@@ -29,7 +29,12 @@ if __name__ == "__main__":
     ice_temp = 264.15
     water_temp = 274.15
 
-    T = init_temperature_circle(geom=geometry, water_temp=water_temp, ice_temp=ice_temp)
+    T = init_temperature_shape(
+        geom=geometry,
+        shape=TemperatureShape.SQUARE,
+        water_temp=water_temp,
+        ice_temp=ice_temp,
+    )
 
     print(f"Delta for initial temperature distribution: {get_max_delta(T)}")
 
