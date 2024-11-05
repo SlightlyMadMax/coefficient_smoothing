@@ -7,27 +7,27 @@ import src.parameters as cfg
 
 
 @numba.jit(nopython=True)
-def get_left_bc_1(time: float, n_y: int) -> NDArray:
+def get_left_bc_1(time: float, n_y: int) -> NDArray[np.float64]:
     return cfg.T_ICE_MIN * np.ones(n_y)
 
 
 @numba.jit(nopython=True)
-def get_top_bc_1(time: float, n_x: int) -> NDArray:
+def get_top_bc_1(time: float, n_x: int) -> NDArray[np.float64]:
     return cfg.T_ICE_MIN * np.ones(n_x)
 
 
 @numba.jit(nopython=True)
-def get_right_bc_1(time: float, n_y: int) -> NDArray:
+def get_right_bc_1(time: float, n_y: int) -> NDArray[np.float64]:
     return cfg.T_ICE_MIN * np.ones(n_y)
 
 
 @numba.jit(nopython=True)
-def get_bottom_bc_1(time: float, n_x: int) -> NDArray:
+def get_bottom_bc_1(time: float, n_x: int) -> NDArray[np.float64]:
     return cfg.T_ICE_MIN * np.ones(n_x)
 
 
 @numba.jit(nopython=True)
-def get_top_bc_2(time: float, n_x: int) -> NDArray:
+def get_top_bc_2(time: float, n_x: int) -> NDArray[np.float64]:
     return np.zeros(n_x)
 
 

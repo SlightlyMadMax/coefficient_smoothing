@@ -25,7 +25,7 @@ def init_boundary(geom: DomainGeometry):
     return F
 
 
-def get_phase_trans_boundary(T: NDArray, geom: DomainGeometry):
+def get_phase_trans_boundary(T: NDArray[np.float64], geom: DomainGeometry):
     X = []
     Y = []
     for j in range(1, geom.n_y - 1):

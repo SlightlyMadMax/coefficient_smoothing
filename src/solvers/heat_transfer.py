@@ -35,18 +35,18 @@ class HeatTransferSolver(ISolver):
         self.right_cond_type = right_cond_type
         self.bottom_cond_type = bottom_cond_type
         self.left_cond_type = left_cond_type
-        self.temp_u: NDArray = np.empty((self.n_y, self.n_x))
-        self.new_u: NDArray = np.empty((self.n_y, self.n_x))
-        self.alpha: NDArray = np.empty(self.n_x - 1)
-        self.beta: NDArray = np.empty(self.n_x - 1)
+        self.temp_u: NDArray[np.float64] = np.empty((self.n_y, self.n_x))
+        self.new_u: NDArray[np.float64] = np.empty((self.n_y, self.n_x))
+        self.alpha: NDArray[np.float64] = np.empty(self.n_x - 1)
+        self.beta: NDArray[np.float64] = np.empty(self.n_x - 1)
 
     @staticmethod
     @numba.jit(nopython=True)
     def compute_sweep_x(
-        u: NDArray,
-        temp_u: NDArray,
-        alpha: NDArray,
-        beta: NDArray,
+        u: NDArray[np.float64],
+        temp_u: NDArray[np.float64],
+        alpha: NDArray[np.float64],
+        beta: NDArray[np.float64],
         dx: float,
         dy: float,
         dt: float,
@@ -56,7 +56,7 @@ class HeatTransferSolver(ISolver):
         left_cond_type: int,
         delta: float,
         time: float = 0.0,
-    ) -> np.ndarray:
+    ) -> NDArray[np.float64]:
         n_y, n_x = u.shape
         inv_dx2 = 1.0 / (dx * dx)
 
@@ -133,10 +133,10 @@ class HeatTransferSolver(ISolver):
     @staticmethod
     @numba.jit(nopython=True)
     def compute_sweep_y(
-        temp_u: NDArray,
-        new_u: NDArray,
-        alpha: NDArray,
-        beta: NDArray,
+        temp_u: NDArray[np.float64],
+        new_u: NDArray[np.float64],
+        alpha: NDArray[np.float64],
+        beta: NDArray[np.float64],
         dx: float,
         dy: float,
         dt: float,
@@ -146,7 +146,7 @@ class HeatTransferSolver(ISolver):
         left_cond_type: int,
         delta: float,
         time: float = 0.0,
-    ):
+    ) -> NDArray[np.float64]:
         n_y, n_x = temp_u.shape
         inv_dy2 = 1.0 / (dy * dy)
 
@@ -224,7 +224,7 @@ class HeatTransferSolver(ISolver):
 
         return new_u
 
-    def solve(self, u: NDArray, time: float = 0.0) -> NDArray:
+    def solve(self, u: NDArray[np.float64], time: float = 0.0) -> NDArray[np.float64]:
         delta = cfg.delta if self.fixed_delta else get_max_delta(u)
 
         # Run the x-direction sweep

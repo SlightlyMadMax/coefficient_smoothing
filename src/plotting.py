@@ -1,5 +1,6 @@
 import os
 import matplotlib.pyplot as plt
+import numpy as np
 
 from typing import Optional, List
 from matplotlib import animation
@@ -12,10 +13,10 @@ import parameters as cfg
 
 
 def _get_temp_in_display_units(
-    T: NDArray,
+    T: NDArray[np.float64],
     actual_temp_units: TemperatureUnit = TemperatureUnit.KELVIN,
     display_temp_units: TemperatureUnit = TemperatureUnit.CELSIUS,
-):
+) -> NDArray[np.float64]:
     """
     Перевод температуры в желаемые единицы измерения
 
@@ -30,7 +31,7 @@ def _get_temp_in_display_units(
 
 
 def plot_temperature(
-    T: NDArray,
+    T: NDArray[np.float64],
     geom: DomainGeometry,
     time: float,
     graph_id: int,
@@ -45,7 +46,7 @@ def plot_temperature(
     equal_aspect: Optional[bool] = True,
     invert_xaxis: Optional[bool] = False,
     invert_yaxis: Optional[bool] = False,
-):
+) -> None:
     X, Y = geom.mesh_grid
 
     if not show_graph:
@@ -112,7 +113,7 @@ def plot_temperature(
 
 
 def animate(
-    T_full: List[NDArray],
+    T_full: List[NDArray[np.float64]],
     geom: DomainGeometry,
     times: List[float],
     t_step: int,
