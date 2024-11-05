@@ -1,23 +1,25 @@
 import os
 import matplotlib.pyplot as plt
+import numpy as np
 
-from typing import Optional
+from typing import Optional, List
 from matplotlib import animation
-from numpy import ndarray
+from numpy.typing import NDArray
 
-from src.boundary import get_phase_trans_boundary
+from src.temperature.boundary import get_phase_trans_boundary
 from src.geometry import DomainGeometry
 from src.utils import TemperatureUnit
 import parameters as cfg
 
 
 def _get_temp_in_display_units(
-    T: ndarray,
+    T: NDArray[np.float64],
     actual_temp_units: TemperatureUnit = TemperatureUnit.KELVIN,
     display_temp_units: TemperatureUnit = TemperatureUnit.CELSIUS,
-):
+) -> NDArray[np.float64]:
     """
     Перевод температуры в желаемые единицы измерения
+
     :param T: массив со значениями температур
     :param actual_temp_units: исходные единица измерения
     :param display_temp_units: желаемая единица измерения
@@ -29,7 +31,7 @@ def _get_temp_in_display_units(
 
 
 def plot_temperature(
-    T: ndarray,
+    T: NDArray[np.float64],
     geom: DomainGeometry,
     time: float,
     graph_id: int,
@@ -44,7 +46,7 @@ def plot_temperature(
     equal_aspect: Optional[bool] = True,
     invert_xaxis: Optional[bool] = False,
     invert_yaxis: Optional[bool] = False,
-):
+) -> None:
     X, Y = geom.mesh_grid
 
     if not show_graph:
@@ -111,9 +113,9 @@ def plot_temperature(
 
 
 def animate(
-    T_full,
+    T_full: List[NDArray[np.float64]],
     geom: DomainGeometry,
-    times,
+    times: List[float],
     t_step: int,
     filename: str,
     actual_temp_units: TemperatureUnit = TemperatureUnit.KELVIN,

@@ -2,7 +2,7 @@ import numba
 import numpy as np
 from enum import Enum
 
-from numpy import ndarray
+from numpy.typing import NDArray
 
 import src.parameters as cfg
 
@@ -13,7 +13,9 @@ class TemperatureUnit(Enum):
 
 
 @numba.jit(nopython=True)
-def solve_tridiagonal(alpha: ndarray, beta: ndarray, n: int, boundary_val: float):
+def solve_tridiagonal(
+    alpha: NDArray[np.float64], beta: NDArray[np.float64], n: int, boundary_val: float
+) -> NDArray[np.float64]:
     result = np.empty(n)
     result[-1] = boundary_val
     for i in range(n - 2, -1, -1):
@@ -22,9 +24,10 @@ def solve_tridiagonal(alpha: ndarray, beta: ndarray, n: int, boundary_val: float
 
 
 @numba.jit(nopython=True)
-def is_frozen(T) -> bool:
+def is_frozen(T: NDArray[np.float64]) -> bool:
     """
     Определяет, произошло ли замерзание всей воды (отсутствие границы фазового перехода).
+
     :param T: двумерный массив температур
     :return: True -- если граница ф.п. отсутствует, иначе False
     """
@@ -39,9 +42,10 @@ def is_frozen(T) -> bool:
 
 
 @numba.jit(nopython=True)
-def get_crev_depth(T) -> float:
+def get_crev_depth(T: NDArray[np.float64]) -> float:
     """
     Определяет глубину трещины.
+
     :param T: двумерный массив температур
     :return: максимальная глубина трещины
     """
@@ -55,7 +59,7 @@ def get_crev_depth(T) -> float:
 
 
 @numba.jit(nopython=True)
-def get_water_thickness(T, dy: float):
+def get_water_thickness(T: NDArray[np.float64], dy: float) -> float:
     n_y, n_x = T.shape
     bottom, top = 0.0, 0.0
     for j in range(n_y - 1):
