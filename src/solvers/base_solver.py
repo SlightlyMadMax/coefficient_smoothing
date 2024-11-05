@@ -1,12 +1,12 @@
 from abc import ABC, abstractmethod
 
-from numpy import ndarray
+from numpy.typing import NDArray
 
 
 class ISolver(ABC):
     @abstractmethod
     def solve(
         self,
-        u: ndarray,
+        u: NDArray,
         time: float = 0.0,
-    ) -> ndarray: ...
+    ) -> NDArray: ...

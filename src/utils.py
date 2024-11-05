@@ -2,7 +2,7 @@ import numba
 import numpy as np
 from enum import Enum
 
-from numpy import ndarray
+from numpy.typing import NDArray
 
 import src.parameters as cfg
 
@@ -13,7 +13,7 @@ class TemperatureUnit(Enum):
 
 
 @numba.jit(nopython=True)
-def solve_tridiagonal(alpha: ndarray, beta: ndarray, n: int, boundary_val: float):
+def solve_tridiagonal(alpha: NDArray, beta: NDArray, n: int, boundary_val: float):
     result = np.empty(n)
     result[-1] = boundary_val
     for i in range(n - 2, -1, -1):
@@ -22,7 +22,7 @@ def solve_tridiagonal(alpha: ndarray, beta: ndarray, n: int, boundary_val: float
 
 
 @numba.jit(nopython=True)
-def is_frozen(T) -> bool:
+def is_frozen(T: NDArray) -> bool:
     """
     Определяет, произошло ли замерзание всей воды (отсутствие границы фазового перехода).
 
@@ -40,7 +40,7 @@ def is_frozen(T) -> bool:
 
 
 @numba.jit(nopython=True)
-def get_crev_depth(T) -> float:
+def get_crev_depth(T: NDArray) -> float:
     """
     Определяет глубину трещины.
 
@@ -57,7 +57,7 @@ def get_crev_depth(T) -> float:
 
 
 @numba.jit(nopython=True)
-def get_water_thickness(T, dy: float):
+def get_water_thickness(T: NDArray, dy: float):
     n_y, n_x = T.shape
     bottom, top = 0.0, 0.0
     for j in range(n_y - 1):

@@ -1,9 +1,9 @@
 import os
 import matplotlib.pyplot as plt
 
-from typing import Optional
+from typing import Optional, List
 from matplotlib import animation
-from numpy import ndarray
+from numpy.typing import NDArray
 
 from src.temperature.boundary import get_phase_trans_boundary
 from src.geometry import DomainGeometry
@@ -12,7 +12,7 @@ import parameters as cfg
 
 
 def _get_temp_in_display_units(
-    T: ndarray,
+    T: NDArray,
     actual_temp_units: TemperatureUnit = TemperatureUnit.KELVIN,
     display_temp_units: TemperatureUnit = TemperatureUnit.CELSIUS,
 ):
@@ -30,7 +30,7 @@ def _get_temp_in_display_units(
 
 
 def plot_temperature(
-    T: ndarray,
+    T: NDArray,
     geom: DomainGeometry,
     time: float,
     graph_id: int,
@@ -112,9 +112,9 @@ def plot_temperature(
 
 
 def animate(
-    T_full,
+    T_full: List[NDArray],
     geom: DomainGeometry,
-    times,
+    times: List[float],
     t_step: int,
     filename: str,
     actual_temp_units: TemperatureUnit = TemperatureUnit.KELVIN,

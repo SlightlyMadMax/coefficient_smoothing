@@ -1,7 +1,7 @@
 import numpy as np
 
 from enum import Enum
-from numpy import ndarray
+from numpy.typing import NDArray
 from typing import Tuple
 
 import src.parameters as cfg
@@ -16,7 +16,7 @@ class TemperatureShape(Enum):
     SQUARE = "square"
 
 
-def init_temperature(geom: DomainGeometry, F: ndarray) -> ndarray:
+def init_temperature(geom: DomainGeometry, F: NDArray) -> NDArray:
     """
     Initializes the temperature field based on the given interface F.
 
@@ -50,7 +50,7 @@ def init_temperature_shape(
     square_size: float = 0.5,
     eye_radius: float = 0.05,
     eye_offset: float = 0.6,
-) -> ndarray:
+) -> NDArray:
     """
     Initializes the temperature field based on a specified shape.
 
@@ -118,10 +118,10 @@ def init_temperature_shape(
 
 def init_temperature_lake(
     geom: DomainGeometry,
-    lake_data: Tuple[ndarray, ndarray],
+    lake_data: Tuple[NDArray, NDArray],
     water_temp: float,
     ice_temp: float,
-) -> ndarray:
+) -> NDArray:
     """
     Initialize temperature for a lake profile using preloaded thickness data.
 

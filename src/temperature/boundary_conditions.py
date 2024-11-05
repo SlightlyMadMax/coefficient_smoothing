@@ -1,41 +1,34 @@
 import numba
 import numpy as np
+from numpy.typing import NDArray
 from math import sin, cos, pi
 
-from numba import types
-from numpy import ndarray
-from typing import Callable, Optional
-from enum import Enum
-from numba.typed import Dict
 import src.parameters as cfg
 
 
 @numba.jit(nopython=True)
-def get_left_bc_1(time: float, n_y: int) -> ndarray:
+def get_left_bc_1(time: float, n_y: int) -> NDArray:
     return cfg.T_ICE_MIN * np.ones(n_y)
 
 
 @numba.jit(nopython=True)
-def get_top_bc_1(time: float, n_x: int) -> ndarray:
+def get_top_bc_1(time: float, n_x: int) -> NDArray:
     return cfg.T_ICE_MIN * np.ones(n_x)
-    # return cfg.T_WATER_MAX * np.ones(n_x)
 
 
 @numba.jit(nopython=True)
-def get_right_bc_1(time: float, n_y: int) -> ndarray:
+def get_right_bc_1(time: float, n_y: int) -> NDArray:
     return cfg.T_ICE_MIN * np.ones(n_y)
 
 
 @numba.jit(nopython=True)
-def get_bottom_bc_1(time: float, n_x: int) -> ndarray:
+def get_bottom_bc_1(time: float, n_x: int) -> NDArray:
     return cfg.T_ICE_MIN * np.ones(n_x)
-    # return T_ICE_MIN * np.ones(n_x)
 
 
 @numba.jit(nopython=True)
-def get_top_bc_2(time: float) -> float:
-    return 0.0
-    # return -10.0 / cfg.K_ICE
+def get_top_bc_2(time: float, n_x: int) -> NDArray:
+    return np.zeros(n_x)
 
 
 @numba.jit(nopython=True)

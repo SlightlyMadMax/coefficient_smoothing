@@ -5,7 +5,7 @@ import src.parameters as cfg
 
 
 @numba.jit(nopython=True)
-def delta_function(T_j_i: float, _delta: float):
+def delta_function(T_j_i: float, _delta: float) -> float:
     """
     Сглаженная аппроксимация дельта-функции, сосредоточенная в T_0.
     :param T_j_i: Значение температуры в (i, j) узле координатной сетки.
@@ -18,7 +18,7 @@ def delta_function(T_j_i: float, _delta: float):
 
 
 @numba.jit(nopython=True)
-def c_smoothed(T_j_i: float, _delta: float):
+def c_smoothed(T_j_i: float, _delta: float) -> float:
     """
     Сглаженная эффективная объемная теплоемкость.
     :param T_j_i: Значение температуры в (i, j) узле координатной сетки.
@@ -38,7 +38,7 @@ def c_smoothed(T_j_i: float, _delta: float):
 
 
 @numba.jit(nopython=True)
-def k_smoothed(T_j_i: float, _delta: float):
+def k_smoothed(T_j_i: float, _delta: float) -> float:
     """
     Сглаженный коэффициент теплопроводности.
     :param T_j_i: Значение температуры в (i, j) узле координатной сетки.
@@ -57,21 +57,21 @@ def k_smoothed(T_j_i: float, _delta: float):
 
 
 @numba.jit(nopython=True)
-def delta_parabolic(T_j_i: float, _delta: float):
+def delta_parabolic(T_j_i: float, _delta: float) -> float:
     if abs(T_j_i - cfg.T_0) <= _delta:
         return 0.75 * (1.0 - T_j_i * T_j_i / (_delta * _delta)) / _delta
     return 0.0
 
 
 @numba.jit(nopython=True)
-def delta_const(T_j_i: float, _delta: float):
+def delta_const(T_j_i: float, _delta: float) -> float:
     if abs(T_j_i - cfg.T_0) <= _delta:
         return 0.5 / _delta
     return 0.0
 
 
 @numba.jit(nopython=True)
-def c_simple(T_j_i: float, _delta: float):
+def c_simple(T_j_i: float, _delta: float) -> float:
     if abs(T_j_i - cfg.T_0) <= _delta:
         return 0.5 * (cfg.C_WATER_VOL + cfg.C_ICE_VOL) + cfg.L_VOL * delta_const(
             T_j_i, _delta
@@ -83,7 +83,7 @@ def c_simple(T_j_i: float, _delta: float):
 
 
 @numba.jit(nopython=True)
-def k_simple(T_j_i: float, _delta: float):
+def k_simple(T_j_i: float, _delta: float) -> float:
     if abs(T_j_i - cfg.T_0) <= _delta:
         return (
             cfg.K_WATER

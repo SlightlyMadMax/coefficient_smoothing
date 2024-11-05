@@ -1,7 +1,7 @@
-from enum import Enum
-
 import numba
 import numpy as np
+from enum import Enum
+from numpy.typing import NDArray
 
 from src.geometry import DomainGeometry
 import src.parameters as cfg
@@ -35,18 +35,18 @@ class HeatTransferSolver(ISolver):
         self.right_cond_type = right_cond_type
         self.bottom_cond_type = bottom_cond_type
         self.left_cond_type = left_cond_type
-        self.temp_u: np.ndarray = np.empty((self.n_y, self.n_x))
-        self.new_u: np.ndarray = np.empty((self.n_y, self.n_x))
-        self.alpha: np.ndarray = np.empty(self.n_x - 1)
-        self.beta: np.ndarray = np.empty(self.n_x - 1)
+        self.temp_u: NDArray = np.empty((self.n_y, self.n_x))
+        self.new_u: NDArray = np.empty((self.n_y, self.n_x))
+        self.alpha: NDArray = np.empty(self.n_x - 1)
+        self.beta: NDArray = np.empty(self.n_x - 1)
 
     @staticmethod
     @numba.jit(nopython=True)
     def compute_sweep_x(
-        u: np.ndarray,
-        temp_u: np.ndarray,
-        alpha: np.ndarray,
-        beta: np.ndarray,
+        u: NDArray,
+        temp_u: NDArray,
+        alpha: NDArray,
+        beta: NDArray,
         dx: float,
         dy: float,
         dt: float,
@@ -133,10 +133,10 @@ class HeatTransferSolver(ISolver):
     @staticmethod
     @numba.jit(nopython=True)
     def compute_sweep_y(
-        temp_u: np.ndarray,
-        new_u: np.ndarray,
-        alpha: np.ndarray,
-        beta: np.ndarray,
+        temp_u: NDArray,
+        new_u: NDArray,
+        alpha: NDArray,
+        beta: NDArray,
         dx: float,
         dy: float,
         dt: float,
@@ -154,7 +154,7 @@ class HeatTransferSolver(ISolver):
         rbc = bc.get_right_bc_1(time, n_y)
         bbc = bc.get_bottom_bc_1(time, n_x)
         tbc = bc.get_top_bc_1(time, n_x)
-        phi = bc.get_top_bc_2(time)
+        phi = bc.get_top_bc_2(time, n_x)
         psi, ksi = bc.get_top_bc_3(time)
 
         for i in range(1, n_x - 1):
@@ -202,7 +202,7 @@ class HeatTransferSolver(ISolver):
             if top_cond_type == cfg.DIRICHLET:
                 new_u[n_y - 1, i] = tbc[i]
             elif top_cond_type == cfg.NEUMANN:
-                new_u[n_y - 1, i] = (dy * phi + beta[n_y - 2]) / (1.0 - alpha[n_y - 2])
+                new_u[n_y - 1, i] = (dy * phi[i] + beta[n_y - 2]) / (1.0 - alpha[n_y - 2])
             else:  # ROBIN
                 new_u[n_y - 1, i] = (dy * psi + beta[n_y - 2]) / (
                     1 - alpha[n_y - 2] - dy * ksi
@@ -224,7 +224,7 @@ class HeatTransferSolver(ISolver):
 
         return new_u
 
-    def solve(self, u: np.ndarray, time: float = 0.0) -> np.ndarray:
+    def solve(self, u: NDArray, time: float = 0.0) -> NDArray:
         delta = cfg.delta if self.fixed_delta else get_max_delta(u)
 
         # Run the x-direction sweep

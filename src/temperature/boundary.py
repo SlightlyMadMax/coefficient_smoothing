@@ -1,6 +1,6 @@
 import numpy as np
 import math
-from numpy import ndarray
+from numpy.typing import NDArray
 
 import src.parameters as cfg
 from src.geometry import DomainGeometry
@@ -25,7 +25,7 @@ def init_boundary(geom: DomainGeometry):
     return F
 
 
-def get_phase_trans_boundary(T: ndarray, geom: DomainGeometry):
+def get_phase_trans_boundary(T: NDArray, geom: DomainGeometry):
     X = []
     Y = []
     for j in range(1, geom.n_y - 1):

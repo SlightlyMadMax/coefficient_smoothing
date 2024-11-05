@@ -1,12 +1,11 @@
 import numba
-
-from numpy import ndarray
+from numpy.typing import NDArray
 
 import src.parameters as cfg
 
 
 @numba.jit(nopython=True)
-def get_max_delta(T: ndarray) -> float:
+def get_max_delta(T: NDArray) -> float:
     """
     Функция для поиска параметра сглаживания по обоим осям.
 
