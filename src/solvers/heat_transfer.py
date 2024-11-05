@@ -5,13 +5,12 @@ from numpy.typing import NDArray
 
 from src.geometry import DomainGeometry
 import src.parameters as cfg
-from src.solvers.base_solver import ISolver
 from src.temperature.coefficient_smoothing.coefficients import c_smoothed, k_smoothed
 from src.temperature.coefficient_smoothing.delta import get_max_delta
 from src.temperature import boundary_conditions as bc
 
 
-class HeatTransferSolver(ISolver):
+class HeatTransferSolver:
     class SolvingMethod(Enum):
         LOC_ONE_DIM = "Locally One-Dimensional Linearized Difference Scheme"
         ALT_DIR = "Classic Linearized Alternating Direction Scheme"
@@ -19,6 +18,7 @@ class HeatTransferSolver(ISolver):
     def __init__(
         self,
         geometry: DomainGeometry,
+        v: float,
         top_cond_type: int,
         right_cond_type: int,
         bottom_cond_type: int,
@@ -35,6 +35,7 @@ class HeatTransferSolver(ISolver):
         self.right_cond_type = right_cond_type
         self.bottom_cond_type = bottom_cond_type
         self.left_cond_type = left_cond_type
+        self.vel: NDArray[np.float64] = np.full((self.n_y, self.n_x, 2), v, dtype=float)
         self.temp_u: NDArray[np.float64] = np.empty((self.n_y, self.n_x))
         self.new_u: NDArray[np.float64] = np.empty((self.n_y, self.n_x))
         self.alpha: NDArray[np.float64] = np.empty(self.n_x - 1)
@@ -44,6 +45,7 @@ class HeatTransferSolver(ISolver):
     @numba.jit(nopython=True)
     def compute_sweep_x(
         u: NDArray[np.float64],
+        vel: NDArray[np.float64],
         temp_u: NDArray[np.float64],
         alpha: NDArray[np.float64],
         beta: NDArray[np.float64],
@@ -59,6 +61,7 @@ class HeatTransferSolver(ISolver):
     ) -> NDArray[np.float64]:
         n_y, n_x = u.shape
         inv_dx2 = 1.0 / (dx * dx)
+        inv_dx = 1.0 / dx
 
         lbc = bc.get_left_bc_1(time, n_y)
         rbc = bc.get_right_bc_1(time, n_y)
@@ -78,12 +81,24 @@ class HeatTransferSolver(ISolver):
                 inv_c = 1.0 / c_smoothed(u[j, i], delta)
 
                 # Коэффициент при T_(i+1,j)^(n+1/2)
+                # a_i = (
+                #     -dt
+                #     * k_smoothed(0.5 * (u[j, i + 1] + u[j, i]), delta)
+                #     * inv_c
+                #     * inv_dx2
+                # )
                 a_i = (
-                    -dt
-                    * k_smoothed(0.5 * (u[j, i + 1] + u[j, i]), delta)
-                    * inv_c
-                    * inv_dx2
+                    dt
+                    * inv_dx
+                    * (
+                        0.5 * (vel[j, i + 1, 0] + vel[j, i, 0])
+                        - k_smoothed(0.5 * (u[j, i + 1] + u[j, i]), delta)
+                        * inv_c
+                        * inv_dx
+                        * cfg.INV_NU
+                    )
                 )
+
                 # Коэффициент при T_(i,j)^(n+1/2)
                 b_i = (
                     1.0
@@ -94,13 +109,26 @@ class HeatTransferSolver(ISolver):
                     )
                     * inv_c
                     * inv_dx2
+                    * cfg.INV_NU
                 )
+
                 # Коэффициент при T_(i-1,j)^(n+1/2)
+                # c_i = (
+                #     -dt
+                #     * k_smoothed(0.5 * (u[j, i] + u[j, i - 1]), delta)
+                #     * inv_c
+                #     * inv_dx2
+                # )
                 c_i = (
                     -dt
-                    * k_smoothed(0.5 * (u[j, i] + u[j, i - 1]), delta)
-                    * inv_c
-                    * inv_dx2
+                    * inv_dx
+                    * (
+                        0.5 * (vel[j, i - 1, 0] + vel[j, i, 0])
+                        + k_smoothed(0.5 * (u[j, i] + u[j, i - 1]), delta)
+                        * inv_c
+                        * inv_dx
+                        * cfg.INV_NU
+                    )
                 )
 
                 # Расчет прогоночных коэффициентов
@@ -134,6 +162,7 @@ class HeatTransferSolver(ISolver):
     @numba.jit(nopython=True)
     def compute_sweep_y(
         temp_u: NDArray[np.float64],
+        vel: NDArray[np.float64],
         new_u: NDArray[np.float64],
         alpha: NDArray[np.float64],
         beta: NDArray[np.float64],
@@ -149,6 +178,7 @@ class HeatTransferSolver(ISolver):
     ) -> NDArray[np.float64]:
         n_y, n_x = temp_u.shape
         inv_dy2 = 1.0 / (dy * dy)
+        inv_dy = 1.0 / dy
 
         lbc = bc.get_left_bc_1(time, n_y)
         rbc = bc.get_right_bc_1(time, n_y)
@@ -168,12 +198,24 @@ class HeatTransferSolver(ISolver):
                 inv_c = 1.0 / c_smoothed(temp_u[j, i], delta)
 
                 # Коэффициент при T_(i,j-1)^n
+                # a_j = (
+                #     -dt
+                #     * k_smoothed(0.5 * (temp_u[j + 1, i] + temp_u[j, i]), delta)
+                #     * inv_c
+                #     * inv_dy2
+                # )
                 a_j = (
-                    -dt
-                    * k_smoothed(0.5 * (temp_u[j + 1, i] + temp_u[j, i]), delta)
-                    * inv_c
-                    * inv_dy2
+                    dt
+                    * inv_dy
+                    * (
+                        0.5 * (vel[j + 1, i, 1] + vel[j, i, 1])
+                        - k_smoothed(0.5 * (temp_u[j + 1, i] + temp_u[j, i]), delta)
+                        * inv_c
+                        * inv_dy
+                        * cfg.INV_NU
+                    )
                 )
+
                 # Коэффициент при T_(i,j)^n
                 b_j = (
                     1.0
@@ -184,13 +226,26 @@ class HeatTransferSolver(ISolver):
                     )
                     * inv_c
                     * inv_dy2
+                    * cfg.INV_NU
                 )
+
                 # Коэффициент при T_(i,j+1)^n
+                # c_j = (
+                #     -dt
+                #     * k_smoothed(0.5 * (temp_u[j, i] + temp_u[j - 1, i]), delta)
+                #     * inv_c
+                #     * inv_dy2
+                # )
                 c_j = (
                     -dt
-                    * k_smoothed(0.5 * (temp_u[j, i] + temp_u[j - 1, i]), delta)
-                    * inv_c
-                    * inv_dy2
+                    * inv_dy
+                    * (
+                        0.5 * (vel[j - 1, i, 1] + vel[j, i, 1])
+                        + k_smoothed(0.5 * (temp_u[j, i] + temp_u[j - 1, i]), delta)
+                        * inv_c
+                        * inv_dy
+                        * cfg.INV_NU
+                    )
                 )
 
                 # Расчет прогоночных коэффициентов
@@ -225,11 +280,19 @@ class HeatTransferSolver(ISolver):
         return new_u
 
     def solve(self, u: NDArray[np.float64], time: float = 0.0) -> NDArray[np.float64]:
+
+        for j in range(self.n_y):
+            for i in range(self.n_x):
+                if u[j, i] < cfg.T_0:
+                    self.vel[j, i, 0] = 0.0
+                    self.vel[j, i, 1] = 0.0
+
         delta = cfg.delta if self.fixed_delta else get_max_delta(u)
 
         # Run the x-direction sweep
         self.temp_u = self.compute_sweep_x(
             u=u,
+            vel=self.vel,
             temp_u=self.temp_u,
             alpha=self.alpha,
             beta=self.beta,
@@ -244,11 +307,18 @@ class HeatTransferSolver(ISolver):
             time=time,
         )
 
+        for j in range(self.n_y):
+            for i in range(self.n_x):
+                if self.temp_u[j, i] < cfg.T_0:
+                    self.vel[j, i, 0] = 0.0
+                    self.vel[j, i, 1] = 0.0
+
         delta = cfg.delta if self.fixed_delta else get_max_delta(self.temp_u)
 
         # Run the y-direction sweep
         self.new_u = self.compute_sweep_y(
             temp_u=self.temp_u,
+            vel=self.vel,
             new_u=self.new_u,
             alpha=self.alpha,
             beta=self.beta,
