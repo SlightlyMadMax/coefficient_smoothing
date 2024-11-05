@@ -2,13 +2,12 @@ import time
 
 import numpy as np
 
-from src.solvers.heat_transfer import HeatTransferSolver
-from src.temperature.coefficient_smoothing.delta import get_max_delta
-from src.plotting import plot_temperature, animate
-from src.temperature.solver import solve
-from src.geometry import DomainGeometry
 import src.parameters as cfg
+from src.geometry import DomainGeometry
 from src.temperature.init_values import init_temperature_shape, TemperatureShape
+from src.temperature.coefficient_smoothing.delta import get_max_delta
+from src.solvers.heat_transfer import HeatTransferSolver
+from src.plotting import plot_temperature, animate
 
 if __name__ == "__main__":
     geometry = DomainGeometry(
