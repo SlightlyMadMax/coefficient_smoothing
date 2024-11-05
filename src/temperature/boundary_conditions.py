@@ -27,8 +27,8 @@ def get_bottom_bc_1(time: float, n_x: int) -> NDArray[np.float64]:
 
 
 @numba.jit(nopython=True)
-def get_top_bc_2(time: float, n_x: int) -> NDArray[np.float64]:
-    return np.zeros(n_x)
+def get_top_bc_2(time: float) -> float:
+    return 0.0
 
 
 @numba.jit(nopython=True)

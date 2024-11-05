@@ -154,7 +154,7 @@ class HeatTransferSolver(ISolver):
         rbc = bc.get_right_bc_1(time, n_y)
         bbc = bc.get_bottom_bc_1(time, n_x)
         tbc = bc.get_top_bc_1(time, n_x)
-        phi = bc.get_top_bc_2(time, n_x)
+        phi = bc.get_top_bc_2(time)
         psi, ksi = bc.get_top_bc_3(time)
 
         for i in range(1, n_x - 1):
@@ -202,7 +202,7 @@ class HeatTransferSolver(ISolver):
             if top_cond_type == cfg.DIRICHLET:
                 new_u[n_y - 1, i] = tbc[i]
             elif top_cond_type == cfg.NEUMANN:
-                new_u[n_y - 1, i] = (dy * phi[i] + beta[n_y - 2]) / (1.0 - alpha[n_y - 2])
+                new_u[n_y - 1, i] = (dy * phi + beta[n_y - 2]) / (1.0 - alpha[n_y - 2])
             else:  # ROBIN
                 new_u[n_y - 1, i] = (dy * psi + beta[n_y - 2]) / (
                     1 - alpha[n_y - 2] - dy * ksi
