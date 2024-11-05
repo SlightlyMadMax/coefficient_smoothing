@@ -2,6 +2,7 @@ import time
 
 import numpy as np
 
+from src.solvers.heat_transfer import HeatTransferSolver
 from src.temperature.coefficient_smoothing.delta import get_max_delta
 from src.plotting import plot_temperature, animate
 from src.temperature.solver import solve
@@ -30,7 +31,7 @@ if __name__ == "__main__":
 
     T = init_temperature_shape(
         geom=geometry,
-        shape=TemperatureShape.SQUARE,
+        shape=TemperatureShape.PACMAN,
         water_temp=water_temp,
         ice_temp=ice_temp,
     )
@@ -49,32 +50,20 @@ if __name__ == "__main__":
         invert_yaxis=False,
     )
 
-    temp_T = np.empty((geometry.n_y, geometry.n_x))
-    new_T = np.empty((geometry.n_y, geometry.n_x))
-    alpha = np.empty(geometry.n_x - 1)
-    beta = np.empty(geometry.n_x - 1)
-
     T_full = [T]
     times = [0.0]
+    heat_transfer_solver = HeatTransferSolver(
+        geometry=geometry,
+        top_cond_type=cfg.DIRICHLET,
+        right_cond_type=cfg.DIRICHLET,
+        bottom_cond_type=cfg.DIRICHLET,
+        left_cond_type=cfg.DIRICHLET,
+        fixed_delta=False
+    )
     start_time = time.process_time()
     for n in range(1, geometry.n_t):
         t = n * geometry.dt
-        T = solve(
-            T=T,
-            temp_T=temp_T,
-            new_T=new_T,
-            alpha=alpha,
-            beta=beta,
-            top_cond_type=cfg.DIRICHLET,
-            right_cond_type=cfg.DIRICHLET,
-            bottom_cond_type=cfg.DIRICHLET,
-            left_cond_type=cfg.DIRICHLET,
-            dx=geometry.dx,
-            dy=geometry.dy,
-            dt=geometry.dt,
-            time=t,
-            fixed_delta=False,
-        )
+        T = heat_transfer_solver.solve(u=T, time=t)
 
         if n % 60 == 0:
             plot_temperature(
