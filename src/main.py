@@ -53,7 +53,6 @@ if __name__ == "__main__":
     times = [0.0]
     heat_transfer_solver = HeatTransferSolver(
         geometry=geometry,
-        v=1.0,
         top_cond_type=cfg.DIRICHLET,
         right_cond_type=cfg.DIRICHLET,
         bottom_cond_type=cfg.DIRICHLET,
