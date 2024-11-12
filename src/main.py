@@ -25,18 +25,17 @@ if __name__ == "__main__":
 
     # T = init_temperature(geometry, F)
 
-    ice_temp = 264.15
-    water_temp = 274.15
+    ice_temp = cfg.T_ICE_MIN
+    water_temp = cfg.T_WATER_MAX
 
     T = init_temperature_shape(
         geom=geometry,
         shape=TemperatureShape.CIRCLE,
-        water_temp=ice_temp,
-        ice_temp=water_temp,
+        water_temp=water_temp,
+        ice_temp=ice_temp,
     )
 
     print(f"Delta for initial temperature distribution: {get_max_delta(T)}")
-
     plot_temperature(
         T=T,
         geom=geometry,
@@ -90,7 +89,7 @@ if __name__ == "__main__":
         geom=geometry,
         times=times,
         t_step=3600,
-        filename="new_test_animation",
+        filename="new_test_animation_2",
         min_temp=ice_temp - cfg.T_0,
         max_temp=water_temp - cfg.T_0,
     )
