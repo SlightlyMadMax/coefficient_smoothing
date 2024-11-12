@@ -34,14 +34,14 @@ class HeatTransferSolver:
         self.right_cond_type = right_cond_type
         self.bottom_cond_type = bottom_cond_type
         self.left_cond_type = left_cond_type
-        self.temp_u: NDArray[np.float64] = np.empty((self.n_y, self.n_x))
-        self.new_u: NDArray[np.float64] = np.empty((self.n_y, self.n_x))
-        self.alpha: NDArray[np.float64] = np.empty(self.n_x - 1)
-        self.beta: NDArray[np.float64] = np.empty(self.n_x - 1)
+        self._temp_u: NDArray[np.float64] = np.empty((self.n_y, self.n_x))
+        self._new_u: NDArray[np.float64] = np.empty((self.n_y, self.n_x))
+        self._alpha: NDArray[np.float64] = np.empty(self.n_x - 1)
+        self._beta: NDArray[np.float64] = np.empty(self.n_x - 1)
 
     @staticmethod
     @numba.jit(nopython=True)
-    def compute_sweep_x(
+    def _compute_sweep_x(
         u: NDArray[np.float64],
         temp_u: NDArray[np.float64],
         alpha: NDArray[np.float64],
@@ -133,7 +133,7 @@ class HeatTransferSolver:
 
     @staticmethod
     @numba.jit(nopython=True)
-    def compute_sweep_y(
+    def _compute_sweep_y(
         temp_u: NDArray[np.float64],
         new_u: NDArray[np.float64],
         alpha: NDArray[np.float64],
@@ -232,11 +232,11 @@ class HeatTransferSolver:
         delta = cfg.delta if self.fixed_delta else get_max_delta(u)
 
         # Run the x-direction sweep
-        self.temp_u = self.compute_sweep_x(
+        self._temp_u = self._compute_sweep_x(
             u=u,
-            temp_u=self.temp_u,
-            alpha=self.alpha,
-            beta=self.beta,
+            temp_u=self._temp_u,
+            alpha=self._alpha,
+            beta=self._beta,
             dx=self.dx,
             dy=self.dy,
             dt=self.dt,
@@ -248,14 +248,14 @@ class HeatTransferSolver:
             time=time,
         )
 
-        delta = cfg.delta if self.fixed_delta else get_max_delta(self.temp_u)
+        delta = cfg.delta if self.fixed_delta else get_max_delta(self._temp_u)
 
         # Run the y-direction sweep
-        self.new_u = self.compute_sweep_y(
-            temp_u=self.temp_u,
-            new_u=self.new_u,
-            alpha=self.alpha,
-            beta=self.beta,
+        self._new_u = self._compute_sweep_y(
+            temp_u=self._temp_u,
+            new_u=self._new_u,
+            alpha=self._alpha,
+            beta=self._beta,
             dx=self.dx,
             dy=self.dy,
             dt=self.dt,
@@ -267,4 +267,4 @@ class HeatTransferSolver:
             time=time,
         )
 
-        return self.new_u
+        return self._new_u
