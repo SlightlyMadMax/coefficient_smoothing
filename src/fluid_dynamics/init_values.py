@@ -19,3 +19,11 @@ def initialize_velocity_field(
     # Create a 3D array where each element at (i, j) is a vector (V_x, V_y)
     velocity_field = np.full((geom.n_y, geom.n_x, 2), initial_velocity, dtype=float)
     return velocity_field
+
+
+def initialize_stream_function(geom: DomainGeometry) -> np.ndarray:
+    return np.zeros(geom.n_y, geom.n_x)
+
+
+def initialize_vorticity(geom: DomainGeometry) -> np.ndarray:
+    return np.zeros(geom.n_y, geom.n_x)
