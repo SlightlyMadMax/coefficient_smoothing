@@ -1,6 +1,5 @@
 import numba
 import numpy as np
-from enum import Enum
 from numpy.typing import NDArray
 
 from src.geometry import DomainGeometry
@@ -11,10 +10,6 @@ from src.temperature import boundary_conditions as bc
 
 
 class HeatTransferSolver:
-    class SolvingMethod(Enum):
-        LOC_ONE_DIM = "Locally One-Dimensional Linearized Difference Scheme"
-        ALT_DIR = "Classic Linearized Alternating Direction Scheme"
-
     def __init__(
         self,
         geometry: DomainGeometry,
@@ -35,6 +30,7 @@ class HeatTransferSolver:
         self.bottom_cond_type = bottom_cond_type
         self.left_cond_type = left_cond_type
         self._temp_u: NDArray[np.float64] = np.empty((self.n_y, self.n_x))
+        self._iter_u: NDArray[np.float64] = np.empty((self.n_y, self.n_x))
         self._new_u: NDArray[np.float64] = np.empty((self.n_y, self.n_x))
         self._alpha: NDArray[np.float64] = np.empty(self.n_x - 1)
         self._beta: NDArray[np.float64] = np.empty(self.n_x - 1)
@@ -43,15 +39,13 @@ class HeatTransferSolver:
     @numba.jit(nopython=True)
     def _compute_sweep_x(
         u: NDArray[np.float64],
+        iter_u: NDArray[np.float64],
         temp_u: NDArray[np.float64],
         alpha: NDArray[np.float64],
         beta: NDArray[np.float64],
         dx: float,
-        dy: float,
         dt: float,
-        top_cond_type: int,
         right_cond_type: int,
-        bottom_cond_type: int,
         left_cond_type: int,
         delta: float,
         time: float = 0.0,
@@ -61,10 +55,6 @@ class HeatTransferSolver:
 
         lbc = bc.get_left_bc_1(time, n_y)
         rbc = bc.get_right_bc_1(time, n_y)
-        bbc = bc.get_bottom_bc_1(time, n_x)
-        tbc = bc.get_top_bc_1(time, n_x)
-        phi = bc.get_top_bc_2(time)
-        psi, ksi = bc.get_top_bc_3(time)
 
         for j in range(1, n_y - 1):
             if left_cond_type == cfg.DIRICHLET:
@@ -74,12 +64,12 @@ class HeatTransferSolver:
                 alpha[0] = 1.0
                 beta[0] = 0.0
             for i in range(1, n_x - 1):
-                inv_c = 1.0 / c_smoothed(u[j, i], delta)
+                inv_c = 1.0 / c_smoothed(iter_u[j, i], delta)
 
                 # Коэффициент при T_(i+1,j)^(n+1/2)
                 a_i = (
                     -dt
-                    * k_smoothed(0.5 * (u[j, i + 1] + u[j, i]), delta)
+                    * k_smoothed(0.5 * (iter_u[j, i + 1] + iter_u[j, i]), delta)
                     * inv_c
                     * inv_dx2
                 )
@@ -89,8 +79,8 @@ class HeatTransferSolver:
                     1.0
                     + dt
                     * (
-                        k_smoothed(0.5 * (u[j, i + 1] + u[j, i]), delta)
-                        + k_smoothed(0.5 * (u[j, i] + u[j, i - 1]), delta)
+                        k_smoothed(0.5 * (iter_u[j, i + 1] + iter_u[j, i]), delta)
+                        + k_smoothed(0.5 * (iter_u[j, i] + iter_u[j, i - 1]), delta)
                     )
                     * inv_c
                     * inv_dx2
@@ -99,7 +89,7 @@ class HeatTransferSolver:
                 # Коэффициент при T_(i-1,j)^(n+1/2)
                 c_i = (
                     -dt
-                    * k_smoothed(0.5 * (u[j, i] + u[j, i - 1]), delta)
+                    * k_smoothed(0.5 * (iter_u[j, i] + iter_u[j, i - 1]), delta)
                     * inv_c
                     * inv_dx2
                 )
@@ -118,16 +108,8 @@ class HeatTransferSolver:
             for i in range(n_x - 2, -1, -1):
                 temp_u[j, i] = alpha[i] * temp_u[j, i + 1] + beta[i]
 
-        temp_u[0, :] = bbc
-
-        if top_cond_type == cfg.DIRICHLET:
-            temp_u[n_y - 1, :] = tbc
-        elif top_cond_type == cfg.NEUMANN:
-            temp_u[n_y - 1, :] = (dy * phi + beta[n_y - 2]) / (1.0 - alpha[n_y - 2])
-        else:  # ROBIN
-            temp_u[n_y - 1, :] = (dy * psi + beta[n_y - 2]) / (
-                1 - alpha[n_y - 2] - dy * ksi
-            )
+        temp_u[0, :] = u[0, :]
+        temp_u[n_y - 1, :] = u[n_y - 1, :]
 
         return temp_u
 
@@ -135,25 +117,20 @@ class HeatTransferSolver:
     @numba.jit(nopython=True)
     def _compute_sweep_y(
         temp_u: NDArray[np.float64],
+        iter_u: NDArray[np.float64],
         new_u: NDArray[np.float64],
         alpha: NDArray[np.float64],
         beta: NDArray[np.float64],
-        dx: float,
         dy: float,
         dt: float,
         top_cond_type: int,
-        right_cond_type: int,
         bottom_cond_type: int,
-        left_cond_type: int,
         delta: float,
         time: float = 0.0,
     ) -> NDArray[np.float64]:
         n_y, n_x = temp_u.shape
         inv_dy2 = 1.0 / (dy * dy)
-        inv_dy = 1.0 / dy
 
-        lbc = bc.get_left_bc_1(time, n_y)
-        rbc = bc.get_right_bc_1(time, n_y)
         bbc = bc.get_bottom_bc_1(time, n_x)
         tbc = bc.get_top_bc_1(time, n_x)
         phi = bc.get_top_bc_2(time)
@@ -167,12 +144,12 @@ class HeatTransferSolver:
                 alpha[0] = 1.0
                 beta[0] = 0.0
             for j in range(1, n_y - 1):
-                inv_c = 1.0 / c_smoothed(temp_u[j, i], delta)
+                inv_c = 1.0 / c_smoothed(iter_u[j, i], delta)
 
                 # Коэффициент при T_(i,j-1)^n
                 a_j = (
                     -dt
-                    * k_smoothed(0.5 * (temp_u[j + 1, i] + temp_u[j, i]), delta)
+                    * k_smoothed(0.5 * (iter_u[j + 1, i] + iter_u[j, i]), delta)
                     * inv_c
                     * inv_dy2
                 )
@@ -182,8 +159,8 @@ class HeatTransferSolver:
                     1.0
                     + dt
                     * (
-                        k_smoothed(0.5 * (temp_u[j + 1, i] + temp_u[j, i]), delta)
-                        + k_smoothed(0.5 * (temp_u[j, i] + temp_u[j - 1, i]), delta)
+                        k_smoothed(0.5 * (iter_u[j + 1, i] + iter_u[j, i]), delta)
+                        + k_smoothed(0.5 * (iter_u[j, i] + iter_u[j - 1, i]), delta)
                     )
                     * inv_c
                     * inv_dy2
@@ -192,7 +169,7 @@ class HeatTransferSolver:
                 # Коэффициент при T_(i,j+1)^n
                 c_j = (
                     -dt
-                    * k_smoothed(0.5 * (temp_u[j, i] + temp_u[j - 1, i]), delta)
+                    * k_smoothed(0.5 * (iter_u[j, i] + iter_u[j - 1, i]), delta)
                     * inv_c
                     * inv_dy2
                 )
@@ -216,55 +193,51 @@ class HeatTransferSolver:
             for j in range(n_y - 2, -1, -1):
                 new_u[j, i] = alpha[j] * new_u[j + 1, i] + beta[j]
 
-        if left_cond_type == cfg.DIRICHLET:
-            new_u[:, 0] = lbc
-        else:  # NEUMANN
-            new_u[:, 0] = new_u[:, 1]
-
-        if right_cond_type == cfg.DIRICHLET:
-            new_u[:, n_x - 1] = rbc
-        else:  # NEUMANN
-            new_u[:, n_x - 1] = new_u[:, n_x - 2]
+        new_u[:, 0] = temp_u[:, 0]
+        new_u[:, n_x - 1] = temp_u[:, n_x - 1]
 
         return new_u
 
-    def solve(self, u: NDArray[np.float64], time: float = 0.0) -> NDArray[np.float64]:
-        delta = cfg.delta if self.fixed_delta else get_max_delta(u)
+    def solve(
+        self, u: NDArray[np.float64], time: float = 0.0, iters: int = 1
+    ) -> NDArray[np.float64]:
 
-        # Run the x-direction sweep
-        self._temp_u = self._compute_sweep_x(
-            u=u,
-            temp_u=self._temp_u,
-            alpha=self._alpha,
-            beta=self._beta,
-            dx=self.dx,
-            dy=self.dy,
-            dt=self.dt,
-            top_cond_type=self.top_cond_type,
-            bottom_cond_type=self.bottom_cond_type,
-            right_cond_type=self.right_cond_type,
-            left_cond_type=self.left_cond_type,
-            delta=delta,
-            time=time,
-        )
+        self._iter_u = np.copy(u)
 
-        delta = cfg.delta if self.fixed_delta else get_max_delta(self._temp_u)
+        # Run the x-direction sweep iterations
+        for i in range(iters):
+            delta = cfg.delta if self.fixed_delta else get_max_delta(self._iter_u)
+            self._temp_u = self._compute_sweep_x(
+                u=u,
+                iter_u=self._iter_u,
+                temp_u=self._temp_u,
+                alpha=self._alpha,
+                beta=self._beta,
+                dx=self.dx,
+                dt=self.dt,
+                right_cond_type=self.right_cond_type,
+                left_cond_type=self.left_cond_type,
+                delta=delta,
+                time=time,
+            )
+            self._iter_u = np.copy(self._temp_u)
 
-        # Run the y-direction sweep
-        self._new_u = self._compute_sweep_y(
-            temp_u=self._temp_u,
-            new_u=self._new_u,
-            alpha=self._alpha,
-            beta=self._beta,
-            dx=self.dx,
-            dy=self.dy,
-            dt=self.dt,
-            top_cond_type=self.top_cond_type,
-            bottom_cond_type=self.bottom_cond_type,
-            right_cond_type=self.right_cond_type,
-            left_cond_type=self.left_cond_type,
-            delta=delta,
-            time=time,
-        )
+        # Run the y-direction sweep iterations
+        for i in range(iters):
+            delta = cfg.delta if self.fixed_delta else get_max_delta(self._temp_u)
+            self._new_u = self._compute_sweep_y(
+                temp_u=self._temp_u,
+                iter_u=self._iter_u,
+                new_u=self._new_u,
+                alpha=self._alpha,
+                beta=self._beta,
+                dy=self.dy,
+                dt=self.dt,
+                top_cond_type=self.top_cond_type,
+                bottom_cond_type=self.bottom_cond_type,
+                delta=delta,
+                time=time,
+            )
+            self._iter_u = np.copy(self._new_u)
 
         return self._new_u

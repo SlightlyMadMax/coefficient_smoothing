@@ -61,7 +61,7 @@ if __name__ == "__main__":
     start_time = time.process_time()
     for n in range(1, geometry.n_t):
         t = n * geometry.dt
-        T = heat_transfer_solver.solve(u=T, time=t)
+        T = heat_transfer_solver.solve(u=T, time=t, iters=2)
 
         if n % 60 == 0:
             plot_temperature(
