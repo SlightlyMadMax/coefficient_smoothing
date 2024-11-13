@@ -9,7 +9,7 @@ from numpy.typing import NDArray
 from src.temperature.boundary import get_phase_trans_boundary
 from src.geometry import DomainGeometry
 from src.utils import TemperatureUnit
-import parameters as cfg
+import src.parameters as cfg
 
 
 def _get_temp_in_display_units(
