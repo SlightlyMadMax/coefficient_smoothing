@@ -6,8 +6,9 @@ import src.parameters as cfg
 from src.geometry import DomainGeometry
 from src.temperature.init_values import init_temperature_shape, TemperatureShape
 from src.temperature.coefficient_smoothing.delta import get_max_delta
-from src.solvers.heat_transfer import HeatTransferSolver
+from src.solvers.heat_transfer import LocOneDimSolver
 from src.plotting import plot_temperature, animate
+
 
 if __name__ == "__main__":
     geometry = DomainGeometry(
@@ -30,7 +31,7 @@ if __name__ == "__main__":
 
     T = init_temperature_shape(
         geom=geometry,
-        shape=TemperatureShape.CIRCLE,
+        shape=TemperatureShape.PACMAN,
         water_temp=water_temp,
         ice_temp=ice_temp,
     )
@@ -50,7 +51,7 @@ if __name__ == "__main__":
 
     T_full = [T]
     times = [0.0]
-    heat_transfer_solver = HeatTransferSolver(
+    heat_transfer_solver = LocOneDimSolver(
         geometry=geometry,
         top_cond_type=cfg.DIRICHLET,
         right_cond_type=cfg.DIRICHLET,
@@ -61,8 +62,7 @@ if __name__ == "__main__":
     start_time = time.process_time()
     for n in range(1, geometry.n_t):
         t = n * geometry.dt
-        T = heat_transfer_solver.solve(u=T, time=t, iters=2)
-
+        T = heat_transfer_solver.solve(u=T, time=t, iters=1)
         if n % 60 == 0:
             plot_temperature(
                 T=T,
