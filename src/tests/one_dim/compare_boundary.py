@@ -37,13 +37,21 @@ def compare_num_with_analytic(num: list[float], _s_0: float, dir_name: str,
 
     print(int(t_0/3600))
 
+    print(num)
+
     time = [i * 60. * 60. * 24.0 + t_0 for i in range(n)]
 
     exact = [gamma * time[i] ** 0.5 for i in range(n)]
 
+    print(exact)
+
     relative_error = [abs(exact[i] - num[i]) * 100 / exact[i] for i in range(n)]
 
+    print(relative_error)
+
     abs_error = [abs(exact[i] - num[i]) for i in range(n)]
+
+    print(abs_error)
 
     print(f"Average abs. error: {np.average(abs_error)}")
     print(f"Шаг сетки: {dy}")
