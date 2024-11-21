@@ -70,7 +70,7 @@ if __name__ == "__main__":
                 time=t,
                 graph_id=n,
                 plot_boundary=True,
-                show_graph=False,
+                show_graph=True,
                 min_temp=ice_temp - cfg.T_0,
                 max_temp=water_temp - cfg.T_0,
                 invert_yaxis=False,
