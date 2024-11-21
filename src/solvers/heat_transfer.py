@@ -60,7 +60,7 @@ class LocOneDimSolver(HeatTransferSolver):
     def _compute_sweep_x(
         u: NDArray[np.float64],
         iter_u: NDArray[np.float64],
-        temp_u: NDArray[np.float64],
+        result: NDArray[np.float64],
         a_x: NDArray[np.float64],
         b_x: NDArray[np.float64],
         c_x: NDArray[np.float64],
@@ -109,7 +109,7 @@ class LocOneDimSolver(HeatTransferSolver):
                     * inv_dx2
                 )
 
-            temp_u[j, :] = solve_tridiagonal(
+            result[j, :] = solve_tridiagonal(
                 a=a_x,
                 b=b_x,
                 c=c_x,
@@ -121,17 +121,17 @@ class LocOneDimSolver(HeatTransferSolver):
                 h=dx,
             )
 
-        temp_u[0, :] = u[0, :]
-        temp_u[n_y - 1, :] = u[n_y - 1, :]
+        result[0, :] = u[0, :]
+        result[n_y - 1, :] = u[n_y - 1, :]
 
-        return temp_u
+        return result
 
     @staticmethod
     @numba.jit(nopython=True)
     def _compute_sweep_y(
-        temp_u: NDArray[np.float64],
+        u: NDArray[np.float64],
         iter_u: NDArray[np.float64],
-        new_u: NDArray[np.float64],
+        result: NDArray[np.float64],
         a_y: NDArray[np.float64],
         b_y: NDArray[np.float64],
         c_y: NDArray[np.float64],
@@ -142,7 +142,7 @@ class LocOneDimSolver(HeatTransferSolver):
         delta: float,
         time: float = 0.0,
     ) -> NDArray[np.float64]:
-        n_y, n_x = temp_u.shape
+        n_y, n_x = u.shape
         inv_dy2 = 1.0 / (dy * dy)
 
         bbc = bc.get_bottom_bc_1(time, n_x)
@@ -182,11 +182,11 @@ class LocOneDimSolver(HeatTransferSolver):
                     * inv_dy2
                 )
 
-            new_u[:, i] = solve_tridiagonal(
+            result[:, i] = solve_tridiagonal(
                 a=a_y,
                 b=b_y,
                 c=c_y,
-                f=temp_u[:, i],
+                f=u[:, i],
                 left_type=bottom_cond_type,
                 left_value=bbc[0],
                 right_type=top_cond_type,
@@ -197,10 +197,10 @@ class LocOneDimSolver(HeatTransferSolver):
                 h=dy,
             )
 
-        new_u[:, 0] = temp_u[:, 0]
-        new_u[:, n_x - 1] = temp_u[:, n_x - 1]
+        result[:, 0] = u[:, 0]
+        result[:, n_x - 1] = u[:, n_x - 1]
 
-        return new_u
+        return result
 
     def solve(
         self, u: NDArray[np.float64], time: float = 0.0, iters: int = 1
@@ -214,7 +214,7 @@ class LocOneDimSolver(HeatTransferSolver):
             self._temp_u = self._compute_sweep_x(
                 u=u,
                 iter_u=self._iter_u,
-                temp_u=self._temp_u,
+                result=self._temp_u,
                 a_x=self._a_x,
                 b_x=self._b_x,
                 c_x=self._c_x,
@@ -231,9 +231,9 @@ class LocOneDimSolver(HeatTransferSolver):
         for i in range(iters):
             delta = cfg.delta if self.fixed_delta else get_max_delta(self._temp_u)
             self._new_u = self._compute_sweep_y(
-                temp_u=self._temp_u,
+                u=self._temp_u,
                 iter_u=self._iter_u,
-                new_u=self._new_u,
+                result=self._new_u,
                 a_y=self._a_y,
                 b_y=self._b_y,
                 c_y=self._c_y,
