@@ -4,16 +4,16 @@ import numba
 import numpy as np
 from numpy.typing import NDArray
 
-from src.fluid_dynamics.fluid_solver import BaseSolver
 from src.geometry import DomainGeometry
 import src.parameters as cfg
+from src.solver import SweepSolver2D
 from src.temperature.coefficient_smoothing.coefficients import c_smoothed, k_smoothed
 from src.temperature.coefficient_smoothing.delta import get_max_delta
 from src.temperature import boundary_conditions as bc
 from src.utils import solve_tridiagonal
 
 
-class HeatTransferSolver(BaseSolver):
+class HeatTransferSolver(SweepSolver2D):
     def __init__(
         self,
         geometry: DomainGeometry,
@@ -41,12 +41,6 @@ class HeatTransferSolver(BaseSolver):
         self._new_u: NDArray[np.float64] = np.empty(
             (self.geometry.n_y, self.geometry.n_x)
         )
-        self._a_x: NDArray[np.float64] = np.empty((self.geometry.n_x - 1))
-        self._b_x: NDArray[np.float64] = np.empty((self.geometry.n_x - 1))
-        self._c_x: NDArray[np.float64] = np.empty((self.geometry.n_x - 1))
-        self._a_y: NDArray[np.float64] = np.empty((self.geometry.n_y - 1))
-        self._b_y: NDArray[np.float64] = np.empty((self.geometry.n_y - 1))
-        self._c_y: NDArray[np.float64] = np.empty((self.geometry.n_y - 1))
 
     @abstractmethod
     def solve(
