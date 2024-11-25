@@ -6,10 +6,12 @@ from numpy.typing import NDArray
 
 from src.geometry import DomainGeometry
 import src.parameters as cfg
+from src.plotting import plot_temperature
 from src.solver import SweepSolver2D
 from src.temperature.coefficient_smoothing.coefficients import c_smoothed, k_smoothed
 from src.temperature.coefficient_smoothing.delta import get_max_delta
 from src.temperature import boundary_conditions as bc
+from src.temperature.utils import TemperatureUnit
 from src.utils import solve_tridiagonal
 
 
@@ -44,7 +46,11 @@ class HeatTransferSolver(SweepSolver2D):
 
     @abstractmethod
     def solve(
-        self, u: NDArray[np.float64], time: float = 0.0, iters: int = 1
+        self,
+        u: NDArray[np.float64],
+        sf: NDArray[np.float64],
+        time: float = 0.0,
+        iters: int = 1,
     ) -> NDArray[np.float64]: ...
 
 
@@ -54,11 +60,13 @@ class LocOneDimSolver(HeatTransferSolver):
     def _compute_sweep_x(
         u: NDArray[np.float64],
         iter_u: NDArray[np.float64],
+        sf: NDArray[np.float64],
         result: NDArray[np.float64],
         a_x: NDArray[np.float64],
         b_x: NDArray[np.float64],
         c_x: NDArray[np.float64],
         dx: float,
+        dy: float,
         dt: float,
         right_cond_type: int,
         left_cond_type: int,
@@ -66,21 +74,34 @@ class LocOneDimSolver(HeatTransferSolver):
         time: float = 0.0,
     ) -> NDArray[np.float64]:
         n_y, n_x = u.shape
+        inv_dx = 1.0 / dx
         inv_dx2 = 1.0 / (dx * dx)
+        inv_dy = 1.0 / dy
 
         lbc = bc.get_left_bc_1(time, n_y)
         rbc = bc.get_right_bc_1(time, n_y)
 
         for j in range(1, n_y - 1):
-            for i in range(0, n_x - 1):
+            for i in range(1, n_x - 1):
                 inv_c = 1.0 / c_smoothed(iter_u[j, i], delta)
 
                 # Коэффициент при T_(i+1,j)^(n+1/2)
                 a_x[i] = (
-                    -dt
-                    * k_smoothed(0.5 * (iter_u[j, i + 1] + iter_u[j, i]), delta)
-                    * inv_c
-                    * inv_dx2
+                    dt
+                    * inv_dx
+                    * (
+                        0.125
+                        * inv_dy
+                        * (
+                            sf[j + 1, i]
+                            - sf[j - 1, i]
+                            + sf[j + 1, i + 1]
+                            - sf[j - 1, i + 1]
+                        )
+                        - k_smoothed(0.5 * (iter_u[j, i + 1] + iter_u[j, i]), delta)
+                        * inv_c
+                        * inv_dx
+                    )
                 )
 
                 # Коэффициент при T_(i,j)^(n+1/2)
@@ -98,9 +119,20 @@ class LocOneDimSolver(HeatTransferSolver):
                 # Коэффициент при T_(i-1,j)^(n+1/2)
                 c_x[i] = (
                     -dt
-                    * k_smoothed(0.5 * (iter_u[j, i] + iter_u[j, i - 1]), delta)
-                    * inv_c
-                    * inv_dx2
+                    * inv_dx
+                    * (
+                        0.125
+                        * inv_dy
+                        * (
+                            sf[j + 1, i]
+                            - sf[j - 1, i]
+                            + sf[j + 1, i - 1]
+                            - sf[j - 1, i - 1]
+                        )
+                        + k_smoothed(0.5 * (iter_u[j, i] + iter_u[j, i - 1]), delta)
+                        * inv_c
+                        * inv_dx
+                    )
                 )
 
             result[j, :] = solve_tridiagonal(
@@ -125,10 +157,12 @@ class LocOneDimSolver(HeatTransferSolver):
     def _compute_sweep_y(
         u: NDArray[np.float64],
         iter_u: NDArray[np.float64],
+        sf: NDArray[np.float64],
         result: NDArray[np.float64],
         a_y: NDArray[np.float64],
         b_y: NDArray[np.float64],
         c_y: NDArray[np.float64],
+        dx: float,
         dy: float,
         dt: float,
         top_cond_type: int,
@@ -137,6 +171,8 @@ class LocOneDimSolver(HeatTransferSolver):
         time: float = 0.0,
     ) -> NDArray[np.float64]:
         n_y, n_x = u.shape
+        inv_dx = 1.0 / dx
+        inv_dy = 1.0 / dy
         inv_dy2 = 1.0 / (dy * dy)
 
         bbc = bc.get_bottom_bc_1(time, n_x)
@@ -150,10 +186,21 @@ class LocOneDimSolver(HeatTransferSolver):
 
                 # Коэффициент при T_(i,j-1)^n
                 a_y[j] = (
-                    -dt
-                    * k_smoothed(0.5 * (iter_u[j + 1, i] + iter_u[j, i]), delta)
-                    * inv_c
-                    * inv_dy2
+                    dt
+                    * inv_dy
+                    * (
+                        0.125
+                        * inv_dx
+                        * (
+                            sf[j, i - 1]
+                            - sf[j, i + 1]
+                            + sf[j + 1, i - 1]
+                            - sf[j + 1, i + 1]
+                        )
+                        - k_smoothed(0.5 * (iter_u[j + 1, i] + iter_u[j, i]), delta)
+                        * inv_c
+                        * inv_dy
+                    )
                 )
 
                 # Коэффициент при T_(i,j)^n
@@ -171,9 +218,20 @@ class LocOneDimSolver(HeatTransferSolver):
                 # Коэффициент при T_(i,j+1)^n
                 c_y[j] = (
                     -dt
-                    * k_smoothed(0.5 * (iter_u[j, i] + iter_u[j - 1, i]), delta)
-                    * inv_c
-                    * inv_dy2
+                    * inv_dy
+                    * (
+                        0.125
+                        * inv_dx
+                        * (
+                            sf[j, i - 1]
+                            - sf[j, i + 1]
+                            + sf[j - 1, i - 1]
+                            - sf[j - 1, i + 1]
+                        )
+                        + k_smoothed(0.5 * (iter_u[j, i] + iter_u[j - 1, i]), delta)
+                        * inv_c
+                        * inv_dy
+                    )
                 )
 
             result[:, i] = solve_tridiagonal(
@@ -197,7 +255,11 @@ class LocOneDimSolver(HeatTransferSolver):
         return result
 
     def solve(
-        self, u: NDArray[np.float64], time: float = 0.0, iters: int = 1
+        self,
+        u: NDArray[np.float64],
+        sf: NDArray[np.float64],
+        time: float = 0.0,
+        iters: int = 1,
     ) -> NDArray[np.float64]:
 
         self._iter_u = np.copy(u)
@@ -208,11 +270,13 @@ class LocOneDimSolver(HeatTransferSolver):
             self._temp_u = self._compute_sweep_x(
                 u=u,
                 iter_u=self._iter_u,
+                sf=sf,
                 result=self._temp_u,
                 a_x=self._a_x,
                 b_x=self._b_x,
                 c_x=self._c_x,
                 dx=self.geometry.dx,
+                dy=self.geometry.dy,
                 dt=self.geometry.dt,
                 right_cond_type=self.right_cond_type,
                 left_cond_type=self.left_cond_type,
@@ -227,10 +291,12 @@ class LocOneDimSolver(HeatTransferSolver):
             self._new_u = self._compute_sweep_y(
                 u=self._temp_u,
                 iter_u=self._iter_u,
+                sf=sf,
                 result=self._new_u,
                 a_y=self._a_y,
                 b_y=self._b_y,
                 c_y=self._c_y,
+                dx=self.geometry.dx,
                 dy=self.geometry.dy,
                 dt=self.geometry.dt,
                 top_cond_type=self.top_cond_type,
@@ -415,7 +481,11 @@ class AltDirSolver(HeatTransferSolver):
         return new_u
 
     def solve(
-        self, u: NDArray[np.float64], time: float = 0.0, iters: int = 1
+        self,
+        u: NDArray[np.float64],
+        sf: NDArray[np.float64],
+        time: float = 0.0,
+        iters: int = 1,
     ) -> NDArray[np.float64]:
 
         self._iter_u = np.copy(u)
