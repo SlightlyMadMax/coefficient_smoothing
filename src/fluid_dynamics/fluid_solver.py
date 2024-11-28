@@ -108,14 +108,14 @@ class NavierStokesSolver(SweepSolver2D):
                 c=c_x,
                 f=f,
                 left_type=left_cond_type,
-                left_value=-2.0 * inv_dx2 * sf[j, 0],
+                left_value=-2.0 * inv_dx2 * sf[j, 1],
                 right_type=right_cond_type,
-                right_value=-2.0 * inv_dx2 * sf[j, n_x - 1],
+                right_value=-2.0 * inv_dx2 * sf[j, n_x - 2],
                 h=dx,
             )
 
-        result[0, :] = -2.0 * inv_dy2 * sf[0, :]
-        result[n_y - 1, :] = -2.0 * inv_dy2 * sf[n_y - 1, :]
+        result[0, :] = -2.0 * inv_dy2 * sf[1, :]
+        result[n_y - 1, :] = -2.0 * inv_dy2 * sf[n_y - 2, :]
 
         return result
 
@@ -191,14 +191,14 @@ class NavierStokesSolver(SweepSolver2D):
                 c=c_y,
                 f=f,
                 left_type=bottom_cond_type,
-                left_value=-2.0 * inv_dy2 * sf[0, i],
+                left_value=-2.0 * inv_dy2 * sf[1, i],
                 right_type=top_cond_type,
-                right_value=-2.0 * inv_dy2 * sf[n_y - 1, i],
+                right_value=-2.0 * inv_dy2 * sf[n_y - 2, i],
                 h=dy,
             )
 
-        result[:, 0] = -2.0 * inv_dx2 * sf[:, 0]
-        result[:, n_x - 1] = -2.0 * inv_dx2 * sf[:, n_x - 1]
+        result[:, 0] = -2.0 * inv_dx2 * sf[:, 1]
+        result[:, n_x - 1] = -2.0 * inv_dx2 * sf[:, n_x - 2]
 
         return result
 
