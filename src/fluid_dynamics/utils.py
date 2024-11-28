@@ -11,7 +11,7 @@ def get_indicator_function(u: float) -> float:
 def get_thermal_expansion_coef(u: float) -> float:
     if u < cfg.T_0:
         return 0.0
-    return -0.0000000985 * u * u + 0.00001482 * u - 0.00005277
+    return -9.85e-8 * u * u + 1.4872e-5 * u - 5.2770e-5
 
 @numba.jit(nopython=True)
 def get_kinematic_visc(u: float) -> float:
