@@ -10,6 +10,7 @@ from src.fluid_dynamics.utils import (
     get_indicator_function as c_ind,
 )
 from src.utils import solve_tridiagonal
+from src import parameters as cfg
 
 
 class NavierStokesSolver(SweepSolver2D):
@@ -85,7 +86,7 @@ class NavierStokesSolver(SweepSolver2D):
                 )
 
                 f[i] = w[j, i] + 0.5 * dt * (
-                    th_exp(u[j, i]) * 0.5 * inv_dy * (u[j + 1, i] - u[j - 1, i])
+                    cfg.G * th_exp(u[j, i]) * 0.5 * inv_dx * (u[j, i + 1] - u[j, i - 1])
                     + visc(u[j, i])
                     * inv_dy2
                     * (w[j + 1, i] - 2.0 * w[j, i] + w[j - 1, i])
@@ -168,7 +169,7 @@ class NavierStokesSolver(SweepSolver2D):
                 )
 
                 f[j] = w[j, i] + 0.5 * dt * (
-                    th_exp(u[j, i]) * 0.5 * inv_dy * (u[j + 1, i] - u[j - 1, i])
+                    cfg.G * th_exp(u[j, i]) * 0.5 * inv_dx * (u[j, i + 1] - u[j, i - 1])
                     + visc(u[j, i])
                     * inv_dx2
                     * (w[j, i + 1] - 2.0 * w[j, i] + w[j, i - 1])
