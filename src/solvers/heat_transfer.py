@@ -6,12 +6,10 @@ from numpy.typing import NDArray
 
 from src.geometry import DomainGeometry
 import src.parameters as cfg
-from src.plotting import plot_temperature
 from src.solver import SweepSolver2D
 from src.temperature.coefficient_smoothing.coefficients import c_smoothed, k_smoothed
 from src.temperature.coefficient_smoothing.delta import get_max_delta
 from src.temperature import boundary_conditions as bc
-from src.temperature.utils import TemperatureUnit
 from src.utils import solve_tridiagonal
 
 
