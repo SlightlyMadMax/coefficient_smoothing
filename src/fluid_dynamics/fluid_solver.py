@@ -214,22 +214,30 @@ class NavierStokesSolver(SweepSolver2D):
         n_y, n_x = w.shape
         beta = dx / dy
         factor = 0.5 / (1.0 + beta * beta)
+
         result = np.copy(sf)
+
         result[0, :] = 0.0
         result[n_y - 1, :] = 0.0
         result[:, 0] = 0.0
         result[:, n_x - 1] = 0.0
 
-        for k in range(15):
-            for i in range(n_x - 1):
-                for j in range(n_y - 1):
+        temp = np.copy(result)
+
+        for iteration in range(50):
+            for i in range(1, n_x - 1):
+                for j in range(1, n_y - 1):
                     result[j, i] = factor * (
-                        result[j, i + 1]
+                        temp[j, i + 1]
                         + result[j, i - 1]
-                        + beta * beta * result[j + 1, i]
+                        + beta * beta * temp[j + 1, i]
                         + beta * beta * result[j - 1, i]
-                        - dx * dx * w[j, i]
+                        + dx * dx * w[j, i]
                     )
+            diff = np.linalg.norm(temp - result)
+            if diff < 1e-6:
+                break
+            temp = np.copy(result)
         return result
 
     def solve(
