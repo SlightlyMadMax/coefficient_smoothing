@@ -3,7 +3,7 @@ import time
 import numpy as np
 
 import src.parameters as cfg
-from src.fluid_dynamics.fluid_solver import NavierStokesSolver
+from src.solvers.fluid_solver import NavierStokesSolver
 from src.fluid_dynamics.init_values import (
     initialize_stream_function,
     initialize_vorticity,
@@ -22,7 +22,7 @@ if __name__ == "__main__":
         end_time=60.0 * 60.0 * 24.0,
         n_x=500,
         n_y=500,
-        n_t=60 * 60 * 24 * 10,
+        n_t=60 * 60 * 24,
     )
 
     print(geometry)
@@ -44,10 +44,10 @@ if __name__ == "__main__":
         geom=geometry,
         time=0.0,
         graph_id=0,
-        plot_boundary=True,
+        plot_boundary=False,
         show_graph=True,
         min_temp=cfg.T_WATER_MAX,
-        max_temp=cfg.T_WATER_MAX,
+        max_temp=10.0,
         invert_yaxis=False,
         actual_temp_units=TemperatureUnit.CELSIUS,
         display_temp_units=TemperatureUnit.CELSIUS,
@@ -80,22 +80,22 @@ if __name__ == "__main__":
         T = heat_transfer_solver.solve(u=T, sf=sf, time=t, iters=1)
         sf, w = navier_solver.solve(w=w, sf=sf, u=T)
 
-        if n % 6000 == 0:
+        if n % 60 == 0:
             plot_temperature(
                 T=T,
                 geom=geometry,
                 time=t,
                 graph_id=n,
                 plot_boundary=True,
-                show_graph=True,
+                show_graph=False,
                 min_temp=cfg.T_WATER_MAX,
                 max_temp=10.0,
                 invert_yaxis=False,
                 actual_temp_units=TemperatureUnit.CELSIUS,
                 display_temp_units=TemperatureUnit.CELSIUS,
             )
-            T_full.append(T.copy())
-            times.append(t)
+            # T_full.append(T.copy())
+            # times.append(t)
             print(
                 f"ВРЕМЯ МОДЕЛИРОВАНИЯ: {n} М, ВРЕМЯ ВЫПОЛНЕНИЯ: {time.process_time() - start_time}"
             )
