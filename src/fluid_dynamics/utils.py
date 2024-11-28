@@ -17,4 +17,4 @@ def get_thermal_expansion_coef(u: float) -> float:
 def get_kinematic_visc(u: float) -> float:
     if u < cfg.T_0:
         return 0.0
-    return 906.36 * u * u - 57191.82 * u + 1785718.18
+    return 5.56e-10 * u * u - 4.95e-8 * u + 1.767e-6
