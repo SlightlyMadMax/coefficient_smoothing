@@ -18,7 +18,7 @@ def get_top_bc_1(time: float, n_x: int) -> NDArray[np.float64]:
 
 @numba.jit(nopython=True)
 def get_right_bc_1(time: float, n_y: int) -> NDArray[np.float64]:
-    return 10.0 * np.ones(n_y)
+    return 3.0 * np.ones(n_y)
 
 
 @numba.jit(nopython=True)
