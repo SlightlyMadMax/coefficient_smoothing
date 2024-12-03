@@ -3,7 +3,7 @@ import time
 import numpy as np
 
 import src.parameters as cfg
-from src.solvers.fluid_solver import NavierStokesSolver
+from src.solvers.convection import NavierStokesSolver
 from src.fluid_dynamics.init_values import (
     initialize_stream_function,
     initialize_vorticity,
