@@ -3,6 +3,8 @@ import time
 import numpy as np
 
 import src.parameters as cfg
+from src.fluid_dynamics.plotting import plot_velocity_field
+from src.fluid_dynamics.utils import calculate_velocity_field
 from src.solvers.convection import NavierStokesSolver
 from src.fluid_dynamics.init_values import (
     initialize_stream_function,
@@ -11,9 +13,9 @@ from src.fluid_dynamics.init_values import (
 from src.geometry import DomainGeometry
 from src.temperature.init_values import init_temperature_shape, TemperatureShape
 from src.temperature.coefficient_smoothing.delta import get_max_delta
-from src.solvers.heat_transfer import LocOneDimSolver
-from src.plotting import plot_temperature, animate
+from src.temperature.plotting import plot_temperature, animate
 from src.temperature.utils import TemperatureUnit
+from src.solvers.heat_transfer import LocOneDimSolver
 
 if __name__ == "__main__":
     geometry = DomainGeometry(
@@ -94,6 +96,14 @@ if __name__ == "__main__":
                 invert_yaxis=False,
                 actual_temp_units=TemperatureUnit.CELSIUS,
                 display_temp_units=TemperatureUnit.CELSIUS,
+            )
+            v_x, v_y = calculate_velocity_field(sf=sf, dx=geometry.dx, dy=geometry.dy)
+            plot_velocity_field(
+                v_x=v_x,
+                v_y=v_y,
+                geometry=geometry,
+                graph_id=n,
+                show_graph=True,
             )
             # u_full.append(u.copy())
             # times.append(t)
