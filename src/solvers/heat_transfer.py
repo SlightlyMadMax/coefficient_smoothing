@@ -182,7 +182,7 @@ class LocOneDimSolver(HeatTransferSolver):
             for j in range(1, n_y - 1):
                 inv_c = 1.0 / c_smoothed(iter_u[j, i], delta)
 
-                # Коэффициент при T_(i,j-1)^n
+                # Коэффициент при T_(i,j+1)^n
                 a_y[j] = (
                     dt
                     * inv_dy
@@ -213,7 +213,7 @@ class LocOneDimSolver(HeatTransferSolver):
                     * inv_dy2
                 )
 
-                # Коэффициент при T_(i,j+1)^n
+                # Коэффициент при T_(i,j-1)^n
                 c_y[j] = (
                     -dt
                     * inv_dy
