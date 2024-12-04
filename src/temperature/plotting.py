@@ -63,17 +63,20 @@ def plot_temperature(
     if show_grid:
         plt.plot(X, Y, marker=".", markersize=0.5, color="k", linestyle="none")
 
-    plt.contourf(
+    disp_T = _get_temp_in_display_units(T, actual_temp_units, display_temp_units)
+    contour = plt.contourf(
         X,
         Y,
-        _get_temp_in_display_units(T, actual_temp_units, display_temp_units),
+        disp_T,
         50,
         cmap="viridis",
-        vmin=min_temp,
-        vmax=max_temp,
     )
-    plt.clim(min_temp, max_temp)
-    plt.colorbar()
+    cbar = plt.colorbar(contour)
+    if not min_temp or not max_temp:
+        min_temp = disp_T.min()
+        max_temp = disp_T.max()
+    cbar.set_ticks(np.linspace(min_temp, max_temp, num=7))
+    cbar.set_label("Temperature", rotation=270, labelpad=15)
 
     if plot_boundary:
         X_b, Y_b = get_phase_trans_boundary(
