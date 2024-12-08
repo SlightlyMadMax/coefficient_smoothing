@@ -14,6 +14,8 @@ class TemperatureShape(Enum):
     DOUBLE_CIRCLE = "double_circle"
     PACMAN = "pacman"
     SQUARE = "square"
+    UNIFORM_W = "uniform_water"
+    UNIFORM_I = "uniform_ice"
 
 
 def init_temperature(geom: DomainGeometry, F: NDArray[np.float64]) -> NDArray[np.float64]:
@@ -112,6 +114,15 @@ def init_temperature_shape(
             np.abs(Y - geom.height / 2) < half_size
         )
         T[mask] = water_temp
+
+    elif shape == TemperatureShape.UNIFORM_W:
+        T = np.ones(T.shape) * water_temp
+
+    elif shape == TemperatureShape.UNIFORM_I:
+        pass
+
+    else:
+        raise Exception("Unknown shape")
 
     return T
 

@@ -62,5 +62,5 @@ class DomainGeometry:
     def __str__(self):
         return (
             f"Width: {self.width}. Height: {self.height}. End time: {int(self.end_time)} s.\n"
-            f"x step = {Decimal(self.dx):.2E} m. y step = {Decimal(self.dy):.2E} m. Time step = {round(self.dt)} s"
+            f"x step = {Decimal(self.dx):.2E} m. y step = {Decimal(self.dy):.2E} m. Time step = {round(self.dt, 2)} s"
         )
