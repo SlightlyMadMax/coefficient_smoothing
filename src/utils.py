@@ -14,10 +14,10 @@ def solve_tridiagonal(
     right_value: float = 0.0,
     left_flux: float = 0.0,
     left_psi: float = 0.0,
-    left_ksi: float = 0.0,
+    left_phi: float = 0.0,
     right_flux: float = 0.0,
     right_psi: float = 0.0,
-    right_ksi: float = 0.0,
+    right_phi: float = 0.0,
     h: float = 0.0,
 ):
     """
@@ -31,12 +31,12 @@ def solve_tridiagonal(
     :param left_value: Value for the left boundary condition (optional).
     :param left_flux: Flux value for Neumann condition on the left (optional).
     :param left_psi: Psi parameter for Robin condition on the left (optional).
-    :param left_ksi: Ksi parameter for Robin condition on the left (optional).
+    :param left_phi: Phi parameter for Robin condition on the left (optional).
     :param right_type: Type of right boundary condition (0: Dirichlet, 1: Neumann, 2: Robin).
     :param right_value: Value for the right boundary condition (optional).
     :param right_flux: Flux value for Neumann condition on the right (optional).
     :param right_psi: Psi parameter for Robin condition on the right (optional).
-    :param right_ksi: Ksi parameter for Robin condition on the right (optional).
+    :param right_phi: Phi parameter for Robin condition on the right (optional).
     :param h: The grid step size (dx for x-direction, dy for y-direction) (optional).
     :return: Solution vector of the tridiagonal system.
     """
@@ -57,8 +57,8 @@ def solve_tridiagonal(
         alpha[0] = 1.0
         beta[0] = -h * left_flux
     else:  # Robin
-        alpha[0] = 1.0 / (1.0 + h * left_ksi)
-        beta[0] = -h * left_psi / (1.0 + h * left_ksi)
+        alpha[0] = 1.0 / (1.0 + h * left_phi)
+        beta[0] = -h * left_psi / (1.0 + h * left_phi)
 
     # Forward sweep
     for j in range(1, n - 1):
@@ -71,7 +71,7 @@ def solve_tridiagonal(
     elif right_type == 2:  # Neumann
         u[n - 1] = (h * right_flux + beta[n - 2]) / (1 - alpha[n - 2])
     else:  # Robin
-        u[n - 1] = (h * right_psi + beta[n - 2]) / (1 - alpha[n - 2] - h * right_ksi)
+        u[n - 1] = (h * right_psi + beta[n - 2]) / (1 - alpha[n - 2] - h * right_phi)
 
     # Backward substitution to find the solution
     for j in range(n - 2, -1, -1):
