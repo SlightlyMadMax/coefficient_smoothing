@@ -4,12 +4,12 @@ import numba
 import numpy as np
 from numpy.typing import NDArray
 
+from src.boundary_conditions import BoundaryCondition, BoundaryConditionType
 from src.geometry import DomainGeometry
 import src.parameters as cfg
 from src.solver import SweepSolver2D
 from src.temperature.coefficient_smoothing.coefficients import c_smoothed, k_smoothed
 from src.temperature.coefficient_smoothing.delta import get_max_delta
-from src.temperature import boundary_conditions as bc
 from src.utils import solve_tridiagonal
 
 
@@ -17,18 +17,18 @@ class HeatTransferSolver(SweepSolver2D):
     def __init__(
         self,
         geometry: DomainGeometry,
-        top_cond_type: int,
-        right_cond_type: int,
-        bottom_cond_type: int,
-        left_cond_type: int,
+        top_bc: BoundaryCondition,
+        right_bc: BoundaryCondition,
+        bottom_bc: BoundaryCondition,
+        left_bc: BoundaryCondition,
         fixed_delta: bool = False,
     ):
         super().__init__(
             geometry=geometry,
-            top_cond_type=top_cond_type,
-            right_cond_type=right_cond_type,
-            bottom_cond_type=bottom_cond_type,
-            left_cond_type=left_cond_type,
+            top_bc=top_bc,
+            right_bc=right_bc,
+            bottom_bc=bottom_bc,
+            left_bc=left_bc,
         )
         self.fixed_delta = fixed_delta
         # Pre-allocate arrays
@@ -66,18 +66,22 @@ class LocOneDimSolver(HeatTransferSolver):
         dx: float,
         dy: float,
         dt: float,
-        right_cond_type: int,
-        left_cond_type: int,
         delta: float,
-        time: float = 0.0,
+        rbc_type: int,
+        lbc_type: int,
+        right_value: NDArray[np.float64] = None,
+        left_value: NDArray[np.float64] = None,
+        right_flux: NDArray[np.float64] = None,
+        left_flux: NDArray[np.float64] = None,
+        right_psi: NDArray[np.float64] = None,
+        left_psi: NDArray[np.float64] = None,
+        right_phi: NDArray[np.float64] = None,
+        left_phi: NDArray[np.float64] = None,
     ) -> NDArray[np.float64]:
         n_y, n_x = u.shape
         inv_dx = 1.0 / dx
         inv_dx2 = 1.0 / (dx * dx)
         inv_dy = 1.0 / dy
-
-        lbc = bc.get_left_bc_1(time, n_y)
-        rbc = bc.get_right_bc_1(time, n_y)
 
         for j in range(1, n_y - 1):
             for i in range(1, n_x - 1):
@@ -88,15 +92,15 @@ class LocOneDimSolver(HeatTransferSolver):
                     dt
                     * inv_dx
                     * (
-                        0.125
-                        * inv_dy
-                        * (
-                            sf[j + 1, i]
-                            - sf[j - 1, i]
-                            + sf[j + 1, i + 1]
-                            - sf[j - 1, i + 1]
-                        )
-                        - k_smoothed(0.5 * (iter_u[j, i + 1] + iter_u[j, i]), delta)
+                        # 0.125
+                        # * inv_dy
+                        # * (
+                        #     sf[j + 1, i]
+                        #     - sf[j - 1, i]
+                        #     + sf[j + 1, i + 1]
+                        #     - sf[j - 1, i + 1]
+                        # )
+                        -k_smoothed(0.5 * (iter_u[j, i + 1] + iter_u[j, i]), delta)
                         * inv_c
                         * inv_dx
                     )
@@ -119,15 +123,15 @@ class LocOneDimSolver(HeatTransferSolver):
                     -dt
                     * inv_dx
                     * (
-                        0.125
-                        * inv_dy
-                        * (
-                            sf[j + 1, i]
-                            - sf[j - 1, i]
-                            + sf[j + 1, i - 1]
-                            - sf[j - 1, i - 1]
-                        )
-                        + k_smoothed(0.5 * (iter_u[j, i] + iter_u[j, i - 1]), delta)
+                        # 0.125
+                        # * inv_dy
+                        # * (
+                        #     sf[j + 1, i]
+                        #     - sf[j - 1, i]
+                        #     + sf[j + 1, i - 1]
+                        #     - sf[j - 1, i - 1]
+                        # ) +
+                        k_smoothed(0.5 * (iter_u[j, i] + iter_u[j, i - 1]), delta)
                         * inv_c
                         * inv_dx
                     )
@@ -138,10 +142,16 @@ class LocOneDimSolver(HeatTransferSolver):
                 b=b_x,
                 c=c_x,
                 f=u[j, :],
-                left_type=left_cond_type,
-                left_value=lbc[0],
-                right_type=right_cond_type,
-                right_value=rbc[0],
+                left_type=lbc_type,
+                left_value=left_value[j] if left_value is not None else 0.0,
+                left_flux=left_flux[j] if left_flux is not None else 0.0,
+                left_psi=left_psi[j] if left_psi is not None else 0.0,
+                left_phi=left_phi[j] if left_phi is not None else 0.0,
+                right_type=rbc_type,
+                right_value=right_value[j] if right_value is not None else 0.0,
+                right_flux=right_flux[j] if right_flux is not None else 0.0,
+                right_psi=right_psi[j] if right_psi is not None else 0.0,
+                right_phi=right_phi[j] if right_phi is not None else 0.0,
                 h=dx,
             )
 
@@ -163,20 +173,22 @@ class LocOneDimSolver(HeatTransferSolver):
         dx: float,
         dy: float,
         dt: float,
-        top_cond_type: int,
-        bottom_cond_type: int,
         delta: float,
-        time: float = 0.0,
+        tbc_type: int,
+        bbc_type: int,
+        top_value: NDArray[np.float64] = None,
+        bottom_value: NDArray[np.float64] = None,
+        top_flux: NDArray[np.float64] = None,
+        bottom_flux: NDArray[np.float64] = None,
+        top_psi: NDArray[np.float64] = None,
+        bottom_psi: NDArray[np.float64] = None,
+        top_phi: NDArray[np.float64] = None,
+        bottom_phi: NDArray[np.float64] = None,
     ) -> NDArray[np.float64]:
         n_y, n_x = u.shape
         inv_dx = 1.0 / dx
         inv_dy = 1.0 / dy
         inv_dy2 = 1.0 / (dy * dy)
-
-        bbc = bc.get_bottom_bc_1(time, n_x)
-        tbc = bc.get_top_bc_1(time, n_x)
-        phi = bc.get_top_bc_2(time)
-        psi, ksi = bc.get_top_bc_3(time)
 
         for i in range(1, n_x - 1):
             for j in range(1, n_y - 1):
@@ -187,15 +199,15 @@ class LocOneDimSolver(HeatTransferSolver):
                     dt
                     * inv_dy
                     * (
-                        0.125
-                        * inv_dx
-                        * (
-                            sf[j, i - 1]
-                            - sf[j, i + 1]
-                            + sf[j + 1, i - 1]
-                            - sf[j + 1, i + 1]
-                        )
-                        - k_smoothed(0.5 * (iter_u[j + 1, i] + iter_u[j, i]), delta)
+                        # 0.125
+                        # * inv_dx
+                        # * (
+                        #     sf[j, i - 1]
+                        #     - sf[j, i + 1]
+                        #     + sf[j + 1, i - 1]
+                        #     - sf[j + 1, i + 1]
+                        # )
+                        -k_smoothed(0.5 * (iter_u[j + 1, i] + iter_u[j, i]), delta)
                         * inv_c
                         * inv_dy
                     )
@@ -218,15 +230,15 @@ class LocOneDimSolver(HeatTransferSolver):
                     -dt
                     * inv_dy
                     * (
-                        0.125
-                        * inv_dx
-                        * (
-                            sf[j, i - 1]
-                            - sf[j, i + 1]
-                            + sf[j - 1, i - 1]
-                            - sf[j - 1, i + 1]
-                        )
-                        + k_smoothed(0.5 * (iter_u[j, i] + iter_u[j - 1, i]), delta)
+                        # 0.125
+                        # * inv_dx
+                        # * (
+                        #     sf[j, i - 1]
+                        #     - sf[j, i + 1]
+                        #     + sf[j - 1, i - 1]
+                        #     - sf[j - 1, i + 1]
+                        # ) +
+                        k_smoothed(0.5 * (iter_u[j, i] + iter_u[j - 1, i]), delta)
                         * inv_c
                         * inv_dy
                     )
@@ -237,13 +249,16 @@ class LocOneDimSolver(HeatTransferSolver):
                 b=b_y,
                 c=c_y,
                 f=u[:, i],
-                left_type=bottom_cond_type,
-                left_value=bbc[0],
-                right_type=top_cond_type,
-                right_value=tbc[0],
-                right_phi=phi,
-                right_psi=psi,
-                right_ksi=ksi,
+                left_type=bbc_type,
+                left_value=bottom_value[i] if bottom_value is not None else 0.0,
+                left_flux=bottom_flux[i] if bottom_flux is not None else 0.0,
+                left_psi=bottom_psi[i] if bottom_psi is not None else 0.0,
+                left_phi=bottom_phi[i] if bottom_phi is not None else 0.0,
+                right_type=tbc_type,
+                right_value=top_value[i] if top_value is not None else 0.0,
+                right_flux=top_flux[i] if top_flux is not None else 0.0,
+                right_psi=top_psi[i] if top_psi is not None else 0.0,
+                right_phi=top_phi[i] if top_phi is not None else 0.0,
                 h=dy,
             )
 
@@ -276,10 +291,49 @@ class LocOneDimSolver(HeatTransferSolver):
                 dx=self.geometry.dx,
                 dy=self.geometry.dy,
                 dt=self.geometry.dt,
-                right_cond_type=self.right_cond_type,
-                left_cond_type=self.left_cond_type,
                 delta=delta,
-                time=time,
+                rbc_type=self.right_bc.boundary_type.value,
+                lbc_type=self.left_bc.boundary_type.value,
+                right_value=(
+                    self.right_bc.get_value(t=time)
+                    if self.right_bc.boundary_type == BoundaryConditionType.DIRICHLET
+                    else None
+                ),
+                left_value=(
+                    self.left_bc.get_value(t=time)
+                    if self.left_bc.boundary_type == BoundaryConditionType.DIRICHLET
+                    else None
+                ),
+                right_flux=(
+                    self.right_bc.get_flux(t=time)
+                    if self.right_bc.boundary_type == BoundaryConditionType.NEUMANN
+                    else None
+                ),
+                left_flux=(
+                    self.left_bc.get_flux(t=time)
+                    if self.left_bc.boundary_type == BoundaryConditionType.NEUMANN
+                    else None
+                ),
+                right_psi=(
+                    self.right_bc.get_psi(t=time)
+                    if self.right_bc.boundary_type == BoundaryConditionType.ROBIN
+                    else None
+                ),
+                left_psi=(
+                    self.left_bc.get_psi(t=time)
+                    if self.left_bc.boundary_type == BoundaryConditionType.ROBIN
+                    else None
+                ),
+                right_phi=(
+                    self.right_bc.get_phi(t=time)
+                    if self.right_bc.boundary_type == BoundaryConditionType.ROBIN
+                    else None
+                ),
+                left_phi=(
+                    self.left_bc.get_phi(t=time)
+                    if self.left_bc.boundary_type == BoundaryConditionType.ROBIN
+                    else None
+                ),
             )
             self._iter_u = np.copy(self._temp_u)
 
@@ -297,10 +351,49 @@ class LocOneDimSolver(HeatTransferSolver):
                 dx=self.geometry.dx,
                 dy=self.geometry.dy,
                 dt=self.geometry.dt,
-                top_cond_type=self.top_cond_type,
-                bottom_cond_type=self.bottom_cond_type,
                 delta=delta,
-                time=time,
+                tbc_type=self.top_bc.boundary_type.value,
+                bbc_type=self.bottom_bc.boundary_type.value,
+                top_value=(
+                    self.top_bc.get_value(t=time)
+                    if self.top_bc.boundary_type == BoundaryConditionType.DIRICHLET
+                    else None
+                ),
+                bottom_value=(
+                    self.bottom_bc.get_value(t=time)
+                    if self.bottom_bc.boundary_type == BoundaryConditionType.DIRICHLET
+                    else None
+                ),
+                top_flux=(
+                    self.top_bc.get_flux(t=time)
+                    if self.top_bc.boundary_type == BoundaryConditionType.NEUMANN
+                    else None
+                ),
+                bottom_flux=(
+                    self.bottom_bc.get_flux(t=time)
+                    if self.bottom_bc.boundary_type == BoundaryConditionType.NEUMANN
+                    else None
+                ),
+                top_psi=(
+                    self.top_bc.get_psi(t=time)
+                    if self.top_bc.boundary_type == BoundaryConditionType.ROBIN
+                    else None
+                ),
+                bottom_psi=(
+                    self.bottom_bc.get_psi(t=time)
+                    if self.bottom_bc.boundary_type == BoundaryConditionType.ROBIN
+                    else None
+                ),
+                top_phi=(
+                    self.top_bc.get_phi(t=time)
+                    if self.top_bc.boundary_type == BoundaryConditionType.ROBIN
+                    else None
+                ),
+                bottom_phi=(
+                    self.bottom_bc.get_phi(t=time)
+                    if self.bottom_bc.boundary_type == BoundaryConditionType.ROBIN
+                    else None
+                ),
             )
             self._iter_u = np.copy(self._new_u)
 

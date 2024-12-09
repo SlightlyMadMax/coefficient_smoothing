@@ -3,6 +3,7 @@ import time
 import numpy as np
 
 import src.parameters as cfg
+from src.boundary_conditions import BoundaryCondition, BoundaryConditionType
 from src.fluid_dynamics.plotting import plot_velocity_field
 from src.fluid_dynamics.utils import calculate_velocity_field
 from src.solvers.convection import NavierStokesSolver
@@ -21,26 +22,23 @@ if __name__ == "__main__":
     geometry = DomainGeometry(
         width=1.0,
         height=1.0,
-        end_time=60.0 * 60.0 * 24.0,
-        n_x=100,
-        n_y=100,
-        n_t=60 * 60 * 24,
+        end_time=60.0 * 60.0 * 24.0 * 7.0,
+        n_x=500,
+        n_y=500,
+        n_t=60 * 60 * 24 * 3,
     )
 
     print(geometry)
 
-    # F = init_boundary(geometry)
-
-    # u = init_temperature(geometry, F)
-
     u = init_temperature_shape(
         geom=geometry,
-        shape=TemperatureShape.UNIFORM_W,
+        shape=TemperatureShape.PACMAN,
         water_temp=cfg.T_WATER_MAX,
         ice_temp=cfg.T_ICE_MIN,
     )
 
     print(f"Delta for initial temperature distribution: {get_max_delta(u)}")
+
     plot_temperature(
         T=u,
         geom=geometry,
@@ -55,6 +53,27 @@ if __name__ == "__main__":
         display_temp_units=TemperatureUnit.CELSIUS,
     )
 
+    top_bc = BoundaryCondition(
+        boundary_type=BoundaryConditionType.DIRICHLET,
+        n=geometry.n_x,
+        flux_func=lambda t, n: cfg.T_ICE_MIN * np.ones(geometry.n_x),
+    )
+    right_bc = BoundaryCondition(
+        boundary_type=BoundaryConditionType.DIRICHLET,
+        n=geometry.n_y,
+        value_func=lambda t, n: cfg.T_ICE_MIN * np.ones(geometry.n_y),
+    )
+    bottom_bc = BoundaryCondition(
+        boundary_type=BoundaryConditionType.DIRICHLET,
+        n=geometry.n_x,
+        value_func=lambda t, n: cfg.T_ICE_MIN * np.ones(geometry.n_x),
+    )
+    left_bc = BoundaryCondition(
+        boundary_type=BoundaryConditionType.DIRICHLET,
+        n=geometry.n_y,
+        value_func=lambda t, n: cfg.T_ICE_MIN * np.ones(geometry.n_y),
+    )
+
     sf = initialize_stream_function(geom=geometry)
     w = initialize_vorticity(geom=geometry)
 
@@ -62,26 +81,26 @@ if __name__ == "__main__":
     times = [0.0]
     heat_transfer_solver = LocOneDimSolver(
         geometry=geometry,
-        top_cond_type=cfg.DIRICHLET,
-        right_cond_type=cfg.DIRICHLET,
-        bottom_cond_type=cfg.DIRICHLET,
-        left_cond_type=cfg.DIRICHLET,
+        top_bc=top_bc,
+        right_bc=right_bc,
+        bottom_bc=bottom_bc,
+        left_bc=left_bc,
         fixed_delta=False,
     )
-    navier_solver = NavierStokesSolver(
-        geometry=geometry,
-        top_cond_type=cfg.DIRICHLET,
-        right_cond_type=cfg.DIRICHLET,
-        bottom_cond_type=cfg.DIRICHLET,
-        left_cond_type=cfg.DIRICHLET,
-    )
+    # navier_solver = NavierStokesSolver(
+    #     geometry=geometry,
+    #     top_cond_type=cfg.DIRICHLET,
+    #     right_cond_type=cfg.DIRICHLET,
+    #     bottom_cond_type=cfg.DIRICHLET,
+    #     left_cond_type=cfg.DIRICHLET,
+    # )
 
     start_time = time.process_time()
     for n in range(1, geometry.n_t):
         t = n * geometry.dt
 
         u = heat_transfer_solver.solve(u=u, sf=sf, time=t, iters=1)
-        sf, w = navier_solver.solve(w=w, sf=sf, u=u)
+        # sf, w = navier_solver.solve(w=w, sf=sf, u=u)
 
         if n % 60 == 0:
             plot_temperature(
@@ -97,14 +116,14 @@ if __name__ == "__main__":
                 actual_temp_units=TemperatureUnit.CELSIUS,
                 display_temp_units=TemperatureUnit.CELSIUS,
             )
-            v_x, v_y = calculate_velocity_field(sf=sf, dx=geometry.dx, dy=geometry.dy)
-            plot_velocity_field(
-                v_x=v_x,
-                v_y=v_y,
-                geometry=geometry,
-                graph_id=n,
-                show_graph=True,
-            )
+            # v_x, v_y = calculate_velocity_field(sf=sf, dx=geometry.dx, dy=geometry.dy)
+            # plot_velocity_field(
+            #     v_x=v_x,
+            #     v_y=v_y,
+            #     geometry=geometry,
+            #     graph_id=n,
+            #     show_graph=True,
+            # )
             # u_full.append(u.copy())
             # times.append(t)
             print(
