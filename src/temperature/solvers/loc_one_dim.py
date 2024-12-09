@@ -291,7 +291,7 @@ class LocOneDimSolver(HeatTransferSolver):
 
         # Run the y-direction sweep iterations
         for i in range(iters):
-            delta = cfg.delta if self.fixed_delta else get_max_delta(self._temp_u)
+            delta = cfg.delta if self.fixed_delta else get_max_delta(self._iter_u)
             self._new_u = self._compute_sweep_y(
                 u=self._temp_u,
                 iter_u=self._iter_u,
