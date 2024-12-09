@@ -45,7 +45,7 @@ class LocOneDimSolver(HeatTransferSolver):
             for i in range(1, n_x - 1):
                 inv_c = 1.0 / c_smoothed(iter_u[j, i], delta)
 
-                # Coefficient at T_(i+1,j)^(n+1/2)
+                # Coefficient at T_{i + 1, j}^{n + 1/2}
                 a_x[i] = (
                     dt
                     * inv_dx
@@ -64,7 +64,7 @@ class LocOneDimSolver(HeatTransferSolver):
                     )
                 )
 
-                # Coefficient at T_(i,j)^(n+1/2)
+                # Coefficient at T_{i, j}^{n + 1/2}
                 b_x[i] = (
                     1.0
                     + dt
@@ -76,7 +76,7 @@ class LocOneDimSolver(HeatTransferSolver):
                     * inv_dx2
                 )
 
-                # Coefficient at T_(i-1,j)^(n+1/2)
+                # Coefficient at T_{i - 1, j}^{n + 1/2}
                 c_x[i] = (
                     -dt
                     * inv_dx
@@ -149,7 +149,7 @@ class LocOneDimSolver(HeatTransferSolver):
             for j in range(1, n_y - 1):
                 inv_c = 1.0 / c_smoothed(iter_u[j, i], delta)
 
-                # Coefficient at T_(i,j+1)^n
+                # Coefficient at T_{i, j + 1}^{n + 1}
                 a_y[j] = (
                     dt
                     * inv_dy
@@ -168,7 +168,7 @@ class LocOneDimSolver(HeatTransferSolver):
                     )
                 )
 
-                # Coefficient at T_(i,j)^n
+                # Coefficient at T_{i, j}^{n + 1}
                 b_y[j] = (
                     1.0
                     + dt
@@ -180,7 +180,7 @@ class LocOneDimSolver(HeatTransferSolver):
                     * inv_dy2
                 )
 
-                # Coefficient at T_(i,j-1)^n
+                # Coefficient at T_{i, j - 1}^{n + 1}
                 c_y[j] = (
                     -dt
                     * inv_dy
