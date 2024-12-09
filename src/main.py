@@ -6,7 +6,7 @@ import src.parameters as cfg
 from src.boundary_conditions import BoundaryCondition, BoundaryConditionType
 from src.fluid_dynamics.plotting import plot_velocity_field
 from src.fluid_dynamics.utils import calculate_velocity_field
-from src.solvers.convection import NavierStokesSolver
+from src.fluid_dynamics.solvers.convection import NavierStokesSolver
 from src.fluid_dynamics.init_values import (
     initialize_stream_function,
     initialize_vorticity,
@@ -16,7 +16,7 @@ from src.temperature.init_values import init_temperature_shape, TemperatureShape
 from src.temperature.coefficient_smoothing.delta import get_max_delta
 from src.temperature.plotting import plot_temperature, animate
 from src.temperature.utils import TemperatureUnit
-from src.solvers.heat_transfer import LocOneDimSolver
+from src.temperature.solvers.loc_one_dim import LocOneDimSolver
 
 if __name__ == "__main__":
     geometry = DomainGeometry(

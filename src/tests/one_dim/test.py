@@ -6,13 +6,13 @@ from compare_boundary import compare_num_with_analytic
 from src.boundary_conditions import BoundaryCondition, BoundaryConditionType
 from src.geometry import DomainGeometry
 from src.parameters import N_Y, N_X, N_T, T_0, WIDTH, HEIGHT, FULL_TIME
-from src.solvers.heat_transfer import LocOneDimSolver
+from src.temperature.solvers.loc_one_dim import LocOneDimSolver
 from src.tests.one_dim.analytic_solution_1d_2f import get_analytic_solution
 
 
 if __name__ == "__main__":
     # dir_name = input("Enter a directory name where data will be stored: ")
-    dir_name = "erf_delta_adaptive_3"
+    dir_name = "loc_one_dim"
     dir_name = f"./results/{dir_name}"
 
     try:
@@ -89,7 +89,7 @@ if __name__ == "__main__":
                         j * geometry.dy
                         + ((T_0 - T[j, i]) / (T[j + 1, i] - T[j, i])) * geometry.dy
                     )
-                    print(y_0)
+                    # print(y_0)
                     boundary.append(y_0)
                     break
 
