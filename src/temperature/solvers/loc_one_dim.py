@@ -45,7 +45,7 @@ class LocOneDimSolver(HeatTransferSolver):
             for i in range(1, n_x - 1):
                 inv_c = 1.0 / c_smoothed(iter_u[j, i], delta)
 
-                # Коэффициент при T_(i+1,j)^(n+1/2)
+                # Coefficient at T_(i+1,j)^(n+1/2)
                 a_x[i] = (
                     dt
                     * inv_dx
@@ -64,7 +64,7 @@ class LocOneDimSolver(HeatTransferSolver):
                     )
                 )
 
-                # Коэффициент при T_(i,j)^(n+1/2)
+                # Coefficient at T_(i,j)^(n+1/2)
                 b_x[i] = (
                     1.0
                     + dt
@@ -76,7 +76,7 @@ class LocOneDimSolver(HeatTransferSolver):
                     * inv_dx2
                 )
 
-                # Коэффициент при T_(i-1,j)^(n+1/2)
+                # Coefficient at T_(i-1,j)^(n+1/2)
                 c_x[i] = (
                     -dt
                     * inv_dx
@@ -112,9 +112,6 @@ class LocOneDimSolver(HeatTransferSolver):
                 right_phi=right_phi[j] if right_phi is not None else 0.0,
                 h=dx,
             )
-
-        result[0, :] = u[0, :]
-        result[n_y - 1, :] = u[n_y - 1, :]
 
         return result
 
@@ -152,7 +149,7 @@ class LocOneDimSolver(HeatTransferSolver):
             for j in range(1, n_y - 1):
                 inv_c = 1.0 / c_smoothed(iter_u[j, i], delta)
 
-                # Коэффициент при T_(i,j+1)^n
+                # Coefficient at T_(i,j+1)^n
                 a_y[j] = (
                     dt
                     * inv_dy
@@ -171,7 +168,7 @@ class LocOneDimSolver(HeatTransferSolver):
                     )
                 )
 
-                # Коэффициент при T_(i,j)^n
+                # Coefficient at T_(i,j)^n
                 b_y[j] = (
                     1.0
                     + dt
@@ -183,7 +180,7 @@ class LocOneDimSolver(HeatTransferSolver):
                     * inv_dy2
                 )
 
-                # Коэффициент при T_(i,j-1)^n
+                # Coefficient at T_(i,j-1)^n
                 c_y[j] = (
                     -dt
                     * inv_dy
@@ -220,9 +217,6 @@ class LocOneDimSolver(HeatTransferSolver):
                 h=dy,
             )
 
-        result[:, 0] = u[:, 0]
-        result[:, n_x - 1] = u[:, n_x - 1]
-
         return result
 
     def solve(
@@ -242,7 +236,7 @@ class LocOneDimSolver(HeatTransferSolver):
                 u=u,
                 iter_u=self._iter_u,
                 sf=sf,
-                result=self._temp_u,
+                result=u,
                 a_x=self._a_x,
                 b_x=self._b_x,
                 c_x=self._c_x,
@@ -302,7 +296,7 @@ class LocOneDimSolver(HeatTransferSolver):
                 u=self._temp_u,
                 iter_u=self._iter_u,
                 sf=sf,
-                result=self._new_u,
+                result=self._temp_u,
                 a_y=self._a_y,
                 b_y=self._b_y,
                 c_y=self._c_y,
