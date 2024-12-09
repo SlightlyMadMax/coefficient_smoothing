@@ -10,7 +10,7 @@ from src.temperature.solvers.base import HeatTransferSolver
 from src.utils import solve_tridiagonal
 
 
-class AltDirSolver(HeatTransferSolver):
+class PeacemanRachfordSolver(HeatTransferSolver):
     @staticmethod
     @numba.jit(nopython=True)
     def _compute_sweep_x(
@@ -227,42 +227,42 @@ class AltDirSolver(HeatTransferSolver):
                 rbc_type=self.right_bc.boundary_type.value,
                 lbc_type=self.left_bc.boundary_type.value,
                 right_value=(
-                    self.right_bc.get_value(t=time)
+                    self.right_bc.get_value(t=time - 0.5 * self.geometry.dt)
                     if self.right_bc.boundary_type == BoundaryConditionType.DIRICHLET
                     else None
                 ),
                 left_value=(
-                    self.left_bc.get_value(t=time)
+                    self.left_bc.get_value(t=time - 0.5 * self.geometry.dt)
                     if self.left_bc.boundary_type == BoundaryConditionType.DIRICHLET
                     else None
                 ),
                 right_flux=(
-                    self.right_bc.get_flux(t=time)
+                    self.right_bc.get_flux(t=time - 0.5 * self.geometry.dt)
                     if self.right_bc.boundary_type == BoundaryConditionType.NEUMANN
                     else None
                 ),
                 left_flux=(
-                    self.left_bc.get_flux(t=time)
+                    self.left_bc.get_flux(t=time - 0.5 * self.geometry.dt)
                     if self.left_bc.boundary_type == BoundaryConditionType.NEUMANN
                     else None
                 ),
                 right_psi=(
-                    self.right_bc.get_psi(t=time)
+                    self.right_bc.get_psi(t=time - 0.5 * self.geometry.dt)
                     if self.right_bc.boundary_type == BoundaryConditionType.ROBIN
                     else None
                 ),
                 left_psi=(
-                    self.left_bc.get_psi(t=time)
+                    self.left_bc.get_psi(t=time - 0.5 * self.geometry.dt)
                     if self.left_bc.boundary_type == BoundaryConditionType.ROBIN
                     else None
                 ),
                 right_phi=(
-                    self.right_bc.get_phi(t=time)
+                    self.right_bc.get_phi(t=time - 0.5 * self.geometry.dt)
                     if self.right_bc.boundary_type == BoundaryConditionType.ROBIN
                     else None
                 ),
                 left_phi=(
-                    self.left_bc.get_phi(t=time)
+                    self.left_bc.get_phi(t=time - 0.5 * self.geometry.dt)
                     if self.left_bc.boundary_type == BoundaryConditionType.ROBIN
                     else None
                 ),
