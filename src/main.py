@@ -14,7 +14,7 @@ from src.fluid_dynamics.init_values import (
 from src.geometry import DomainGeometry
 from src.temperature.init_values import init_temperature_shape, TemperatureShape
 from src.temperature.coefficient_smoothing.delta import get_max_delta
-from src.temperature.plotting import plot_temperature, animate
+from src.temperature.plotting import plot_temperature, create_gif_from_images
 from src.temperature.utils import TemperatureUnit
 from src.temperature.solvers.loc_one_dim import LocOneDimSolver
 
@@ -77,8 +77,6 @@ if __name__ == "__main__":
     sf = initialize_stream_function(geom=geometry)
     w = initialize_vorticity(geom=geometry)
 
-    u_full = [u]
-    times = [0.0]
     heat_transfer_solver = LocOneDimSolver(
         geometry=geometry,
         top_bc=top_bc,
@@ -124,8 +122,6 @@ if __name__ == "__main__":
             #     graph_id=n,
             #     show_graph=True,
             # )
-            # u_full.append(u.copy())
-            # times.append(t)
             print(
                 f"ВРЕМЯ МОДЕЛИРОВАНИЯ: {n} М, ВРЕМЯ ВЫПОЛНЕНИЯ: {time.process_time() - start_time}"
             )
@@ -137,26 +133,4 @@ if __name__ == "__main__":
             # print(f"Минимальное значение вихря скорости: {round(np.min(w), 2)}")
 
     print("СОЗДАНИЕ АНИМАЦИИ...")
-    animate(
-        T_full=u_full,
-        geom=geometry,
-        times=times,
-        t_step=3600,
-        filename="new_test_animation_2",
-        min_temp=cfg.T_WATER_MAX,
-        max_temp=10.0,
-        actual_temp_units=TemperatureUnit.CELSIUS,
-        display_temp_units=TemperatureUnit.CELSIUS,
-    )
-    plot_temperature(
-        T=u,
-        geom=geometry,
-        time=geometry.n_t * geometry.dt,
-        graph_id=int(geometry.n_t / 60),
-        plot_boundary=True,
-        show_graph=False,
-        min_temp=cfg.T_WATER_MAX,
-        max_temp=10.0,
-        actual_temp_units=TemperatureUnit.CELSIUS,
-        display_temp_units=TemperatureUnit.CELSIUS,
-    )
+    create_gif_from_images(output_filename="test_animation")
