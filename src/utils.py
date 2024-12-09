@@ -9,13 +9,13 @@ def solve_tridiagonal(
     c: np.ndarray,
     f: np.ndarray,
     left_type: int,
-    left_value: float,
     right_type: int,
-    right_value: float,
-    left_phi: float = 0.0,
+    left_value: float = 0.0,
+    right_value: float = 0.0,
+    left_flux: float = 0.0,
     left_psi: float = 0.0,
     left_ksi: float = 0.0,
-    right_phi: float = 0.0,
+    right_flux: float = 0.0,
     right_psi: float = 0.0,
     right_ksi: float = 0.0,
     h: float = 0.0,
@@ -28,13 +28,13 @@ def solve_tridiagonal(
     :param c: Super-diagonal elements of the tridiagonal matrix.
     :param f: Right-hand side vector.
     :param left_type: Type of left boundary condition (0: Dirichlet, 1: Neumann, 2: Robin).
-    :param left_value: Value for the left boundary condition.
-    :param left_phi: Phi parameter for Neumann condition on the left (optional).
+    :param left_value: Value for the left boundary condition (optional).
+    :param left_flux: Flux value for Neumann condition on the left (optional).
     :param left_psi: Psi parameter for Robin condition on the left (optional).
     :param left_ksi: Ksi parameter for Robin condition on the left (optional).
     :param right_type: Type of right boundary condition (0: Dirichlet, 1: Neumann, 2: Robin).
-    :param right_value: Value for the right boundary condition.
-    :param right_phi: Phi parameter for Neumann condition on the right (optional).
+    :param right_value: Value for the right boundary condition (optional).
+    :param right_flux: Flux value for Neumann condition on the right (optional).
     :param right_psi: Psi parameter for Robin condition on the right (optional).
     :param right_ksi: Ksi parameter for Robin condition on the right (optional).
     :param h: The grid step size (dx for x-direction, dy for y-direction) (optional).
@@ -55,9 +55,9 @@ def solve_tridiagonal(
         beta[0] = left_value
     elif left_type == 2:  # Neumann
         alpha[0] = 1.0
-        beta[0] = -h * left_phi
+        beta[0] = -h * left_flux
     else:  # Robin
-        alpha[0] = 1.0 / (1.0 + h * left_phi)
+        alpha[0] = 1.0 / (1.0 + h * left_ksi)
         beta[0] = -h * left_psi / (1.0 + h * left_ksi)
 
     # Forward sweep
@@ -69,7 +69,7 @@ def solve_tridiagonal(
     if right_type == 1:  # Dirichlet
         u[n - 1] = right_value
     elif right_type == 2:  # Neumann
-        u[n - 1] = (h * right_phi + beta[n - 2]) / (1 - alpha[n - 2])
+        u[n - 1] = (h * right_flux + beta[n - 2]) / (1 - alpha[n - 2])
     else:  # Robin
         u[n - 1] = (h * right_psi + beta[n - 2]) / (1 - alpha[n - 2] - h * right_ksi)
 
