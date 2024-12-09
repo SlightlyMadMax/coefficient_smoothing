@@ -56,7 +56,7 @@ if __name__ == "__main__":
     top_bc = BoundaryCondition(
         boundary_type=BoundaryConditionType.DIRICHLET,
         n=geometry.n_x,
-        flux_func=lambda t, n: cfg.T_ICE_MIN * np.ones(geometry.n_x),
+        value_func=lambda t, n: cfg.T_ICE_MIN * np.ones(geometry.n_x),
     )
     right_bc = BoundaryCondition(
         boundary_type=BoundaryConditionType.DIRICHLET,
