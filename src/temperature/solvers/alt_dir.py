@@ -16,170 +16,188 @@ class AltDirSolver(HeatTransferSolver):
     def _compute_sweep_x(
         u: NDArray[np.float64],
         iter_u: NDArray[np.float64],
-        temp_u: NDArray[np.float64],
-        alpha: NDArray[np.float64],
-        beta: NDArray[np.float64],
+        sf: NDArray[np.float64],
+        result: NDArray[np.float64],
+        a_x: NDArray[np.float64],
+        b_x: NDArray[np.float64],
+        c_x: NDArray[np.float64],
         dx: float,
         dy: float,
         dt: float,
-        right_cond_type: int,
-        left_cond_type: int,
         delta: float,
-        time: float = 0.0,
+        rbc_type: int,
+        lbc_type: int,
+        right_value: NDArray[np.float64] = None,
+        left_value: NDArray[np.float64] = None,
+        right_flux: NDArray[np.float64] = None,
+        left_flux: NDArray[np.float64] = None,
+        right_psi: NDArray[np.float64] = None,
+        left_psi: NDArray[np.float64] = None,
+        right_phi: NDArray[np.float64] = None,
+        left_phi: NDArray[np.float64] = None,
     ) -> NDArray[np.float64]:
         n_y, n_x = u.shape
         inv_dx2 = 1.0 / (dx * dx)
         inv_dy2 = 1.0 / (dy * dy)
 
-        lbc = bc.get_left_bc_1(time, n_y)
-        rbc = bc.get_right_bc_1(time, n_y)
+        rhs = np.empty(n_x)
 
         for j in range(1, n_y - 1):
-            if left_cond_type == cfg.DIRICHLET:
-                alpha[0] = 0.0
-                beta[0] = lbc[j]
-            else:
-                alpha[0] = 1.0
-                beta[0] = 0.0
             for i in range(1, n_x - 1):
-                inv_c = 1.0 / c_smoothed(u[j, i], delta)
-                a_i = (
+                inv_c = 1.0 / c_smoothed(iter_u[j, i], delta)
+
+                # Coefficient at T_{i + 1, j}^{n + 1/2}
+                a_x[i] = (
                     -dt
                     * 0.5
-                    * k_smoothed(0.5 * (u[j, i + 1] + u[j, i]), delta)
+                    * k_smoothed(0.5 * (iter_u[j, i + 1] + iter_u[j, i]), delta)
                     * inv_c
                     * inv_dx2
                 )
-                b_i = (
+
+                # Coefficient at T_{i, j}^{n + 1/2}
+                b_x[i] = (
                     1.0
                     + dt
+                    * 0.5
                     * (
-                        k_smoothed(0.5 * (u[j, i + 1] + u[j, i]), delta)
-                        + k_smoothed(0.5 * (u[j, i] + u[j, i - 1]), delta)
+                        k_smoothed(0.5 * (iter_u[j, i + 1] + iter_u[j, i]), delta)
+                        + k_smoothed(0.5 * (iter_u[j, i] + iter_u[j, i - 1]), delta)
                     )
                     * inv_c
                     * inv_dx2
-                    * 0.5
                 )
-                c_i = (
+
+                # Coefficient at T_{i - 1, j}^{n + 1/2}
+                c_x[i] = (
                     -dt
                     * 0.5
-                    * k_smoothed(0.5 * (u[j, i] + u[j, i - 1]), delta)
+                    * k_smoothed(0.5 * (iter_u[j, i] + iter_u[j, i - 1]), delta)
                     * inv_c
                     * inv_dx2
                 )
 
-                rhs_i = u[j, i] + dt * 0.5 * inv_c * inv_dy2 * (
-                    k_smoothed(0.5 * (u[j + 1, i] + u[j, i]), delta)
+                # Right-hand side of the equation
+                rhs[i] = u[j, i] + dt * 0.5 * inv_c * inv_dy2 * (
+                    k_smoothed(0.5 * (iter_u[j + 1, i] + iter_u[j, i]), delta)
                     * (u[j + 1, i] - u[j, i])
-                    - k_smoothed(0.5 * (u[j, i] + u[j - 1, i]), delta)
+                    - k_smoothed(0.5 * (iter_u[j, i] + iter_u[j - 1, i]), delta)
                     * (u[j, i] - u[j - 1, i])
                 )
 
-                alpha[i] = -a_i / (b_i + c_i * alpha[i - 1])
-                beta[i] = (rhs_i - c_i * beta[i - 1]) / (b_i + c_i * alpha[i - 1])
-
-            temp_u[j, n_x - 1] = (
-                rbc[j]
-                if right_cond_type == 1
-                else beta[n_x - 2] / (1.0 - alpha[n_x - 2])  # Neumann
+            result[j, :] = solve_tridiagonal(
+                a=a_x,
+                b=b_x,
+                c=c_x,
+                f=rhs,
+                left_type=lbc_type,
+                left_value=left_value[j] if left_value is not None else 0.0,
+                left_flux=left_flux[j] if left_flux is not None else 0.0,
+                left_psi=left_psi[j] if left_psi is not None else 0.0,
+                left_phi=left_phi[j] if left_phi is not None else 0.0,
+                right_type=rbc_type,
+                right_value=right_value[j] if right_value is not None else 0.0,
+                right_flux=right_flux[j] if right_flux is not None else 0.0,
+                right_psi=right_psi[j] if right_psi is not None else 0.0,
+                right_phi=right_phi[j] if right_phi is not None else 0.0,
+                h=dx,
             )
 
-            for i in range(n_x - 2, -1, -1):
-                temp_u[j, i] = alpha[i] * temp_u[j, i + 1] + beta[i]
-
-        temp_u[0, :] = u[0, :]
-        temp_u[n_y - 1, :] = u[n_y - 1, :]
-
-        return temp_u
+        return result
 
     @staticmethod
     @numba.jit(nopython=True)
     def _compute_sweep_y(
-        temp_u: NDArray[np.float64],
+        u: NDArray[np.float64],
         iter_u: NDArray[np.float64],
-        new_u: NDArray[np.float64],
-        alpha: NDArray[np.float64],
-        beta: NDArray[np.float64],
+        sf: NDArray[np.float64],
+        result: NDArray[np.float64],
+        a_y: NDArray[np.float64],
+        b_y: NDArray[np.float64],
+        c_y: NDArray[np.float64],
         dx: float,
         dy: float,
         dt: float,
-        top_cond_type: int,
-        bottom_cond_type: int,
         delta: float,
-        time: float = 0.0,
+        tbc_type: int,
+        bbc_type: int,
+        top_value: NDArray[np.float64] = None,
+        bottom_value: NDArray[np.float64] = None,
+        top_flux: NDArray[np.float64] = None,
+        bottom_flux: NDArray[np.float64] = None,
+        top_psi: NDArray[np.float64] = None,
+        bottom_psi: NDArray[np.float64] = None,
+        top_phi: NDArray[np.float64] = None,
+        bottom_phi: NDArray[np.float64] = None,
     ) -> NDArray[np.float64]:
-        n_y, n_x = temp_u.shape
+        n_y, n_x = u.shape
         inv_dx2 = 1.0 / (dx * dx)
         inv_dy2 = 1.0 / (dy * dy)
 
-        bbc = bc.get_bottom_bc_1(time, n_x)
-        tbc = bc.get_top_bc_1(time, n_x)
-        phi = bc.get_top_bc_2(time)
-        psi, ksi = bc.get_top_bc_3(time)
+        rhs = np.empty(n_y)
 
         for i in range(1, n_x - 1):
-            if bottom_cond_type == cfg.DIRICHLET:
-                alpha[0] = 0.0
-                beta[0] = bbc[i]
-            else:  # Neumann
-                alpha[0] = 1.0
-                beta[0] = 0.0
             for j in range(1, n_y - 1):
-                inv_c = 1.0 / c_smoothed(temp_u[j, i], delta)
-                a_j = (
+                inv_c = 1.0 / c_smoothed(iter_u[j, i], delta)
+
+                # Coefficient at T_{i, j + 1}^{n + 1}
+                a_y[j] = (
                     -dt
                     * 0.5
-                    * k_smoothed(0.5 * (temp_u[j + 1, i] + temp_u[j, i]), delta)
+                    * k_smoothed(0.5 * (iter_u[j + 1, i] + iter_u[j, i]), delta)
                     * inv_c
                     * inv_dy2
                 )
-                b_j = (
+
+                # Coefficient at T_{i, j}^{n + 1}
+                b_y[j] = (
                     1.0
                     + dt
                     * (
-                        k_smoothed(0.5 * (temp_u[j + 1, i] + temp_u[j, i]), delta)
-                        + k_smoothed(0.5 * (temp_u[j, i] + temp_u[j - 1, i]), delta)
+                        k_smoothed(0.5 * (iter_u[j + 1, i] + iter_u[j, i]), delta)
+                        + k_smoothed(0.5 * (iter_u[j, i] + iter_u[j - 1, i]), delta)
                     )
                     * inv_c
                     * inv_dy2
                     * 0.5
                 )
-                c_j = (
+
+                # Coefficient at T_{i, j - 1}^{n + 1}
+                c_y[j] = (
                     -dt
                     * 0.5
-                    * k_smoothed(0.5 * (temp_u[j, i] + temp_u[j - 1, i]), delta)
+                    * k_smoothed(0.5 * (iter_u[j, i] + iter_u[j - 1, i]), delta)
                     * inv_c
                     * inv_dy2
                 )
 
-                rhs_j = temp_u[j, i] + dt * 0.5 * inv_c * inv_dx2 * (
-                    k_smoothed(0.5 * (temp_u[j, i + 1] + temp_u[j, i]), delta)
-                    * (temp_u[j, i + 1] - temp_u[j, i])
-                    - k_smoothed(0.5 * (temp_u[j, i] + temp_u[j, i - 1]), delta)
-                    * (temp_u[j, i] - temp_u[j, i - 1])
+                # Right-hand side of the equation
+                rhs[j] = u[j, i] + dt * 0.5 * inv_c * inv_dx2 * (
+                    k_smoothed(0.5 * (iter_u[j, i + 1] + iter_u[j, i]), delta)
+                    * (u[j, i + 1] - u[j, i])
+                    - k_smoothed(0.5 * (iter_u[j, i] + iter_u[j, i - 1]), delta)
+                    * (u[j, i] - u[j, i - 1])
                 )
 
-                alpha[j] = -a_j / (b_j + c_j * alpha[j - 1])
-                beta[j] = (rhs_j - c_j * beta[j - 1]) / (b_j + c_j * alpha[j - 1])
+            result[:, i] = solve_tridiagonal(
+                a=a_y,
+                b=b_y,
+                c=c_y,
+                f=rhs,
+                left_type=bbc_type,
+                left_value=bottom_value[i] if bottom_value is not None else 0.0,
+                left_flux=bottom_flux[i] if bottom_flux is not None else 0.0,
+                left_psi=bottom_psi[i] if bottom_psi is not None else 0.0,
+                left_phi=bottom_phi[i] if bottom_phi is not None else 0.0,
+                right_type=tbc_type,
+                right_value=top_value[i] if top_value is not None else 0.0,
+                right_flux=top_flux[i] if top_flux is not None else 0.0,
+                right_psi=top_psi[i] if top_psi is not None else 0.0,
+                right_phi=top_phi[i] if top_phi is not None else 0.0,
+                h=dy,
+            )
 
-            if top_cond_type == cfg.DIRICHLET:
-                new_u[n_y - 1, i] = tbc[i]
-            elif top_cond_type == cfg.NEUMANN:
-                new_u[n_y - 1, i] = (dy * phi + beta[n_y - 2]) / (1.0 - alpha[n_y - 2])
-            else:  # ROBIN
-                new_u[n_y - 1, i] = (dy * psi + beta[n_y - 2]) / (
-                    1 - alpha[n_y - 2] - dy * ksi
-                )
-
-            # Вычисление температуры на новом временном слое
-            for j in range(n_y - 2, -1, -1):
-                new_u[j, i] = alpha[j] * new_u[j + 1, i] + beta[j]
-
-        new_u[:, 0] = temp_u[:, 0]
-        new_u[:, n_x - 1] = temp_u[:, n_x - 1]
-
-        return new_u
+        return result
 
     def solve(
         self,
@@ -197,35 +215,117 @@ class AltDirSolver(HeatTransferSolver):
             self._temp_u = self._compute_sweep_x(
                 u=u,
                 iter_u=self._iter_u,
-                temp_u=self._temp_u,
-                alpha=self._alpha,
-                beta=self._beta,
+                sf=sf,
+                result=u,
+                a_x=self._a_x,
+                b_x=self._b_x,
+                c_x=self._c_x,
                 dx=self.geometry.dx,
                 dy=self.geometry.dy,
                 dt=self.geometry.dt,
-                right_cond_type=self.right_cond_type,
-                left_cond_type=self.left_cond_type,
                 delta=delta,
-                time=time,
+                rbc_type=self.right_bc.boundary_type.value,
+                lbc_type=self.left_bc.boundary_type.value,
+                right_value=(
+                    self.right_bc.get_value(t=time)
+                    if self.right_bc.boundary_type == BoundaryConditionType.DIRICHLET
+                    else None
+                ),
+                left_value=(
+                    self.left_bc.get_value(t=time)
+                    if self.left_bc.boundary_type == BoundaryConditionType.DIRICHLET
+                    else None
+                ),
+                right_flux=(
+                    self.right_bc.get_flux(t=time)
+                    if self.right_bc.boundary_type == BoundaryConditionType.NEUMANN
+                    else None
+                ),
+                left_flux=(
+                    self.left_bc.get_flux(t=time)
+                    if self.left_bc.boundary_type == BoundaryConditionType.NEUMANN
+                    else None
+                ),
+                right_psi=(
+                    self.right_bc.get_psi(t=time)
+                    if self.right_bc.boundary_type == BoundaryConditionType.ROBIN
+                    else None
+                ),
+                left_psi=(
+                    self.left_bc.get_psi(t=time)
+                    if self.left_bc.boundary_type == BoundaryConditionType.ROBIN
+                    else None
+                ),
+                right_phi=(
+                    self.right_bc.get_phi(t=time)
+                    if self.right_bc.boundary_type == BoundaryConditionType.ROBIN
+                    else None
+                ),
+                left_phi=(
+                    self.left_bc.get_phi(t=time)
+                    if self.left_bc.boundary_type == BoundaryConditionType.ROBIN
+                    else None
+                ),
             )
             self._iter_u = np.copy(self._temp_u)
 
         # Run the y-direction sweep iterations
         for i in range(iters):
-            delta = cfg.delta if self.fixed_delta else get_max_delta(self._temp_u)
+            delta = cfg.delta if self.fixed_delta else get_max_delta(self._iter_u)
             self._new_u = self._compute_sweep_y(
-                temp_u=self._temp_u,
+                u=self._temp_u,
                 iter_u=self._iter_u,
-                new_u=self._new_u,
-                alpha=self._alpha,
-                beta=self._beta,
+                sf=sf,
+                result=self._temp_u,
+                a_y=self._a_y,
+                b_y=self._b_y,
+                c_y=self._c_y,
                 dx=self.geometry.dx,
                 dy=self.geometry.dy,
                 dt=self.geometry.dt,
-                top_cond_type=self.top_cond_type,
-                bottom_cond_type=self.bottom_cond_type,
                 delta=delta,
-                time=time,
+                tbc_type=self.top_bc.boundary_type.value,
+                bbc_type=self.bottom_bc.boundary_type.value,
+                top_value=(
+                    self.top_bc.get_value(t=time)
+                    if self.top_bc.boundary_type == BoundaryConditionType.DIRICHLET
+                    else None
+                ),
+                bottom_value=(
+                    self.bottom_bc.get_value(t=time)
+                    if self.bottom_bc.boundary_type == BoundaryConditionType.DIRICHLET
+                    else None
+                ),
+                top_flux=(
+                    self.top_bc.get_flux(t=time)
+                    if self.top_bc.boundary_type == BoundaryConditionType.NEUMANN
+                    else None
+                ),
+                bottom_flux=(
+                    self.bottom_bc.get_flux(t=time)
+                    if self.bottom_bc.boundary_type == BoundaryConditionType.NEUMANN
+                    else None
+                ),
+                top_psi=(
+                    self.top_bc.get_psi(t=time)
+                    if self.top_bc.boundary_type == BoundaryConditionType.ROBIN
+                    else None
+                ),
+                bottom_psi=(
+                    self.bottom_bc.get_psi(t=time)
+                    if self.bottom_bc.boundary_type == BoundaryConditionType.ROBIN
+                    else None
+                ),
+                top_phi=(
+                    self.top_bc.get_phi(t=time)
+                    if self.top_bc.boundary_type == BoundaryConditionType.ROBIN
+                    else None
+                ),
+                bottom_phi=(
+                    self.bottom_bc.get_phi(t=time)
+                    if self.bottom_bc.boundary_type == BoundaryConditionType.ROBIN
+                    else None
+                ),
             )
             self._iter_u = np.copy(self._new_u)
 
