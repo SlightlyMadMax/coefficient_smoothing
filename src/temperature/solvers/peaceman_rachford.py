@@ -153,13 +153,13 @@ class PeacemanRachfordSolver(HeatTransferSolver):
                 b_y[j] = (
                     1.0
                     + dt
+                    * 0.5
                     * (
                         k_smoothed(0.5 * (iter_u[j + 1, i] + iter_u[j, i]), delta)
                         + k_smoothed(0.5 * (iter_u[j, i] + iter_u[j - 1, i]), delta)
                     )
                     * inv_c
                     * inv_dy2
-                    * 0.5
                 )
 
                 # Coefficient at T_{i, j - 1}^{n + 1}
