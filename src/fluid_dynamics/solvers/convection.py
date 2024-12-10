@@ -2,6 +2,7 @@ import numba
 import numpy as np
 from numpy.typing import NDArray
 
+from src.boundary_conditions import BoundaryCondition, BoundaryConditionType
 from src.geometry import DomainGeometry
 from src.solver import SweepSolver2D
 from src.fluid_dynamics.utils import (
@@ -17,17 +18,17 @@ class NavierStokesSolver(SweepSolver2D):
     def __init__(
         self,
         geometry: DomainGeometry,
-        top_cond_type: int,
-        right_cond_type: int,
-        bottom_cond_type: int,
-        left_cond_type: int,
+        top_bc: BoundaryCondition,
+        right_bc: BoundaryCondition,
+        bottom_bc: BoundaryCondition,
+        left_bc: BoundaryCondition,
     ):
         super().__init__(
             geometry=geometry,
-            top_cond_type=top_cond_type,
-            right_cond_type=right_cond_type,
-            bottom_cond_type=bottom_cond_type,
-            left_cond_type=left_cond_type,
+            top_bc=top_bc,
+            right_bc=right_bc,
+            bottom_bc=bottom_bc,
+            left_bc=left_bc,
         )
         self._temp_w: NDArray[np.float64] = np.empty(
             (self.geometry.n_y, self.geometry.n_x)
@@ -50,8 +51,6 @@ class NavierStokesSolver(SweepSolver2D):
         dx: float,
         dy: float,
         dt: float,
-        right_cond_type: int,
-        left_cond_type: int,
     ) -> NDArray[np.float64]:
         n_y, n_x = w.shape
         inv_dx = 1.0 / dx
@@ -112,9 +111,9 @@ class NavierStokesSolver(SweepSolver2D):
                 b=b_x,
                 c=c_x,
                 f=f,
-                left_type=left_cond_type,
+                left_type=1,  # Dirichlet
                 left_value=-0.5 * inv_dx2 * (8.0 * sf[j, 1] - sf[j, 2]),
-                right_type=right_cond_type,
+                right_type=1,  # Dirichlet
                 right_value=-0.5 * inv_dx2 * (8.0 * sf[j, n_x - 2] - sf[j, n_x - 3]),
                 h=dx,
             )
@@ -137,8 +136,6 @@ class NavierStokesSolver(SweepSolver2D):
         dx: float,
         dy: float,
         dt: float,
-        top_cond_type: int,
-        bottom_cond_type: int,
     ) -> NDArray[np.float64]:
         n_y, n_x = w.shape
         inv_dx = 1.0 / dx
@@ -199,9 +196,9 @@ class NavierStokesSolver(SweepSolver2D):
                 b=b_y,
                 c=c_y,
                 f=f,
-                left_type=bottom_cond_type,
+                left_type=1,  # Dirichlet
                 left_value=-0.5 * inv_dy2 * (8.0 * sf[1, i] - sf[2, i]),
-                right_type=top_cond_type,
+                right_type=1,  # Dirichlet
                 right_value=-0.5 * inv_dy2 * (8.0 * sf[n_y - 2, i] - sf[n_y - 3, i]),
                 h=dy,
             )
@@ -218,6 +215,10 @@ class NavierStokesSolver(SweepSolver2D):
         sf: NDArray[np.float64],
         dx: float,
         dy: float,
+        right_value: NDArray[np.float64] = None,
+        left_value: NDArray[np.float64] = None,
+        top_value: NDArray[np.float64] = None,
+        bottom_value: NDArray[np.float64] = None,
     ) -> NDArray[np.float64]:
         n_y, n_x = w.shape
         beta = dx / dy
@@ -225,10 +226,10 @@ class NavierStokesSolver(SweepSolver2D):
 
         result = np.copy(sf)
 
-        result[0, :] = 0.0
-        result[n_y - 1, :] = 0.0
-        result[:, 0] = 0.0
-        result[:, n_x - 1] = 0.0
+        result[0, :] = top_value
+        result[n_y - 1, :] = bottom_value
+        result[:, 0] = left_value
+        result[:, n_x - 1] = right_value
 
         temp = np.copy(result)
 
@@ -253,6 +254,7 @@ class NavierStokesSolver(SweepSolver2D):
         w: NDArray[np.float64],
         sf: NDArray[np.float64],
         u: NDArray[np.float64],
+        time: float,
     ) -> (NDArray[np.float64], NDArray[np.float64]):
         self._temp_w = self._compute_sweep_x(
             w=w,
@@ -265,8 +267,6 @@ class NavierStokesSolver(SweepSolver2D):
             dx=self.geometry.dx,
             dy=self.geometry.dy,
             dt=self.geometry.dt,
-            right_cond_type=self.right_cond_type,
-            left_cond_type=self.left_cond_type,
         )
         self._new_w = self._compute_sweep_y(
             w=self._temp_w,
@@ -279,14 +279,32 @@ class NavierStokesSolver(SweepSolver2D):
             dx=self.geometry.dx,
             dy=self.geometry.dy,
             dt=self.geometry.dt,
-            top_cond_type=self.top_cond_type,
-            bottom_cond_type=self.bottom_cond_type,
         )
         self._sf = self._compute_stream_function(
             w=self._new_w,
             sf=sf,
             dx=self.geometry.dx,
             dy=self.geometry.dy,
+            right_value=(
+                self.right_bc.get_value(t=time)
+                if self.right_bc.boundary_type == BoundaryConditionType.DIRICHLET
+                else None
+            ),
+            left_value=(
+                self.left_bc.get_value(t=time)
+                if self.left_bc.boundary_type == BoundaryConditionType.DIRICHLET
+                else None
+            ),
+            top_value=(
+                self.top_bc.get_value(t=time)
+                if self.top_bc.boundary_type == BoundaryConditionType.DIRICHLET
+                else None
+            ),
+            bottom_value=(
+                self.bottom_bc.get_value(t=time)
+                if self.bottom_bc.boundary_type == BoundaryConditionType.DIRICHLET
+                else None
+            ),
         )
 
         return self._sf, self._new_w
