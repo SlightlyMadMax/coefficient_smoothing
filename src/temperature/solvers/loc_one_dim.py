@@ -50,14 +50,14 @@ class LocOneDimSolver(HeatTransferSolver):
                     dt
                     * inv_dx
                     * (
-                        # 0.125
-                        # * inv_dy
-                        # * (
-                        #     sf[j + 1, i]
-                        #     - sf[j - 1, i]
-                        #     + sf[j + 1, i + 1]
-                        #     - sf[j - 1, i + 1]
-                        # )
+                        0.125
+                        * inv_dy
+                        * (
+                            sf[j + 1, i]
+                            - sf[j - 1, i]
+                            + sf[j + 1, i + 1]
+                            - sf[j - 1, i + 1]
+                        )
                         -k_smoothed(0.5 * (iter_u[j, i + 1] + iter_u[j, i]), delta)
                         * inv_c
                         * inv_dx
@@ -81,14 +81,14 @@ class LocOneDimSolver(HeatTransferSolver):
                     -dt
                     * inv_dx
                     * (
-                        # 0.125
-                        # * inv_dy
-                        # * (
-                        #     sf[j + 1, i]
-                        #     - sf[j - 1, i]
-                        #     + sf[j + 1, i - 1]
-                        #     - sf[j - 1, i - 1]
-                        # ) +
+                        0.125
+                        * inv_dy
+                        * (
+                            sf[j + 1, i]
+                            - sf[j - 1, i]
+                            + sf[j + 1, i - 1]
+                            - sf[j - 1, i - 1]
+                        ) +
                         k_smoothed(0.5 * (iter_u[j, i] + iter_u[j, i - 1]), delta)
                         * inv_c
                         * inv_dx
@@ -154,14 +154,14 @@ class LocOneDimSolver(HeatTransferSolver):
                     dt
                     * inv_dy
                     * (
-                        # 0.125
-                        # * inv_dx
-                        # * (
-                        #     sf[j, i - 1]
-                        #     - sf[j, i + 1]
-                        #     + sf[j + 1, i - 1]
-                        #     - sf[j + 1, i + 1]
-                        # )
+                        0.125
+                        * inv_dx
+                        * (
+                            sf[j, i - 1]
+                            - sf[j, i + 1]
+                            + sf[j + 1, i - 1]
+                            - sf[j + 1, i + 1]
+                        )
                         -k_smoothed(0.5 * (iter_u[j + 1, i] + iter_u[j, i]), delta)
                         * inv_c
                         * inv_dy
@@ -185,14 +185,14 @@ class LocOneDimSolver(HeatTransferSolver):
                     -dt
                     * inv_dy
                     * (
-                        # 0.125
-                        # * inv_dx
-                        # * (
-                        #     sf[j, i - 1]
-                        #     - sf[j, i + 1]
-                        #     + sf[j - 1, i - 1]
-                        #     - sf[j - 1, i + 1]
-                        # ) +
+                        0.125
+                        * inv_dx
+                        * (
+                            sf[j, i - 1]
+                            - sf[j, i + 1]
+                            + sf[j - 1, i - 1]
+                            - sf[j - 1, i + 1]
+                        ) +
                         k_smoothed(0.5 * (iter_u[j, i] + iter_u[j - 1, i]), delta)
                         * inv_c
                         * inv_dy

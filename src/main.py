@@ -23,16 +23,16 @@ if __name__ == "__main__":
         width=1.0,
         height=1.0,
         end_time=60.0 * 60.0 * 24.0 * 7.0,
-        n_x=500,
-        n_y=500,
-        n_t=60 * 60 * 24 * 3,
+        n_x=100,
+        n_y=100,
+        n_t=60 * 60 * 24 * 7,
     )
 
     print(geometry)
 
     u = init_temperature_shape(
         geom=geometry,
-        shape=TemperatureShape.PACMAN,
+        shape=TemperatureShape.UNIFORM_W,
         water_temp=cfg.T_WATER_MAX,
         ice_temp=cfg.T_ICE_MIN,
     )
@@ -53,25 +53,48 @@ if __name__ == "__main__":
         display_temp_units=TemperatureUnit.CELSIUS,
     )
 
-    top_bc = BoundaryCondition(
+    # Temperature boundary conditions
+    u_top_bc = BoundaryCondition(
         boundary_type=BoundaryConditionType.DIRICHLET,
         n=geometry.n_x,
-        value_func=lambda t, n: cfg.T_ICE_MIN * np.ones(geometry.n_x),
+        value_func=lambda t, n: cfg.T_WATER_MAX * np.ones(geometry.n_x),
     )
-    right_bc = BoundaryCondition(
+    u_right_bc = BoundaryCondition(
         boundary_type=BoundaryConditionType.DIRICHLET,
         n=geometry.n_y,
-        value_func=lambda t, n: cfg.T_ICE_MIN * np.ones(geometry.n_y),
+        value_func=lambda t, n: 10.0 * np.ones(geometry.n_y),
     )
-    bottom_bc = BoundaryCondition(
+    u_bottom_bc = BoundaryCondition(
         boundary_type=BoundaryConditionType.DIRICHLET,
         n=geometry.n_x,
-        value_func=lambda t, n: cfg.T_ICE_MIN * np.ones(geometry.n_x),
+        value_func=lambda t, n: cfg.T_WATER_MAX * np.ones(geometry.n_x),
     )
-    left_bc = BoundaryCondition(
+    u_left_bc = BoundaryCondition(
         boundary_type=BoundaryConditionType.DIRICHLET,
         n=geometry.n_y,
-        value_func=lambda t, n: cfg.T_ICE_MIN * np.ones(geometry.n_y),
+        value_func=lambda t, n: cfg.T_WATER_MAX * np.ones(geometry.n_y),
+    )
+
+    # Stream-function boundary conditions
+    sf_top_bc = BoundaryCondition(
+        boundary_type=BoundaryConditionType.DIRICHLET,
+        n=geometry.n_x,
+        value_func=lambda t, n: np.zeros(geometry.n_x),
+    )
+    sf_right_bc = BoundaryCondition(
+        boundary_type=BoundaryConditionType.DIRICHLET,
+        n=geometry.n_y,
+        value_func=lambda t, n: np.zeros(geometry.n_y),
+    )
+    sf_bottom_bc = BoundaryCondition(
+        boundary_type=BoundaryConditionType.DIRICHLET,
+        n=geometry.n_x,
+        value_func=lambda t, n: np.zeros(geometry.n_x),
+    )
+    sf_left_bc = BoundaryCondition(
+        boundary_type=BoundaryConditionType.DIRICHLET,
+        n=geometry.n_y,
+        value_func=lambda t, n: np.zeros(geometry.n_y),
     )
 
     sf = initialize_stream_function(geom=geometry)
@@ -79,26 +102,26 @@ if __name__ == "__main__":
 
     heat_transfer_solver = LocOneDimSolver(
         geometry=geometry,
-        top_bc=top_bc,
-        right_bc=right_bc,
-        bottom_bc=bottom_bc,
-        left_bc=left_bc,
+        top_bc=u_top_bc,
+        right_bc=u_right_bc,
+        bottom_bc=u_bottom_bc,
+        left_bc=u_left_bc,
         fixed_delta=False,
     )
-    # navier_solver = NavierStokesSolver(
-    #     geometry=geometry,
-    #     top_cond_type=cfg.DIRICHLET,
-    #     right_cond_type=cfg.DIRICHLET,
-    #     bottom_cond_type=cfg.DIRICHLET,
-    #     left_cond_type=cfg.DIRICHLET,
-    # )
+    navier_solver = NavierStokesSolver(
+        geometry=geometry,
+        top_bc=sf_top_bc,
+        right_bc=sf_right_bc,
+        bottom_bc=sf_bottom_bc,
+        left_bc=sf_left_bc,
+    )
 
     start_time = time.process_time()
     for n in range(1, geometry.n_t):
         t = n * geometry.dt
 
         u = heat_transfer_solver.solve(u=u, sf=sf, time=t, iters=1)
-        # sf, w = navier_solver.solve(w=w, sf=sf, u=u)
+        sf, w = navier_solver.solve(w=w, sf=sf, u=u, time=t)
 
         if n % 60 == 0:
             plot_temperature(
