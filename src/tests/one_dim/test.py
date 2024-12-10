@@ -6,13 +6,14 @@ from compare_boundary import compare_num_with_analytic
 from src.boundary_conditions import BoundaryCondition, BoundaryConditionType
 from src.geometry import DomainGeometry
 from src.parameters import N_Y, N_X, N_T, T_0, WIDTH, HEIGHT, FULL_TIME
+from src.temperature.solvers.peaceman_rachford import PeacemanRachfordSolver
 from src.temperature.solvers.loc_one_dim import LocOneDimSolver
 from src.tests.one_dim.analytic_solution_1d_2f import get_analytic_solution
 
 
 if __name__ == "__main__":
     # dir_name = input("Enter a directory name where data will be stored: ")
-    dir_name = "loc_one_dim"
+    dir_name = "douglas_rachford"
     dir_name = f"./results/{dir_name}"
 
     try:
@@ -47,7 +48,7 @@ if __name__ == "__main__":
         flux_func=lambda t, n: np.zeros(geometry.n_y),
     )
 
-    heat_transfer_solver = LocOneDimSolver(
+    heat_transfer_solver = PeacemanRachfordSolver(
         geometry=geometry,
         top_bc=top_bc,
         right_bc=right_bc,
@@ -89,7 +90,7 @@ if __name__ == "__main__":
                         j * geometry.dy
                         + ((T_0 - T[j, i]) / (T[j + 1, i] - T[j, i])) * geometry.dy
                     )
-                    # print(y_0)
+                    print(y_0)
                     boundary.append(y_0)
                     break
 

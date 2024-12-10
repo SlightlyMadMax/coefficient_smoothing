@@ -10,7 +10,7 @@ from src.temperature.solvers.base import HeatTransferSolver
 from src.utils import solve_tridiagonal
 
 
-class LocOneDimSolver(HeatTransferSolver):
+class PeacemanRachfordSolver(HeatTransferSolver):
     @staticmethod
     @numba.jit(nopython=True)
     def _compute_sweep_x(
@@ -37,9 +37,10 @@ class LocOneDimSolver(HeatTransferSolver):
         left_phi: NDArray[np.float64] = None,
     ) -> NDArray[np.float64]:
         n_y, n_x = u.shape
-        inv_dx = 1.0 / dx
         inv_dx2 = 1.0 / (dx * dx)
-        inv_dy = 1.0 / dy
+        inv_dy2 = 1.0 / (dy * dy)
+
+        rhs = np.empty(n_x)
 
         for j in range(1, n_y - 1):
             for i in range(1, n_x - 1):
@@ -47,27 +48,18 @@ class LocOneDimSolver(HeatTransferSolver):
 
                 # Coefficient at T_{i + 1, j}^{n + 1/2}
                 a_x[i] = (
-                    dt
-                    * inv_dx
-                    * (
-                        # 0.125
-                        # * inv_dy
-                        # * (
-                        #     sf[j + 1, i]
-                        #     - sf[j - 1, i]
-                        #     + sf[j + 1, i + 1]
-                        #     - sf[j - 1, i + 1]
-                        # )
-                        -k_smoothed(0.5 * (iter_u[j, i + 1] + iter_u[j, i]), delta)
-                        * inv_c
-                        * inv_dx
-                    )
+                    -dt
+                    * 0.5
+                    * k_smoothed(0.5 * (iter_u[j, i + 1] + iter_u[j, i]), delta)
+                    * inv_c
+                    * inv_dx2
                 )
 
                 # Coefficient at T_{i, j}^{n + 1/2}
                 b_x[i] = (
                     1.0
                     + dt
+                    * 0.5
                     * (
                         k_smoothed(0.5 * (iter_u[j, i + 1] + iter_u[j, i]), delta)
                         + k_smoothed(0.5 * (iter_u[j, i] + iter_u[j, i - 1]), delta)
@@ -79,27 +71,25 @@ class LocOneDimSolver(HeatTransferSolver):
                 # Coefficient at T_{i - 1, j}^{n + 1/2}
                 c_x[i] = (
                     -dt
-                    * inv_dx
-                    * (
-                        # 0.125
-                        # * inv_dy
-                        # * (
-                        #     sf[j + 1, i]
-                        #     - sf[j - 1, i]
-                        #     + sf[j + 1, i - 1]
-                        #     - sf[j - 1, i - 1]
-                        # ) +
-                        k_smoothed(0.5 * (iter_u[j, i] + iter_u[j, i - 1]), delta)
-                        * inv_c
-                        * inv_dx
-                    )
+                    * 0.5
+                    * k_smoothed(0.5 * (iter_u[j, i] + iter_u[j, i - 1]), delta)
+                    * inv_c
+                    * inv_dx2
+                )
+
+                # Right-hand side of the equation
+                rhs[i] = u[j, i] + dt * 0.5 * inv_c * inv_dy2 * (
+                    k_smoothed(0.5 * (iter_u[j + 1, i] + iter_u[j, i]), delta)
+                    * (u[j + 1, i] - u[j, i])
+                    - k_smoothed(0.5 * (iter_u[j, i] + iter_u[j - 1, i]), delta)
+                    * (u[j, i] - u[j - 1, i])
                 )
 
             result[j, :] = solve_tridiagonal(
                 a=a_x,
                 b=b_x,
                 c=c_x,
-                f=u[j, :],
+                f=rhs,
                 left_type=lbc_type,
                 left_value=left_value[j] if left_value is not None else 0.0,
                 left_flux=left_flux[j] if left_flux is not None else 0.0,
@@ -141,9 +131,10 @@ class LocOneDimSolver(HeatTransferSolver):
         bottom_phi: NDArray[np.float64] = None,
     ) -> NDArray[np.float64]:
         n_y, n_x = u.shape
-        inv_dx = 1.0 / dx
-        inv_dy = 1.0 / dy
+        inv_dx2 = 1.0 / (dx * dx)
         inv_dy2 = 1.0 / (dy * dy)
+
+        rhs = np.empty(n_y)
 
         for i in range(1, n_x - 1):
             for j in range(1, n_y - 1):
@@ -151,27 +142,18 @@ class LocOneDimSolver(HeatTransferSolver):
 
                 # Coefficient at T_{i, j + 1}^{n + 1}
                 a_y[j] = (
-                    dt
-                    * inv_dy
-                    * (
-                        # 0.125
-                        # * inv_dx
-                        # * (
-                        #     sf[j, i - 1]
-                        #     - sf[j, i + 1]
-                        #     + sf[j + 1, i - 1]
-                        #     - sf[j + 1, i + 1]
-                        # )
-                        -k_smoothed(0.5 * (iter_u[j + 1, i] + iter_u[j, i]), delta)
-                        * inv_c
-                        * inv_dy
-                    )
+                    -dt
+                    * 0.5
+                    * k_smoothed(0.5 * (iter_u[j + 1, i] + iter_u[j, i]), delta)
+                    * inv_c
+                    * inv_dy2
                 )
 
                 # Coefficient at T_{i, j}^{n + 1}
                 b_y[j] = (
                     1.0
                     + dt
+                    * 0.5
                     * (
                         k_smoothed(0.5 * (iter_u[j + 1, i] + iter_u[j, i]), delta)
                         + k_smoothed(0.5 * (iter_u[j, i] + iter_u[j - 1, i]), delta)
@@ -183,27 +165,25 @@ class LocOneDimSolver(HeatTransferSolver):
                 # Coefficient at T_{i, j - 1}^{n + 1}
                 c_y[j] = (
                     -dt
-                    * inv_dy
-                    * (
-                        # 0.125
-                        # * inv_dx
-                        # * (
-                        #     sf[j, i - 1]
-                        #     - sf[j, i + 1]
-                        #     + sf[j - 1, i - 1]
-                        #     - sf[j - 1, i + 1]
-                        # ) +
-                        k_smoothed(0.5 * (iter_u[j, i] + iter_u[j - 1, i]), delta)
-                        * inv_c
-                        * inv_dy
-                    )
+                    * 0.5
+                    * k_smoothed(0.5 * (iter_u[j, i] + iter_u[j - 1, i]), delta)
+                    * inv_c
+                    * inv_dy2
+                )
+
+                # Right-hand side of the equation
+                rhs[j] = u[j, i] + dt * 0.5 * inv_c * inv_dx2 * (
+                    k_smoothed(0.5 * (iter_u[j, i + 1] + iter_u[j, i]), delta)
+                    * (u[j, i + 1] - u[j, i])
+                    - k_smoothed(0.5 * (iter_u[j, i] + iter_u[j, i - 1]), delta)
+                    * (u[j, i] - u[j, i - 1])
                 )
 
             result[:, i] = solve_tridiagonal(
                 a=a_y,
                 b=b_y,
                 c=c_y,
-                f=u[:, i],
+                f=rhs,
                 left_type=bbc_type,
                 left_value=bottom_value[i] if bottom_value is not None else 0.0,
                 left_flux=bottom_flux[i] if bottom_flux is not None else 0.0,
@@ -247,42 +227,42 @@ class LocOneDimSolver(HeatTransferSolver):
                 rbc_type=self.right_bc.boundary_type.value,
                 lbc_type=self.left_bc.boundary_type.value,
                 right_value=(
-                    self.right_bc.get_value(t=time)
+                    self.right_bc.get_value(t=time - 0.5 * self.geometry.dt)
                     if self.right_bc.boundary_type == BoundaryConditionType.DIRICHLET
                     else None
                 ),
                 left_value=(
-                    self.left_bc.get_value(t=time)
+                    self.left_bc.get_value(t=time - 0.5 * self.geometry.dt)
                     if self.left_bc.boundary_type == BoundaryConditionType.DIRICHLET
                     else None
                 ),
                 right_flux=(
-                    self.right_bc.get_flux(t=time)
+                    self.right_bc.get_flux(t=time - 0.5 * self.geometry.dt)
                     if self.right_bc.boundary_type == BoundaryConditionType.NEUMANN
                     else None
                 ),
                 left_flux=(
-                    self.left_bc.get_flux(t=time)
+                    self.left_bc.get_flux(t=time - 0.5 * self.geometry.dt)
                     if self.left_bc.boundary_type == BoundaryConditionType.NEUMANN
                     else None
                 ),
                 right_psi=(
-                    self.right_bc.get_psi(t=time)
+                    self.right_bc.get_psi(t=time - 0.5 * self.geometry.dt)
                     if self.right_bc.boundary_type == BoundaryConditionType.ROBIN
                     else None
                 ),
                 left_psi=(
-                    self.left_bc.get_psi(t=time)
+                    self.left_bc.get_psi(t=time - 0.5 * self.geometry.dt)
                     if self.left_bc.boundary_type == BoundaryConditionType.ROBIN
                     else None
                 ),
                 right_phi=(
-                    self.right_bc.get_phi(t=time)
+                    self.right_bc.get_phi(t=time - 0.5 * self.geometry.dt)
                     if self.right_bc.boundary_type == BoundaryConditionType.ROBIN
                     else None
                 ),
                 left_phi=(
-                    self.left_bc.get_phi(t=time)
+                    self.left_bc.get_phi(t=time - 0.5 * self.geometry.dt)
                     if self.left_bc.boundary_type == BoundaryConditionType.ROBIN
                     else None
                 ),

@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from typing import Optional, List
+
+from PIL import Image
 from matplotlib import animation
 from numpy.typing import NDArray
 
@@ -192,3 +194,41 @@ def animate(
         os.makedirs(directory)
 
     anim.save(f"{directory}{filename}.gif", dpi=100, writer="imagemagick")
+
+
+def create_gif_from_images(
+    output_filename: str,
+    source_directory: str = "../graphs/temperature/",
+    output_directory: str = "../graphs/animations/",
+    duration: int = 100,
+    loop: int = 0,
+) -> None:
+    """
+    Creates a GIF animation from PNG images in a specified folder.
+
+    :param output_filename: Filename of the resulting GIF file
+    :param source_directory: Path to the folder containing PNG images.
+    :param output_directory: Path to save the resulting GIF file.
+    :param duration: Duration of each frame in milliseconds. Default is 500ms.
+    :param loop: Number of loops. 0 means infinite looping. Default is 0.
+    """
+    image_files = sorted(
+        [file for file in os.listdir(source_directory) if file.endswith(".png")]
+    )
+
+    if not image_files:
+        raise ValueError("No PNG files found in the specified folder.")
+
+    images = [Image.open(os.path.join(source_directory, file)) for file in image_files]
+
+    output_path = output_directory + output_filename + ".gif"
+
+    images[0].save(
+        output_path,
+        save_all=True,
+        append_images=images[1:],
+        duration=duration,
+        loop=loop,
+        format="GIF",
+    )
+    print(f"GIF created and saved to {output_path}")
