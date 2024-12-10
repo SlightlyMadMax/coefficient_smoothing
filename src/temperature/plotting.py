@@ -70,8 +70,9 @@ def plot_temperature(
         X,
         Y,
         disp_T,
-        50,
+        30,
         cmap="viridis",
+        # extend="both",
     )
     cbar = plt.colorbar(contour)
     if not min_temp or not max_temp:
@@ -159,7 +160,7 @@ def animate(
         X,
         Y,
         _get_temp_in_display_units(T_full[0], actual_temp_units, display_temp_units),
-        50,
+        30,
         cmap="viridis",
         vmin=min_temp,
         vmax=max_temp,
