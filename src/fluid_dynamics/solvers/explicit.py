@@ -55,10 +55,10 @@ class ExplicitNavierStokesSolver(BaseSolver):
         # result[n_y - 1, :] = -0.5 * inv_dy2 * (8.0 * sf[n_y - 2, :] - sf[n_y - 3, :])
         # result[:, 0] = -0.5 * inv_dx2 * (8.0 * sf[:, 1] - sf[:, 2])
         # result[:, n_x - 1] = -0.5 * inv_dx2 * (8.0 * sf[:, n_x - 2] - sf[:, n_x - 3])
-        result[0, :] = -0.5 * inv_dy2 * sf[1, :]
-        result[n_y - 1, :] = 0.5 * inv_dy2 * sf[n_y - 2, :]
-        result[:, 0] = -0.5 * inv_dx2 * sf[:, 1]
-        result[:, n_x - 1] = 0.5 * inv_dx2 * sf[:, n_x - 2]
+        result[0, :] = -2.0 * inv_dy2 * sf[1, :]
+        result[n_y - 1, :] = -2.0 * inv_dy2 * sf[n_y - 2, :]
+        result[:, 0] = -2.0 * inv_dx2 * sf[:, 1]
+        result[:, n_x - 1] = -2.0 * inv_dx2 * sf[:, n_x - 2]
 
         for j in range(1, n_y - 1):
             for i in range(1, n_x - 1):
