@@ -96,12 +96,12 @@ class NavierStokesSolver(SweepSolver2D):
                     + 0.25
                     * inv_dy
                     * inv_dx
-                    * (sf[j - 1, i + 1] - sf[j - 1, i - 1])
+                    * (sf[j - 1, i - 1] - sf[j - 1, i + 1])
                     * w[j - 1, i]
                     + 0.25
                     * inv_dy
                     * inv_dx
-                    * (sf[j + 1, i - 1] - sf[j + 1, i + 1])
+                    * (sf[j + 1, i + 1] - sf[j + 1, i - 1])
                     * w[j + 1, i]
                     + visc(u[j, i]) * c_ind(u[j, i]) * sf[j, i]
                 )
@@ -181,12 +181,12 @@ class NavierStokesSolver(SweepSolver2D):
                     + 0.25
                     * inv_dy
                     * inv_dx
-                    * (sf[j - 1, i - 1] - sf[j + 1, i - 1])
+                    * (sf[j + 1, i - 1] - sf[j - 1, i - 1])
                     * w[j, i - 1]
                     + 0.25
                     * inv_dy
                     * inv_dx
-                    * (sf[j + 1, i + 1] - sf[j - 1, i + 1])
+                    * (sf[j - 1, i + 1] - sf[j + 1, i + 1])
                     * w[j, i + 1]
                     + visc(u[j, i]) * c_ind(u[j, i]) * sf[j, i]
                 )
