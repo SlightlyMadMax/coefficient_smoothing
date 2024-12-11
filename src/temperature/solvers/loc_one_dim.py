@@ -228,15 +228,16 @@ class LocOneDimSolver(HeatTransferSolver):
     ) -> NDArray[np.float64]:
 
         self._iter_u = np.copy(u)
+        self._temp_u = np.copy(u)
 
         # Run the x-direction sweep iterations
         for i in range(iters):
             delta = cfg.delta if self.fixed_delta else get_max_delta(self._iter_u)
-            self._temp_u = self._compute_sweep_x(
+            self._compute_sweep_x(
                 u=u,
                 iter_u=self._iter_u,
                 sf=sf,
-                result=u,
+                result=self._temp_u,
                 a_x=self._a_x,
                 b_x=self._b_x,
                 c_x=self._c_x,
@@ -287,16 +288,19 @@ class LocOneDimSolver(HeatTransferSolver):
                     else None
                 ),
             )
-            self._iter_u = np.copy(self._temp_u)
+            self._iter_u = self._temp_u
+            # self._iter_u = 0.5 * (self._iter_u + self._temp_u)
+
+        self._new_u = np.copy(self._temp_u)
 
         # Run the y-direction sweep iterations
         for i in range(iters):
             delta = cfg.delta if self.fixed_delta else get_max_delta(self._iter_u)
-            self._new_u = self._compute_sweep_y(
+            self._compute_sweep_y(
                 u=self._temp_u,
                 iter_u=self._iter_u,
                 sf=sf,
-                result=self._temp_u,
+                result=self._new_u,
                 a_y=self._a_y,
                 b_y=self._b_y,
                 c_y=self._c_y,
@@ -347,6 +351,7 @@ class LocOneDimSolver(HeatTransferSolver):
                     else None
                 ),
             )
-            self._iter_u = np.copy(self._new_u)
+            self._iter_u = self._new_u
+            # self._iter_u = 0.5 * (self._iter_u + self._new_u)
 
         return self._new_u
