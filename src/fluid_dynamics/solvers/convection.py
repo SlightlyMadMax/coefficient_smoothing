@@ -103,7 +103,7 @@ class NavierStokesSolver(SweepSolver2D):
                     * inv_dx
                     * (sf[j + 1, i + 1] - sf[j + 1, i - 1])
                     * w[j + 1, i]
-                    + visc(u[j, i]) * c_ind(u[j, i]) * sf[j, i]
+                    # + visc(u[j, i]) * c_ind(u[j, i]) * sf[j, i]
                 )
 
             result[j, :] = solve_tridiagonal(
@@ -188,7 +188,7 @@ class NavierStokesSolver(SweepSolver2D):
                     * inv_dx
                     * (sf[j - 1, i + 1] - sf[j + 1, i + 1])
                     * w[j, i + 1]
-                    + visc(u[j, i]) * c_ind(u[j, i]) * sf[j, i]
+                    # + visc(u[j, i]) * c_ind(u[j, i]) * sf[j, i]
                 )
 
             result[:, i] = solve_tridiagonal(
