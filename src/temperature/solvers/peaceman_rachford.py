@@ -37,6 +37,8 @@ class PeacemanRachfordSolver(HeatTransferSolver):
         left_phi: NDArray[np.float64] = None,
     ) -> NDArray[np.float64]:
         n_y, n_x = u.shape
+        inv_dx = 1.0 / dx
+        inv_dy = 1.0 / dy
         inv_dx2 = 1.0 / (dx * dx)
         inv_dy2 = 1.0 / (dy * dy)
 
@@ -48,11 +50,22 @@ class PeacemanRachfordSolver(HeatTransferSolver):
 
                 # Coefficient at T_{i + 1, j}^{n + 1/2}
                 a_x[i] = (
-                    -dt
+                    dt
                     * 0.5
-                    * k_smoothed(0.5 * (iter_u[j, i + 1] + iter_u[j, i]), delta)
-                    * inv_c
-                    * inv_dx2
+                    * inv_dx
+                    * (
+                        0.125
+                        * inv_dy
+                        * (
+                            sf[j + 1, i]
+                            - sf[j - 1, i]
+                            + sf[j + 1, i + 1]
+                            - sf[j - 1, i + 1]
+                        )
+                        - k_smoothed(0.5 * (iter_u[j, i + 1] + iter_u[j, i]), delta)
+                        * inv_c
+                        * inv_dx
+                    )
                 )
 
                 # Coefficient at T_{i, j}^{n + 1/2}
@@ -72,17 +85,51 @@ class PeacemanRachfordSolver(HeatTransferSolver):
                 c_x[i] = (
                     -dt
                     * 0.5
-                    * k_smoothed(0.5 * (iter_u[j, i] + iter_u[j, i - 1]), delta)
-                    * inv_c
-                    * inv_dx2
+                    * inv_dx
+                    * (
+                        0.125
+                        * inv_dy
+                        * (
+                            sf[j + 1, i]
+                            - sf[j - 1, i]
+                            + sf[j + 1, i - 1]
+                            - sf[j - 1, i - 1]
+                        )
+                        + k_smoothed(0.5 * (iter_u[j, i] + iter_u[j, i - 1]), delta)
+                        * inv_c
+                        * inv_dx
+                    )
                 )
 
                 # Right-hand side of the equation
-                rhs[i] = u[j, i] + dt * 0.5 * inv_c * inv_dy2 * (
-                    k_smoothed(0.5 * (iter_u[j + 1, i] + iter_u[j, i]), delta)
-                    * (u[j + 1, i] - u[j, i])
-                    - k_smoothed(0.5 * (iter_u[j, i] + iter_u[j - 1, i]), delta)
-                    * (u[j, i] - u[j - 1, i])
+                rhs[i] = u[j, i] + dt * 0.5 * inv_c * (
+                    inv_dy2
+                    * (
+                        k_smoothed(0.5 * (iter_u[j + 1, i] + iter_u[j, i]), delta)
+                        * (u[j + 1, i] - u[j, i])
+                        - k_smoothed(0.5 * (iter_u[j, i] + iter_u[j - 1, i]), delta)
+                        * (u[j, i] - u[j - 1, i])
+                    )
+                    - 0.125
+                    * inv_dx
+                    * inv_dy
+                    * (
+                        sf[j, i - 1]
+                        - sf[j, i + 1]
+                        + sf[j + 1, i - 1]
+                        - sf[j + 1, i + 1]
+                    )
+                    * u[j + 1, i]
+                    + 0.125
+                    * inv_dx
+                    * inv_dy
+                    * (
+                        sf[j, i - 1]
+                        - sf[j, i + 1]
+                        + sf[j - 1, i - 1]
+                        - sf[j - 1, i + 1]
+                    )
+                    * u[j - 1, i]
                 )
 
             result[j, :] = solve_tridiagonal(
@@ -131,6 +178,8 @@ class PeacemanRachfordSolver(HeatTransferSolver):
         bottom_phi: NDArray[np.float64] = None,
     ) -> NDArray[np.float64]:
         n_y, n_x = u.shape
+        inv_dy = 1.0 / dy
+        inv_dx = 1.0 / dx
         inv_dx2 = 1.0 / (dx * dx)
         inv_dy2 = 1.0 / (dy * dy)
 
@@ -142,11 +191,22 @@ class PeacemanRachfordSolver(HeatTransferSolver):
 
                 # Coefficient at T_{i, j + 1}^{n + 1}
                 a_y[j] = (
-                    -dt
+                    dt
                     * 0.5
-                    * k_smoothed(0.5 * (iter_u[j + 1, i] + iter_u[j, i]), delta)
-                    * inv_c
-                    * inv_dy2
+                    * inv_dy
+                    * (
+                        0.125
+                        * inv_dx
+                        * (
+                            sf[j, i - 1]
+                            - sf[j, i + 1]
+                            + sf[j + 1, i - 1]
+                            - sf[j + 1, i + 1]
+                        )
+                        - k_smoothed(0.5 * (iter_u[j + 1, i] + iter_u[j, i]), delta)
+                        * inv_c
+                        * inv_dy
+                    )
                 )
 
                 # Coefficient at T_{i, j}^{n + 1}
@@ -166,17 +226,50 @@ class PeacemanRachfordSolver(HeatTransferSolver):
                 c_y[j] = (
                     -dt
                     * 0.5
-                    * k_smoothed(0.5 * (iter_u[j, i] + iter_u[j - 1, i]), delta)
-                    * inv_c
-                    * inv_dy2
+                    * inv_dy
+                    * (
+                        0.125
+                        * inv_dx
+                        * (
+                            sf[j, i - 1]
+                            - sf[j, i + 1]
+                            + sf[j - 1, i - 1]
+                            - sf[j - 1, i + 1]
+                        )
+                        + k_smoothed(0.5 * (iter_u[j, i] + iter_u[j - 1, i]), delta)
+                        * inv_c
+                        * inv_dy
+                    )
                 )
 
                 # Right-hand side of the equation
-                rhs[j] = u[j, i] + dt * 0.5 * inv_c * inv_dx2 * (
-                    k_smoothed(0.5 * (iter_u[j, i + 1] + iter_u[j, i]), delta)
-                    * (u[j, i + 1] - u[j, i])
-                    - k_smoothed(0.5 * (iter_u[j, i] + iter_u[j, i - 1]), delta)
-                    * (u[j, i] - u[j, i - 1])
+                rhs[j] = u[j, i] + dt * 0.5 * inv_c * (
+                    inv_dx2
+                    * (
+                        k_smoothed(0.5 * (iter_u[j, i + 1] + iter_u[j, i]), delta)
+                        * (u[j, i + 1] - u[j, i])
+                        - k_smoothed(0.5 * (iter_u[j, i] + iter_u[j, i - 1]), delta)
+                        * (u[j, i] - u[j, i - 1])
+                    )
+                    - 0.125
+                    * inv_dx
+                    * inv_dy
+                    * (
+                        sf[j + 1, i]
+                        - sf[j - 1, i]
+                        + sf[j + 1, i + 1]
+                        - sf[j - 1, i + 1]
+                    )
+                    * u[j, i + 1]
+                    + 0.125
+                    * inv_dx
+                    * inv_dy
+                    * (
+                        sf[j + 1, i]
+                        - sf[j - 1, i]
+                        + sf[j + 1, i - 1]
+                        - sf[j - 1, i - 1]
+                    )
                 )
 
             result[:, i] = solve_tridiagonal(
