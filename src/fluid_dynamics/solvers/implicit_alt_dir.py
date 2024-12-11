@@ -22,6 +22,10 @@ class ImplicitNavierStokesSolver(SweepSolver2D):
         right_bc: BoundaryCondition,
         bottom_bc: BoundaryCondition,
         left_bc: BoundaryCondition,
+        sf_max_iters: int = 50,
+        sf_stopping_criteria: float = 1e-6,
+        alt_dir_max_iters: int = 5,
+        alt_dir_stopping_criteria: float = 1e-6,
     ):
         super().__init__(
             geometry=geometry,
@@ -37,6 +41,10 @@ class ImplicitNavierStokesSolver(SweepSolver2D):
             (self.geometry.n_y, self.geometry.n_x)
         )
         self._sf: NDArray[np.float64] = np.empty((self.geometry.n_y, self.geometry.n_x))
+        self.sf_max_iters = sf_max_iters
+        self.sf_stopping_criteria = sf_stopping_criteria
+        self.alt_dir_max_iters = alt_dir_max_iters
+        self.alt_dir_stopping_criteria = alt_dir_stopping_criteria
 
     @staticmethod
     @numba.jit(nopython=True)
@@ -209,6 +217,8 @@ class ImplicitNavierStokesSolver(SweepSolver2D):
         sf: NDArray[np.float64],
         dx: float,
         dy: float,
+        max_iters: int,
+        stopping_criteria: float,
         right_value: NDArray[np.float64] = None,
         left_value: NDArray[np.float64] = None,
         top_value: NDArray[np.float64] = None,
@@ -227,7 +237,7 @@ class ImplicitNavierStokesSolver(SweepSolver2D):
 
         temp = np.copy(result)
 
-        for iteration in range(50):
+        for iteration in range(max_iters):
             for i in range(1, n_x - 1):
                 for j in range(1, n_y - 1):
                     result[j, i] = factor * (
@@ -238,7 +248,7 @@ class ImplicitNavierStokesSolver(SweepSolver2D):
                         + dx * dx * w[j, i]
                     )
             diff = np.linalg.norm(temp - result)
-            if diff < 1e-6:
+            if diff < stopping_criteria:
                 break
             temp = np.copy(result)
         return result
@@ -250,55 +260,63 @@ class ImplicitNavierStokesSolver(SweepSolver2D):
         u: NDArray[np.float64],
         time: float,
     ) -> (NDArray[np.float64], NDArray[np.float64]):
-        self._temp_w = self._compute_sweep_x(
-            w=w,
-            sf=sf,
-            u=u,
-            result=w,
-            a_x=self._a_x,
-            b_x=self._b_x,
-            c_x=self._c_x,
-            dx=self.geometry.dx,
-            dy=self.geometry.dy,
-            dt=self.geometry.dt,
-        )
-        self._new_w = self._compute_sweep_y(
-            w=self._temp_w,
-            sf=sf,
-            u=u,
-            result=self._temp_w,
-            a_y=self._a_y,
-            b_y=self._b_y,
-            c_y=self._c_y,
-            dx=self.geometry.dx,
-            dy=self.geometry.dy,
-            dt=self.geometry.dt,
-        )
-        self._sf = self._compute_stream_function(
-            w=self._new_w,
-            sf=sf,
-            dx=self.geometry.dx,
-            dy=self.geometry.dy,
-            right_value=(
-                self.right_bc.get_value(t=time)
-                if self.right_bc.boundary_type == BoundaryConditionType.DIRICHLET
-                else None
-            ),
-            left_value=(
-                self.left_bc.get_value(t=time)
-                if self.left_bc.boundary_type == BoundaryConditionType.DIRICHLET
-                else None
-            ),
-            top_value=(
-                self.top_bc.get_value(t=time)
-                if self.top_bc.boundary_type == BoundaryConditionType.DIRICHLET
-                else None
-            ),
-            bottom_value=(
-                self.bottom_bc.get_value(t=time)
-                if self.bottom_bc.boundary_type == BoundaryConditionType.DIRICHLET
-                else None
-            ),
-        )
+        temp_sf = np.copy(sf)
+        for iteration in range(self.alt_dir_max_iters):
+            self._temp_w = self._compute_sweep_x(
+                w=w,
+                sf=temp_sf,
+                u=u,
+                result=w,
+                a_x=self._a_x,
+                b_x=self._b_x,
+                c_x=self._c_x,
+                dx=self.geometry.dx,
+                dy=self.geometry.dy,
+                dt=self.geometry.dt,
+            )
+            self._new_w = self._compute_sweep_y(
+                w=self._temp_w,
+                sf=temp_sf,
+                u=u,
+                result=self._temp_w,
+                a_y=self._a_y,
+                b_y=self._b_y,
+                c_y=self._c_y,
+                dx=self.geometry.dx,
+                dy=self.geometry.dy,
+                dt=self.geometry.dt,
+            )
+            self._sf = self._compute_stream_function(
+                w=self._new_w,
+                sf=temp_sf,
+                dx=self.geometry.dx,
+                dy=self.geometry.dy,
+                max_iters=self.sf_max_iters,
+                stopping_criteria=self.sf_stopping_criteria,
+                right_value=(
+                    self.right_bc.get_value(t=time)
+                    if self.right_bc.boundary_type == BoundaryConditionType.DIRICHLET
+                    else None
+                ),
+                left_value=(
+                    self.left_bc.get_value(t=time)
+                    if self.left_bc.boundary_type == BoundaryConditionType.DIRICHLET
+                    else None
+                ),
+                top_value=(
+                    self.top_bc.get_value(t=time)
+                    if self.top_bc.boundary_type == BoundaryConditionType.DIRICHLET
+                    else None
+                ),
+                bottom_value=(
+                    self.bottom_bc.get_value(t=time)
+                    if self.bottom_bc.boundary_type == BoundaryConditionType.DIRICHLET
+                    else None
+                ),
+            )
+            temp_sf = 0.5 * (temp_sf + self._sf)
+            diff = np.linalg.norm(temp_sf - self._sf)
+            if diff < self.alt_dir_stopping_criteria:
+                break
 
         return self._sf, self._new_w
