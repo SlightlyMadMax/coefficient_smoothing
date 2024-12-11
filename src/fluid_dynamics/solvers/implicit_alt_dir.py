@@ -118,9 +118,6 @@ class NavierStokesSolver(SweepSolver2D):
                 h=dx,
             )
 
-        result[0, :] = -0.5 * inv_dy2 * (8.0 * sf[1, :] - sf[2, :])
-        result[n_y - 1, :] = -0.5 * inv_dy2 * (8.0 * sf[n_y - 2, :] - sf[n_y - 3, :])
-
         return result
 
     @staticmethod
@@ -203,9 +200,6 @@ class NavierStokesSolver(SweepSolver2D):
                 h=dy,
             )
 
-        result[:, 0] = -0.5 * inv_dx2 * (8.0 * sf[:, 1] - sf[:, 2])
-        result[:, n_x - 1] = -0.5 * inv_dx2 * (8.0 * sf[:, n_x - 2] - sf[:, n_x - 3])
-
         return result
 
     @staticmethod
@@ -260,7 +254,7 @@ class NavierStokesSolver(SweepSolver2D):
             w=w,
             sf=sf,
             u=u,
-            result=self._temp_w,
+            result=w,
             a_x=self._a_x,
             b_x=self._b_x,
             c_x=self._c_x,
@@ -272,7 +266,7 @@ class NavierStokesSolver(SweepSolver2D):
             w=self._temp_w,
             sf=sf,
             u=u,
-            result=self._new_w,
+            result=self._temp_w,
             a_y=self._a_y,
             b_y=self._b_y,
             c_y=self._c_y,
