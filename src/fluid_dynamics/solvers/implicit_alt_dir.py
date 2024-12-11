@@ -14,7 +14,7 @@ from src.utils import solve_tridiagonal
 from src import parameters as cfg
 
 
-class NavierStokesSolver(SweepSolver2D):
+class ImplicitNavierStokesSolver(SweepSolver2D):
     def __init__(
         self,
         geometry: DomainGeometry,
