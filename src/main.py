@@ -5,6 +5,7 @@ import numpy as np
 import src.parameters as cfg
 from src.boundary_conditions import BoundaryCondition, BoundaryConditionType
 from src.fluid_dynamics.plotting import plot_velocity_field
+from src.fluid_dynamics.solvers.explicit import ExplicitNavierStokesSolver
 from src.fluid_dynamics.utils import calculate_velocity_field
 from src.fluid_dynamics.solvers.implicit_alt_dir import ImplicitNavierStokesSolver
 from src.fluid_dynamics.init_values import (
