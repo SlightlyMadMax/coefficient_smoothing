@@ -16,6 +16,7 @@ from src.geometry import DomainGeometry
 from src.temperature.init_values import init_temperature_shape, TemperatureShape
 from src.temperature.coefficient_smoothing.delta import get_max_delta
 from src.temperature.plotting import plot_temperature, create_gif_from_images
+from src.temperature.solvers.peaceman_rachford import PeacemanRachfordSolver
 from src.temperature.utils import TemperatureUnit
 from src.temperature.solvers.loc_one_dim import LocOneDimSolver
 
@@ -24,8 +25,8 @@ if __name__ == "__main__":
         width=1.0,
         height=1.0,
         end_time=60.0 * 60.0 * 24.0 * 7.0,
-        n_x=100,
-        n_y=100,
+        n_x=501,
+        n_y=501,
         n_t=60 * 60 * 24 * 7,
     )
 
@@ -48,7 +49,7 @@ if __name__ == "__main__":
         plot_boundary=False,
         show_graph=True,
         min_temp=cfg.T_WATER_MAX,
-        max_temp=10.0,
+        max_temp=3.0,
         invert_yaxis=False,
         actual_temp_units=TemperatureUnit.CELSIUS,
         display_temp_units=TemperatureUnit.CELSIUS,
@@ -63,7 +64,7 @@ if __name__ == "__main__":
     u_right_bc = BoundaryCondition(
         boundary_type=BoundaryConditionType.DIRICHLET,
         n=geometry.n_y,
-        value_func=lambda t, n: 10.0 * np.ones(geometry.n_y),
+        value_func=lambda t, n: 3.0 * np.ones(geometry.n_y),
     )
     u_bottom_bc = BoundaryCondition(
         boundary_type=BoundaryConditionType.DIRICHLET,
@@ -99,9 +100,10 @@ if __name__ == "__main__":
     )
 
     sf = initialize_stream_function(geom=geometry)
+    # sf = np.load("../data/sf_test.npz")["sf"]
     w = initialize_vorticity(geom=geometry)
 
-    heat_transfer_solver = LocOneDimSolver(
+    heat_transfer_solver = PeacemanRachfordSolver(
         geometry=geometry,
         top_bc=u_top_bc,
         right_bc=u_right_bc,
@@ -109,19 +111,23 @@ if __name__ == "__main__":
         left_bc=u_left_bc,
         fixed_delta=False,
     )
-    navier_solver = NavierStokesSolver(
+    navier_solver = ImplicitNavierStokesSolver(
         geometry=geometry,
         top_bc=sf_top_bc,
         right_bc=sf_right_bc,
         bottom_bc=sf_bottom_bc,
         left_bc=sf_left_bc,
+        alt_dir_max_iters=20,
+        alt_dir_stopping_criteria=1e-6,
+        sf_max_iters=50,
+        sf_stopping_criteria=1e-6,
     )
 
     start_time = time.process_time()
     for n in range(1, geometry.n_t):
         t = n * geometry.dt
 
-        u = heat_transfer_solver.solve(u=u, sf=sf, time=t, iters=1)
+        u = heat_transfer_solver.solve(u=u, sf=sf, time=t, iters=3)
         sf, w = navier_solver.solve(w=w, sf=sf, u=u, time=t)
 
         if n % 60 == 0:
@@ -133,7 +139,7 @@ if __name__ == "__main__":
                 plot_boundary=True,
                 show_graph=True,
                 min_temp=cfg.T_WATER_MAX,
-                max_temp=10.0,
+                max_temp=3.0,
                 invert_yaxis=False,
                 actual_temp_units=TemperatureUnit.CELSIUS,
                 display_temp_units=TemperatureUnit.CELSIUS,
