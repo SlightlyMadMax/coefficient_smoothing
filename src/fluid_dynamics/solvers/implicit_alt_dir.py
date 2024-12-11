@@ -262,11 +262,11 @@ class ImplicitNavierStokesSolver(SweepSolver2D):
     ) -> (NDArray[np.float64], NDArray[np.float64]):
         temp_sf = np.copy(sf)
         for iteration in range(self.alt_dir_max_iters):
-            self._temp_w = self._compute_sweep_x(
+            self._compute_sweep_x(
                 w=w,
                 sf=temp_sf,
                 u=u,
-                result=w,
+                result=self._temp_w,
                 a_x=self._a_x,
                 b_x=self._b_x,
                 c_x=self._c_x,
@@ -274,11 +274,12 @@ class ImplicitNavierStokesSolver(SweepSolver2D):
                 dy=self.geometry.dy,
                 dt=self.geometry.dt,
             )
-            self._new_w = self._compute_sweep_y(
+            self._new_w = np.copy(self._temp_w)
+            self._compute_sweep_y(
                 w=self._temp_w,
                 sf=temp_sf,
                 u=u,
-                result=self._temp_w,
+                result=self._new_w,
                 a_y=self._a_y,
                 b_y=self._b_y,
                 c_y=self._c_y,
