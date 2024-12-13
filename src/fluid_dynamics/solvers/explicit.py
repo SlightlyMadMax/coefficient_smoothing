@@ -147,40 +147,43 @@ class ExplicitNavierStokesSolver(BaseSolver):
         u: NDArray[np.float64],
         time: float,
     ) -> (NDArray[np.float64], NDArray[np.float64]):
-        self._new_w = self._compute_vorticity(
-            w=w,
-            sf=sf,
-            u=u,
-            result=self._new_w,
-            dx=self.geometry.dx,
-            dy=self.geometry.dy,
-            dt=self.geometry.dt,
-        )
-        self._sf = self._compute_stream_function(
-            w=self._new_w,
-            sf=sf,
-            dx=self.geometry.dx,
-            dy=self.geometry.dy,
-            right_value=(
-                self.right_bc.get_value(t=time)
-                if self.right_bc.boundary_type == BoundaryConditionType.DIRICHLET
-                else None
-            ),
-            left_value=(
-                self.left_bc.get_value(t=time)
-                if self.left_bc.boundary_type == BoundaryConditionType.DIRICHLET
-                else None
-            ),
-            top_value=(
-                self.top_bc.get_value(t=time)
-                if self.top_bc.boundary_type == BoundaryConditionType.DIRICHLET
-                else None
-            ),
-            bottom_value=(
-                self.bottom_bc.get_value(t=time)
-                if self.bottom_bc.boundary_type == BoundaryConditionType.DIRICHLET
-                else None
-            ),
-        )
+        temp_sf = np.copy(sf)
+        for iteration in range(5):
+            self._compute_vorticity(
+                w=w,
+                sf=temp_sf,
+                u=u,
+                result=self._new_w,
+                dx=self.geometry.dx,
+                dy=self.geometry.dy,
+                dt=self.geometry.dt,
+            )
+            self._sf = self._compute_stream_function(
+                w=self._new_w,
+                sf=sf,
+                dx=self.geometry.dx,
+                dy=self.geometry.dy,
+                right_value=(
+                    self.right_bc.get_value(t=time)
+                    if self.right_bc.boundary_type == BoundaryConditionType.DIRICHLET
+                    else None
+                ),
+                left_value=(
+                    self.left_bc.get_value(t=time)
+                    if self.left_bc.boundary_type == BoundaryConditionType.DIRICHLET
+                    else None
+                ),
+                top_value=(
+                    self.top_bc.get_value(t=time)
+                    if self.top_bc.boundary_type == BoundaryConditionType.DIRICHLET
+                    else None
+                ),
+                bottom_value=(
+                    self.bottom_bc.get_value(t=time)
+                    if self.bottom_bc.boundary_type == BoundaryConditionType.DIRICHLET
+                    else None
+                ),
+            )
+            temp_sf = 0.5 * (self._sf + temp_sf)
 
         return self._sf, self._new_w

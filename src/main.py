@@ -25,8 +25,8 @@ if __name__ == "__main__":
         width=1.0,
         height=1.0,
         end_time=60.0 * 60.0 * 24.0 * 7.0,
-        n_x=501,
-        n_y=501,
+        n_x=101,
+        n_y=101,
         n_t=60 * 60 * 24 * 7,
     )
 
@@ -49,7 +49,7 @@ if __name__ == "__main__":
         plot_boundary=False,
         show_graph=True,
         min_temp=cfg.T_WATER_MAX,
-        max_temp=3.0,
+        max_temp=10.0,
         invert_yaxis=False,
         actual_temp_units=TemperatureUnit.CELSIUS,
         display_temp_units=TemperatureUnit.CELSIUS,
@@ -64,7 +64,7 @@ if __name__ == "__main__":
     u_right_bc = BoundaryCondition(
         boundary_type=BoundaryConditionType.DIRICHLET,
         n=geometry.n_y,
-        value_func=lambda t, n: 3.0 * np.ones(geometry.n_y),
+        value_func=lambda t, n: 10.0 * np.ones(geometry.n_y),
     )
     u_bottom_bc = BoundaryCondition(
         boundary_type=BoundaryConditionType.DIRICHLET,
@@ -130,7 +130,7 @@ if __name__ == "__main__":
         u = heat_transfer_solver.solve(u=u, sf=sf, time=t, iters=3)
         sf, w = navier_solver.solve(w=w, sf=sf, u=u, time=t)
 
-        if n % 60 == 0:
+        if n % 10 == 0:
             plot_temperature(
                 T=u,
                 geom=geometry,
@@ -139,7 +139,7 @@ if __name__ == "__main__":
                 plot_boundary=True,
                 show_graph=True,
                 min_temp=cfg.T_WATER_MAX,
-                max_temp=3.0,
+                max_temp=10.0,
                 invert_yaxis=False,
                 actual_temp_units=TemperatureUnit.CELSIUS,
                 display_temp_units=TemperatureUnit.CELSIUS,

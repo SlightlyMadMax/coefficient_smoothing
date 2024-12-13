@@ -315,9 +315,10 @@ class ImplicitNavierStokesSolver(SweepSolver2D):
                     else None
                 ),
             )
-            temp_sf = 0.5 * (temp_sf + self._sf)
+            # temp_sf = 0.5 * (temp_sf + self._sf)
             diff = np.linalg.norm(temp_sf - self._sf)
             if diff < self.alt_dir_stopping_criteria:
                 break
+            temp_sf = np.copy(self._sf)
 
         return self._sf, self._new_w
