@@ -270,6 +270,7 @@ class PeacemanRachfordSolver(HeatTransferSolver):
                         + sf[j + 1, i - 1]
                         - sf[j - 1, i - 1]
                     )
+                    * u[j, i - 1]
                 )
 
             result[:, i] = solve_tridiagonal(
