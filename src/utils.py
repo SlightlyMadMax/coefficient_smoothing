@@ -23,6 +23,7 @@ def solve_tridiagonal(
     """
     Solve a tridiagonal system using the Thomas algorithm with support for Dirichlet, Neumann
     and Robin boundary conditions.
+
     :param a: Sub-diagonal elements of the tridiagonal matrix.
     :param b: Diagonal elements of the tridiagonal matrix.
     :param c: Super-diagonal elements of the tridiagonal matrix.
