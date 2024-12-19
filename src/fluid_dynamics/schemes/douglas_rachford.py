@@ -4,7 +4,7 @@ from numpy.typing import NDArray
 
 from src.boundary_conditions import BoundaryCondition, BoundaryConditionType
 from src.geometry import DomainGeometry
-from src.solver import SweepSolver2D
+from src.solver import SweepScheme2D
 from src.fluid_dynamics.utils import (
     get_kinematic_visc as visc,
     get_thermal_expansion_coef as th_exp,
@@ -14,7 +14,7 @@ from src.utils import solve_tridiagonal
 from src import constants as cfg
 
 
-class ImplicitNavierStokesSolver(SweepSolver2D):
+class DRNavierStokesSolver(SweepScheme2D):
     def __init__(
         self,
         geometry: DomainGeometry,
@@ -71,8 +71,7 @@ class ImplicitNavierStokesSolver(SweepSolver2D):
         for j in range(1, n_y - 1):
             for i in range(1, n_x - 1):
                 a_x[i] = (
-                    0.5
-                    * dt
+                    dt
                     * inv_dx
                     * (
                         (sf[j + 1, i + 1] - sf[j - 1, i + 1]) * 0.25 * inv_dy
@@ -80,11 +79,10 @@ class ImplicitNavierStokesSolver(SweepSolver2D):
                     )
                 )
 
-                b_x[i] = 1.0 + visc(u[j, i]) * dt * inv_dx2
+                b_x[i] = 1.0 + 2.0 * visc(u[j, i]) * dt * inv_dx2
 
                 c_x[i] = (
-                    0.5
-                    * dt
+                    dt
                     * inv_dx
                     * (
                         (sf[j - 1, i - 1] - sf[j + 1, i - 1]) * 0.25 * inv_dy
@@ -92,7 +90,7 @@ class ImplicitNavierStokesSolver(SweepSolver2D):
                     )
                 )
 
-                f[i] = w[j, i] + 0.5 * dt * (
+                f[i] = w[j, i] + dt * (
                     -cfg.G
                     * th_exp(u[j, i])
                     * 0.5
@@ -153,8 +151,7 @@ class ImplicitNavierStokesSolver(SweepSolver2D):
         for i in range(1, n_x - 1):
             for j in range(1, n_y - 1):
                 a_y[j] = (
-                    0.5
-                    * dt
+                    dt
                     * inv_dy
                     * (
                         (sf[j + 1, i - 1] - sf[j + 1, i + 1]) * 0.25 * inv_dx
@@ -162,11 +159,10 @@ class ImplicitNavierStokesSolver(SweepSolver2D):
                     )
                 )
 
-                b_y[j] = 1.0 + visc(u[j, i]) * dt * inv_dy2
+                b_y[j] = 1.0 + 2.0 * visc(u[j, i]) * dt * inv_dy2
 
                 c_y[j] = (
-                    0.5
-                    * dt
+                    dt
                     * inv_dy
                     * (
                         (sf[j - 1, i + 1] - sf[j - 1, i - 1]) * 0.25 * inv_dx
@@ -174,25 +170,20 @@ class ImplicitNavierStokesSolver(SweepSolver2D):
                     )
                 )
 
-                f[j] = w[j, i] + 0.5 * dt * (
-                    -cfg.G
-                    * th_exp(u[j, i])
-                    * 0.5
-                    * inv_dx
-                    * (u[j, i + 1] - u[j, i - 1])
-                    + visc(u[j, i])
-                    * inv_dx2
-                    * (w[j, i + 1] - 2.0 * w[j, i] + w[j, i - 1])
+                f[j] = w[j, i] - dt * (
+                    visc(u[j, i])
+                    * inv_dy2
+                    * (w[j + 1, i] - 2.0 * w[j, i] + w[j - 1, i])
                     + 0.25
                     * inv_dy
                     * inv_dx
-                    * (sf[j + 1, i - 1] - sf[j - 1, i - 1])
-                    * w[j, i - 1]
+                    * (sf[j - 1, i - 1] - sf[j - 1, i + 1])
+                    * w[j - 1, i]
                     + 0.25
                     * inv_dy
                     * inv_dx
-                    * (sf[j - 1, i + 1] - sf[j + 1, i + 1])
-                    * w[j, i + 1]
+                    * (sf[j + 1, i + 1] - sf[j + 1, i - 1])
+                    * w[j + 1, i]
                     # + visc(u[j, i]) * c_ind(u[j, i]) * sf[j, i]
                 )
 

@@ -4,11 +4,11 @@ from numpy.typing import NDArray
 
 from src.boundary_conditions import BoundaryCondition
 from src.geometry import DomainGeometry
-from src.solver import SweepSolver2D
+from src.solver import SweepScheme2D
 from src.temperature.parameters import ThermalParameters
 
 
-class HeatTransferSolver(SweepSolver2D):
+class HeatTransferScheme(SweepScheme2D):
     def __init__(
         self,
         geometry: DomainGeometry,

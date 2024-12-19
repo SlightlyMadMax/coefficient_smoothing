@@ -5,21 +5,19 @@ import numpy as np
 from src.boundary_conditions import BoundaryCondition, BoundaryConditionType
 from src.fluid_dynamics.plotting import plot_velocity_field
 from src.fluid_dynamics.utils import calculate_velocity_field
-from src.fluid_dynamics.solvers.explicit import ExplicitNavierStokesSolver
-from src.fluid_dynamics.solvers.implicit_alt_dir import ImplicitNavierStokesSolver
+from src.fluid_dynamics.schemes.explicit import ExplicitNavierStokesScheme
+from src.fluid_dynamics.schemes.implicit_alt_dir import ImplicitNavierStokesSolver
 from src.fluid_dynamics.init_values import (
     initialize_stream_function,
     initialize_vorticity,
 )
 from src.geometry import DomainGeometry
-from src.problem_parameters.thermal import ThermalParameters
 from src.temperature.init_values import init_temperature, DomainShape
+from src.temperature.parameters import ThermalParameters
 from src.temperature.utils import TemperatureUnit
 from src.temperature.coefficient_smoothing.delta import get_max_delta
 from src.temperature.plotting import plot_temperature, create_gif_from_images
-from src.temperature.solvers.peaceman_rachford import PeacemanRachfordSolver
-from src.temperature.solvers.loc_one_dim import LocOneDimSolver
-from src.temperature.solvers.douglas_rachford import DouglasRachfordSolver
+from src.temperature.schemes.solver import HeatTransferSolver, HeatTransferSchemes
 
 
 if __name__ == "__main__":
@@ -133,8 +131,10 @@ if __name__ == "__main__":
     # sf = np.load("../data/sf_test.npz")["sf"]
     w = initialize_vorticity(geom=geometry)
 
-    heat_transfer_solver = PeacemanRachfordSolver(
+    heat_transfer_solver = HeatTransferSolver(
+        scheme=HeatTransferSchemes.DOUGLAS_RACHFORD,
         geometry=geometry,
+        parameters=thermal_params,
         top_bc=u_top_bc,
         right_bc=u_right_bc,
         bottom_bc=u_bottom_bc,

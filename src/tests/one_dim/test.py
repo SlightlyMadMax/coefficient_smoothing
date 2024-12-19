@@ -6,8 +6,8 @@ from compare_boundary import compare_num_with_analytic
 from src.boundary_conditions import BoundaryCondition, BoundaryConditionType
 from src.geometry import DomainGeometry
 from src.constants import N_Y, N_X, N_T, T_0, WIDTH, HEIGHT, FULL_TIME
-from src.temperature.solvers.peaceman_rachford import PeacemanRachfordSolver
-from src.temperature.solvers.loc_one_dim import LocOneDimSolver
+from src.temperature.schemes.peaceman_rachford import PeacemanRachfordScheme
+from src.temperature.schemes.loc_one_dim import LocOneDimScheme
 from src.tests.one_dim.analytic_solution_1d_2f import get_analytic_solution
 
 
@@ -48,7 +48,7 @@ if __name__ == "__main__":
         flux_func=lambda t, n: np.zeros(geometry.n_y),
     )
 
-    heat_transfer_solver = PeacemanRachfordSolver(
+    heat_transfer_solver = PeacemanRachfordScheme(
         geometry=geometry,
         top_bc=top_bc,
         right_bc=right_bc,

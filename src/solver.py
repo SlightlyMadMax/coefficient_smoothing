@@ -7,7 +7,7 @@ from src.boundary_conditions import BoundaryCondition
 from src.geometry import DomainGeometry
 
 
-class BaseSolver(ABC):
+class BaseScheme(ABC):
     def __init__(
         self,
         geometry: DomainGeometry,
@@ -26,7 +26,7 @@ class BaseSolver(ABC):
     def solve(self, *kwargs) -> NDArray[np.float64]: ...
 
 
-class SweepSolver2D(BaseSolver, ABC):
+class SweepScheme2D(BaseScheme, ABC):
     def __init__(
         self,
         geometry: DomainGeometry,

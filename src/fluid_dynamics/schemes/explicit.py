@@ -4,7 +4,7 @@ from numpy.typing import NDArray
 
 from src.boundary_conditions import BoundaryCondition, BoundaryConditionType
 from src.geometry import DomainGeometry
-from src.solver import BaseSolver
+from src.solver import BaseScheme
 from src.fluid_dynamics.utils import (
     get_kinematic_visc as visc,
     get_thermal_expansion_coef as th_exp,
@@ -13,7 +13,7 @@ from src.fluid_dynamics.utils import (
 from src import constants as cfg
 
 
-class ExplicitNavierStokesSolver(BaseSolver):
+class ExplicitNavierStokesScheme(BaseScheme):
     def __init__(
         self,
         geometry: DomainGeometry,
