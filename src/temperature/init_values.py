@@ -5,7 +5,7 @@ from numpy.typing import NDArray
 from typing import Tuple, Optional
 
 from src.geometry import DomainGeometry
-from src.problem_parameters.thermal import ThermalParameters
+from src.temperature.parameters import ThermalParameters
 
 
 class DomainShape(Enum):

@@ -2,14 +2,12 @@ from pydantic import BaseModel, Field, validator
 
 
 class ThermalParameters(BaseModel):
-    u_pt: float = Field(
-        ..., gt=0.0, description="Phase-transition temperature [K]."
-    )
-    u_ref: float = Field(
-        ..., gte=0.0, description="Reference temperature [K]."
-    )
+    u_pt: float = Field(..., gt=0.0, description="Phase-transition temperature [K].")
+    u_ref: float = Field(..., gte=0.0, description="Reference temperature [K].")
     specific_heat_liquid: float = Field(
-        ..., gt=0.0, description="Specific heat capacity of the liquid phase [J/(kg⋅K)]."
+        ...,
+        gt=0.0,
+        description="Specific heat capacity of the liquid phase [J/(kg⋅K)].",
     )
     specific_heat_solid: float = Field(
         ..., gt=0.0, description="Specific heat capacity of the solid phase [J/(kg⋅K)]."
@@ -19,8 +17,12 @@ class ThermalParameters(BaseModel):
         gt=0.0,
         description="Specific latent heat of fusion of the solid phase [J/kg].",
     )
-    density_liquid: float = Field(..., gt=0, description="Density of the liquid phase [kg/m^3].")
-    density_solid: float = Field(..., gt=0, description="Density of the solid phase [kg/m^3].")
+    density_liquid: float = Field(
+        ..., gt=0, description="Density of the liquid phase [kg/m^3]."
+    )
+    density_solid: float = Field(
+        ..., gt=0, description="Density of the solid phase [kg/m^3]."
+    )
     thermal_conductivity_liquid: float = Field(
         ..., gt=0, description="Thermal conductivity of the liquid phase [W/(m⋅K)]."
     )
