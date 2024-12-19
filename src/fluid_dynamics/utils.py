@@ -9,9 +9,9 @@ def get_indicator_function(u: float, u_pt_ref: float, eps: float) -> float:
     Indicator function for the fictitious domain method.
     Is equal to 1 for liquid phase and 1 / eps^2 for solid phase.
 
-    :param u: Temperature value (deviation from the reference temperature).
-    :param u_pt_ref: Phase-transition temperature (deviation from the reference temperature).
-    :param eps: Big parameter.
+    :param u: The temperature value (deviation from the reference temperature).
+    :param u_pt_ref: The phase transition temperature (deviation from the reference temperature).
+    :param eps: A big parameter.
     :return: The value of the indicator function at u.
     """
     if u - u_pt_ref > 0.0:
@@ -24,7 +24,7 @@ def calculate_velocity_field(sf: NDArray[np.float64], dx: float, dy: float):
     """
     Calculate the velocity field based on the values of the stream function using finite differences.
 
-    :param sf: 2D array of stream function values.
+    :param sf: A 2D array of stream function values.
     :param dx: X-axis grid step.
     :param dy: Y-axis grid step.
     :return: v_x, v_y 2D arrays.
