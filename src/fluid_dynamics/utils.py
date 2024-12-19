@@ -6,7 +6,7 @@ from numpy.typing import NDArray
 @numba.jit(nopython=True)
 def get_indicator_function(u: float, u_pt_ref: float, eps: float) -> float:
     """
-    The indicator function for the fictitious domain method.
+    Indicator function for the fictitious domain method.
     Is equal to 1 for liquid phase and 1 / eps^2 for solid phase.
 
     :param u: The temperature value (deviation from the reference temperature).
