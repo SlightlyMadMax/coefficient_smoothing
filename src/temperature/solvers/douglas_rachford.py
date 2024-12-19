@@ -1,7 +1,6 @@
 import numba
 import numpy as np
 from numpy.typing import NDArray
-from scipy.special import parameters
 
 from src.boundary_conditions import BoundaryConditionType
 from src.temperature.coefficient_smoothing.coefficients import c_smoothed, k_smoothed
@@ -240,7 +239,6 @@ class DouglasRachfordSolver(HeatTransferSolver):
     ) -> NDArray[np.float64]:
         n_y, n_x = u.shape
         inv_dx = 1.0 / dx
-        inv_dx2 = 1.0 / (dx * dx)
         inv_dy = 1.0 / dy
         inv_dy2 = 1.0 / (dy * dy)
 
