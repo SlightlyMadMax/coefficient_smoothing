@@ -72,6 +72,6 @@ class ThermalParameters(BaseModel):
             f"  Volumetric Latent Heat of Fusion (Solid): {self.volumetric_latent_heat_solid} J/m^3\n"
             f"  Thermal Conductivity (Liquid): {self.thermal_conductivity_liquid} W/(m⋅K)\n"
             f"  Thermal Conductivity (Solid): {self.thermal_conductivity_solid} W/(m⋅K)\n"
-            f"  Default Smoothing Parameter (Delta): {self.delta}"
+            f"  Default Smoothing Parameter (Delta): {self.delta}\n"
         )
         return s

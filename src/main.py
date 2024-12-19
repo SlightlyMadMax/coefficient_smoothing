@@ -59,7 +59,7 @@ if __name__ == "__main__":
     )
 
     print(
-        f"Delta for initial temperature distribution: {
+        f"Delta for the initial temperature distribution: {
             get_max_delta(
                 u, 
                 u_pt=thermal_params.u_pt, 
@@ -87,25 +87,29 @@ if __name__ == "__main__":
     u_top_bc = BoundaryCondition(
         boundary_type=BoundaryConditionType.DIRICHLET,
         n=geometry.n_x,
-        value_func=lambda t, n: min_temp * np.ones(geometry.n_x),
+        value_func=lambda t, n: (min_temp - thermal_params.u_ref)
+        * np.ones(geometry.n_x),
     )
     u_right_bc = BoundaryCondition(
         boundary_type=BoundaryConditionType.DIRICHLET,
         n=geometry.n_y,
-        value_func=lambda t, n: max_temp * np.ones(geometry.n_y),
+        value_func=lambda t, n: (max_temp - thermal_params.u_ref)
+        * np.ones(geometry.n_y),
     )
     u_bottom_bc = BoundaryCondition(
         boundary_type=BoundaryConditionType.DIRICHLET,
         n=geometry.n_x,
-        value_func=lambda t, n: min_temp * np.ones(geometry.n_x),
+        value_func=lambda t, n: (min_temp - thermal_params.u_ref)
+        * np.ones(geometry.n_x),
     )
     u_left_bc = BoundaryCondition(
         boundary_type=BoundaryConditionType.DIRICHLET,
         n=geometry.n_y,
-        value_func=lambda t, n: min_temp * np.ones(geometry.n_y),
+        value_func=lambda t, n: (min_temp - thermal_params.u_ref)
+        * np.ones(geometry.n_y),
     )
 
-    # Stream-function boundary conditions
+    # Stream function boundary conditions
     sf_top_bc = BoundaryCondition(
         boundary_type=BoundaryConditionType.DIRICHLET,
         n=geometry.n_x,
@@ -184,14 +188,18 @@ if __name__ == "__main__":
             #     show_graph=True,
             # )
             print(
-                f"ВРЕМЯ МОДЕЛИРОВАНИЯ: {n} М, ВРЕМЯ ВЫПОЛНЕНИЯ: {time.process_time() - start_time}"
+                f"Modelling Time: {n} s, Execution Time: {time.process_time() - start_time} s.\n"
             )
-            print(f"Максимальная температура: {round(np.max(u), 2)}")
-            print(f"Минимальная температура: {round(np.min(u), 2)}")
-            # print(f"Максимальное значение функции тока: {round(np.max(sf), 6)}")
-            # print(f"Минимальное значение функции тока: {round(np.min(sf), 6)}")
-            # print(f"Максимальное значение вихря скорости: {round(np.max(w), 2)}")
-            # print(f"Минимальное значение вихря скорости: {round(np.min(w), 2)}")
+            print(
+                f"Maximum temperature value: {round(np.max(u + thermal_params.u_ref), 2)} K"
+            )
+            print(
+                f"Minimum temperature value: {round(np.min(u  + thermal_params.u_ref), 2)} K"
+            )
+            # print(f"Maximum stream function value: {round(np.max(sf), 6)}")
+            # print(f"Minimum stream function value: {round(np.min(sf), 6)}")
+            # print(f"Maximum vorticity value: {round(np.max(w), 2)}")
+            # print(f"Minimum vorticity value: {round(np.min(w), 2)}")
 
-    print("СОЗДАНИЕ АНИМАЦИИ...")
+    print("Creating animation...")
     create_gif_from_images(output_filename="test_animation")
