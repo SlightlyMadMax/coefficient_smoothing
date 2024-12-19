@@ -90,11 +90,12 @@ def init_temperature(
         assert (
             liquid_temp is not None
         ), f"liquid_temp must be specified when shape = {shape}."
-        u = np.ones(u.shape) * liquid_temp
 
     elif shape == DomainShape.UNIFORM_SOLID:
-        assert solid_temp is not None, f"solid_temp must be specified when shape = {shape}."
-        u = np.ones(u.shape) * solid_temp
+        assert (
+            solid_temp is not None
+        ), f"solid_temp must be specified when shape = {shape}."
+
     else:
         assert (
             liquid_temp is not None and solid_temp is not None
@@ -143,6 +144,13 @@ def init_temperature(
             np.abs(Y - geom.height / 2) < half_size
         )
         u[mask] = liquid_temp
+
+    elif shape == DomainShape.UNIFORM_LIQUID:
+        u = np.ones(u.shape) * liquid_temp
+
+    elif shape == DomainShape.UNIFORM_SOLID:
+        u = np.ones(u.shape) * solid_temp
+
     else:
         raise Exception("Unknown shape")
 
