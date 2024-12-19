@@ -11,10 +11,10 @@ def init_crevasse_boundary(geom: DomainGeometry, water_th: float, crev_depth: fl
     """
     Initialize the position of the boundary interface for an ice crevasse filled with water.
 
-    :param geom: Object containing geometry information.
-    :param water_th: Thickness of the layer of water covering the crevasse.
-    :param crev_depth: Maximum depth of the crevasse.
-    :return: 1d array of x coordinates.
+    :param geom: An object containing the geometry information.
+    :param water_th: The thickness of the layer of water covering the crevasse.
+    :param crev_depth: The maximum depth of the crevasse.
+    :return: A 1D array of x coordinates.
     """
     f = np.empty(geom.n_x)
 
