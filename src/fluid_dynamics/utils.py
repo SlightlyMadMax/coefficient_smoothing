@@ -1,32 +1,34 @@
 import numba
 import numpy as np
 from numpy.typing import NDArray
-import src.constants as cfg
 
 
 @numba.jit(nopython=True)
-def get_indicator_function(u: float) -> float:
-    if u > cfg.T_0:
+def get_indicator_function(u: float, u_pt_ref: float, eps: float) -> float:
+    """
+    Indicator function for the fictitious domain method.
+    Is equal to 1 for liquid phase and 1 / eps^2 for solid phase.
+
+    :param u: Temperature value (deviation from the reference temperature).
+    :param u_pt_ref: Phase-transition temperature (deviation from the reference temperature).
+    :param eps: Big parameter.
+    :return: The value of the indicator function at u.
+    """
+    if u - u_pt_ref > 0.0:
         return 1.0
-    return 1.0 / (cfg.EPS * cfg.EPS)
-
-
-@numba.jit(nopython=True)
-def get_thermal_expansion_coef(u: float) -> float:
-    if u < cfg.T_0:
-        return 0.0
-    return -9.85e-8 * u * u + 1.4872e-5 * u - 5.2770e-5
-
-
-@numba.jit(nopython=True)
-def get_kinematic_visc(u: float) -> float:
-    if u < cfg.T_0:
-        return 0.0
-    return 5.56e-10 * u * u - 4.95e-8 * u + 1.767e-6
+    return 1.0 / (eps * eps)
 
 
 @numba.jit(nopython=True)
 def calculate_velocity_field(sf: NDArray[np.float64], dx: float, dy: float):
+    """
+    Calculate the velocity field based on the values of the stream function using finite differences.
+
+    :param sf: 2D array of stream function values.
+    :param dx: X-axis grid step.
+    :param dy: Y-axis grid step.
+    :return: v_x, v_y 2D arrays.
+    """
     inv_dy = 1.0 / dy
     inv_dx = 1.0 / dx
 
