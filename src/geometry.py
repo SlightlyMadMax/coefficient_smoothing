@@ -61,7 +61,7 @@ class DomainGeometry:
 
     def __str__(self):
         return (
-            f"Domain geometry:"
+            f"Domain geometry:\n"
             f"  Width: {self.width} m.\n"
             f"  Height: {self.height} m.\n"
             f"  Terminate Time: {int(self.end_time)} s.\n"
