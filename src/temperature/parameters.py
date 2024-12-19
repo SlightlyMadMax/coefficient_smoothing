@@ -67,9 +67,9 @@ class ThermalParameters(BaseModel):
 
     def __str__(self):
         s = (
-            f"Problem Parameters:\n"
-            f"  Phase transition temperature: {self.u_pt} K\n"
-            f"  Reference temperature: {self.u_ref} K\n"
+            f"Heat Transfer Parameters:\n"
+            f"  Phase Transition Temperature: {self.u_pt} K\n"
+            f"  Reference Temperature: {self.u_ref} K\n"
             f"  Specific Heat (Liquid): {self.specific_heat_liquid} J/(kg⋅K)\n"
             f"  Specific Heat (Solid): {self.specific_heat_solid} J/(kg⋅K)\n"
             f"  Density (Liquid): {self.density_liquid} kg/m^3\n"
