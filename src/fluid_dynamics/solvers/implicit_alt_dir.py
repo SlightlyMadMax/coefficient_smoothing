@@ -11,7 +11,7 @@ from src.fluid_dynamics.utils import (
     get_indicator_function as c_ind,
 )
 from src.utils import solve_tridiagonal
-from src import parameters as cfg
+from src import constants as cfg
 
 
 class ImplicitNavierStokesSolver(SweepSolver2D):

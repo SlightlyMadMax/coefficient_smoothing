@@ -10,7 +10,7 @@ from src.fluid_dynamics.utils import (
     get_thermal_expansion_coef as th_exp,
     get_indicator_function as c_ind,
 )
-from src import parameters as cfg
+from src import constants as cfg
 
 
 class ExplicitNavierStokesSolver(BaseSolver):

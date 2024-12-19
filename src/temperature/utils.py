@@ -4,7 +4,7 @@ from enum import Enum
 from numpy.typing import NDArray
 from math import sin, cos, pi
 
-import src.parameters as cfg
+import src.constants as cfg
 
 
 class TemperatureUnit(Enum):

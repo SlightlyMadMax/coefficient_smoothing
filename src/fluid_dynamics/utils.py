@@ -1,7 +1,7 @@
 import numba
 import numpy as np
 from numpy.typing import NDArray
-import src.parameters as cfg
+import src.constants as cfg
 
 
 @numba.jit(nopython=True)

@@ -7,7 +7,7 @@ from src.geometry import DomainGeometry
 from src.temperature.solver import solve
 from src.plotting import plot_temperature, animate
 from src.temperature import init_temperature_2f_test
-from src.parameters import K_ICE, K_WATER, RHO_ICE, L
+from src.constants import K_ICE, K_WATER, RHO_ICE, L
 
 T_WATER = 5.0
 T_ICE = -5.0

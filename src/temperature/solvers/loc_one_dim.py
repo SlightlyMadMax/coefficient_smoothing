@@ -3,7 +3,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from src.boundary_conditions import BoundaryConditionType
-import src.parameters as cfg
+import src.constants as cfg
 from src.temperature.coefficient_smoothing.coefficients import c_smoothed, k_smoothed
 from src.temperature.coefficient_smoothing.delta import get_max_delta
 from src.temperature.solvers.base import HeatTransferSolver

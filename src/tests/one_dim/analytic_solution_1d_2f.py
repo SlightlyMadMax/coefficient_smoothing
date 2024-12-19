@@ -4,7 +4,7 @@ import numpy as np
 from scipy.optimize import fsolve
 from scipy.special import erf
 
-from src.parameters import K_ICE, K_WATER, C_ICE_VOL, C_WATER_VOL, L_VOL, N_X, N_Y, dy
+from src.constants import K_ICE, K_WATER, C_ICE_VOL, C_WATER_VOL, L_VOL, N_X, N_Y, dy
 
 g = -5.0
 u_0 = 5.0

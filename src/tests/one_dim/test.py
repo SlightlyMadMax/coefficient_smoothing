@@ -5,7 +5,7 @@ import shutil
 from compare_boundary import compare_num_with_analytic
 from src.boundary_conditions import BoundaryCondition, BoundaryConditionType
 from src.geometry import DomainGeometry
-from src.parameters import N_Y, N_X, N_T, T_0, WIDTH, HEIGHT, FULL_TIME
+from src.constants import N_Y, N_X, N_T, T_0, WIDTH, HEIGHT, FULL_TIME
 from src.temperature.solvers.peaceman_rachford import PeacemanRachfordSolver
 from src.temperature.solvers.loc_one_dim import LocOneDimSolver
 from src.tests.one_dim.analytic_solution_1d_2f import get_analytic_solution

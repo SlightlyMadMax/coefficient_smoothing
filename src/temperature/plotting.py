@@ -11,7 +11,7 @@ from numpy.typing import NDArray
 from src.temperature.boundary import get_phase_trans_boundary
 from src.temperature.utils import TemperatureUnit
 from src.geometry import DomainGeometry
-import src.parameters as cfg
+import src.constants as cfg
 
 
 def _convert_temp_in_display_units(
