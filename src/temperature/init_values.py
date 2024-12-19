@@ -88,16 +88,16 @@ def init_temperature(
 
     if shape == DomainShape.UNIFORM_LIQUID:
         assert (
-            liquid_temp is None
+            liquid_temp is not None
         ), f"liquid_temp must be specified when shape = {shape}."
         u = np.ones(u.shape) * liquid_temp
 
     elif shape == DomainShape.UNIFORM_SOLID:
-        assert solid_temp is None, f"solid_temp must be specified when shape = {shape}."
+        assert solid_temp is not None, f"solid_temp must be specified when shape = {shape}."
         u = np.ones(u.shape) * solid_temp
     else:
         assert (
-            liquid_temp is None or solid_temp is None
+            liquid_temp is not None and solid_temp is not None
         ), f"Both liquid_temp and solid_temp must be specified when shape = {shape}."
 
     if shape == DomainShape.LINEAR:
