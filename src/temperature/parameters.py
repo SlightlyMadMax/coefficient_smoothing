@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field, validator
 
 
 class ThermalParameters(BaseModel):
-    u_pt: float = Field(..., gt=0.0, description="Phase-transition temperature [K].")
+    u_pt: float = Field(..., gt=0.0, description="Phase transition temperature [K].")
     u_ref: float = Field(..., gte=0.0, description="Reference temperature [K].")
     specific_heat_liquid: float = Field(
         ...,
@@ -36,7 +36,7 @@ class ThermalParameters(BaseModel):
     @property
     def u_pt_ref(self) -> float:
         """
-        Calculate the deviation of phase-transition temperature from the reference temperature.
+        Calculate the deviation of phase transition temperature from the reference temperature.
         """
         return self.u_pt - self.u_ref
 
@@ -68,7 +68,7 @@ class ThermalParameters(BaseModel):
     def __str__(self):
         s = (
             f"Problem Parameters:\n"
-            f"  Phase-transition temperature: {self.u_pt} K\n"
+            f"  Phase transition temperature: {self.u_pt} K\n"
             f"  Reference temperature: {self.u_ref} K\n"
             f"  Specific Heat (Liquid): {self.specific_heat_liquid} J/(kg⋅K)\n"
             f"  Specific Heat (Solid): {self.specific_heat_solid} J/(kg⋅K)\n"
