@@ -2,51 +2,65 @@ import numpy as np
 
 from enum import Enum
 from numpy.typing import NDArray
-from typing import Tuple
+from typing import Tuple, Optional
 
-import src.parameters as cfg
 from src.geometry import DomainGeometry
+from src.problem_parameters.thermal import ThermalParameters
 
 
-class TemperatureShape(Enum):
+class DomainShape(Enum):
     LINEAR = "linear"
     CIRCLE = "circle"
     DOUBLE_CIRCLE = "double_circle"
     PACMAN = "pacman"
     SQUARE = "square"
-    UNIFORM_W = "uniform_water"
-    UNIFORM_I = "uniform_ice"
+    UNIFORM_LIQUID = "uniform_liquid"
+    UNIFORM_SOLID = "uniform_solid"
 
 
-def init_temperature(geom: DomainGeometry, F: NDArray[np.float64]) -> NDArray[np.float64]:
+def init_temperature_with_interface(
+    geom: DomainGeometry,
+    thermal_parameters: ThermalParameters,
+    f: NDArray[np.float64],
+    liquid_region_height: float,
+    liquid_temp: float,
+    solid_temp: float,
+) -> NDArray[np.float64]:
     """
-    Initializes the temperature field based on the given interface F.
+    Initializes the temperature field based on the given interface f.
 
     :param geom: Object containing geometry information.
-    :param F: 1D array representing the interface position for the phase transition.
+    :param thermal_parameters: Object containing thermal parameters (phase-transition temperature etc.).
+    :param f: 1D array representing the interface position for the phase transition.
+    :param liquid_region_height: Height of the liquid region.
+    :param liquid_temp: Temperature of the liquid phase.
+    :param solid_temp: Temperature of the solid phase.
     :return: 2D array of temperatures initialized based on the interface.
     """
-    T = np.empty((geom.n_y, geom.n_x))
+    u = np.empty((geom.n_y, geom.n_x))
 
     for i in range(geom.n_x):
         for j in range(geom.n_y):
-            if j * geom.dy < F[i]:
-                T[j, i] = cfg.T_ICE_MIN + j * geom.dy * (cfg.T_0 - cfg.T_ICE_MIN) / (
-                    geom.height - cfg.WATER_H
-                )
-            elif j * geom.dy > F[i]:
-                T[j, i] = cfg.T_WATER_MAX
+            if j * geom.dy < f[i]:
+                u[j, i] = solid_temp + j * geom.dy * (
+                    thermal_parameters.u_pt - solid_temp
+                ) / (geom.height - liquid_region_height)
+            elif j * geom.dy > f[i]:
+                u[j, i] = liquid_temp
             else:
-                T[j, i] = cfg.T_0
+                u[j, i] = thermal_parameters.u_pt
 
-    return T
+    u = u - thermal_parameters.u_ref
+
+    return u
 
 
-def init_temperature_shape(
+def init_temperature(
     geom: DomainGeometry,
-    shape: TemperatureShape,
-    water_temp: float = cfg.T_WATER_MAX,
-    ice_temp: float = cfg.T_ICE_MIN,
+    shape: DomainShape,
+    reference_temperature: float = 0.0,
+    liquid_temp: Optional[float] = None,
+    solid_temp: Optional[float] = None,
     radius: float = 0.25,
     small_radius: float = 0.1,
     square_size: float = 0.5,
@@ -54,33 +68,48 @@ def init_temperature_shape(
     eye_offset: float = 0.6,
 ) -> NDArray[np.float64]:
     """
-    Initializes the temperature field based on a specified shape.
+    Initializes the temperature field based on a specified domain shape.
 
     :param geom: Object containing geometry information.
-    :param shape: The shape of the temperature distribution (circle, double circle, square, or pacman).
-    :param water_temp: The temperature assigned to water regions (default: T_WATER_MAX).
-    :param ice_temp: The temperature assigned to ice regions (default: T_ICE_MIN).
+    :param reference_temperature: The reference temperature, from which deviations are measured.
+    :param shape: The shape of the temperature distribution.
+    :param liquid_temp: The temperature assigned to water regions.
+    :param solid_temp: The temperature assigned to ice regions.
     :param radius: The radius used for circular shapes (default: 0.25).
     :param small_radius: A smaller radius for additional features in shapes (default: 0.1).
     :param square_size: The size of the square region (default: 0.5).
     :param eye_radius: The radius of the eye in the Pacman shape (default: 0.05).
     :param eye_offset: The offset for positioning the eye in the Pacman shape (default: 0.6).
-    :return: A 2D array of temperatures initialized based on the specified shape.
+    :return: A 2D array of temperatures initialized based on the specified shape of the domain.
     """
-    T = np.full((geom.n_y, geom.n_x), ice_temp)
+    u = np.full((geom.n_y, geom.n_x), solid_temp)
 
     X, Y = geom.mesh_grid
 
-    if shape == TemperatureShape.LINEAR:
-        # Linear temperature gradient from bottom (ice) to top (water)
-        T[:, :] = np.linspace(ice_temp, water_temp, geom.n_y).reshape(1, -1)
+    if shape == DomainShape.UNIFORM_LIQUID:
+        assert (
+            liquid_temp is None
+        ), f"liquid_temp must be specified when shape = {shape}."
+        u = np.ones(u.shape) * liquid_temp
 
-    elif shape == TemperatureShape.CIRCLE:
+    elif shape == DomainShape.UNIFORM_SOLID:
+        assert solid_temp is None, f"solid_temp must be specified when shape = {shape}."
+        u = np.ones(u.shape) * solid_temp
+    else:
+        assert (
+            liquid_temp is None or solid_temp is None
+        ), f"Both liquid_temp and solid_temp must be specified when shape = {shape}."
+
+    if shape == DomainShape.LINEAR:
+        # Linear temperature gradient from bottom (solid phase) to top (liquid phase)
+        u[:, :] = np.linspace(solid_temp, liquid_temp, geom.n_y).reshape(1, -1)
+
+    elif shape == DomainShape.CIRCLE:
         # Single circle centered at domain center with radius threshold
         mask = (X - geom.width / 2) ** 2 + (Y - geom.height / 2) ** 2 < radius**2
-        T[mask] = water_temp
+        u[mask] = liquid_temp
 
-    elif shape == TemperatureShape.DOUBLE_CIRCLE:
+    elif shape == DomainShape.DOUBLE_CIRCLE:
         # Two circles centered vertically with specified radius
         mask1 = (X - geom.width / 2) ** 2 + (
             Y - 0.75 * geom.height
@@ -88,47 +117,43 @@ def init_temperature_shape(
         mask2 = (X - geom.width / 2) ** 2 + (
             Y - 0.25 * geom.height
         ) ** 2 < small_radius**2
-        T[mask1 | mask2] = water_temp
+        u[mask1 | mask2] = liquid_temp
 
-    elif shape == TemperatureShape.PACMAN:
+    elif shape == DomainShape.PACMAN:
         for i in range(geom.n_x):
             for j in range(geom.n_y):
                 if (i * geom.dx - geom.width / 2.0) ** 2 + (
                     j * geom.dy - geom.height / 2.0
                 ) ** 2 < radius**2:
                     if i * geom.dx <= j * geom.dy <= -i * geom.dx + 1:
-                        T[j, i] = ice_temp  # Pacman's mouth
+                        u[j, i] = solid_temp  # Pacman's mouth
                     elif (i * geom.dx - eye_offset) ** 2 + (
                         j * geom.dy - eye_offset
                     ) ** 2 < eye_radius**2:
-                        T[j, i] = ice_temp  # Pacman's eye
+                        u[j, i] = solid_temp  # Pacman's eye
                     else:
-                        T[j, i] = water_temp  # Pacman's body
+                        u[j, i] = liquid_temp  # Pacman's body
                 else:
-                    T[j, i] = ice_temp
+                    u[j, i] = solid_temp
 
-    elif shape == TemperatureShape.SQUARE:
+    elif shape == DomainShape.SQUARE:
         # Square shape centered in the domain with side length "square_size"
         half_size = square_size / 2
         mask = (np.abs(X - geom.width / 2) < half_size) & (
             np.abs(Y - geom.height / 2) < half_size
         )
-        T[mask] = water_temp
-
-    elif shape == TemperatureShape.UNIFORM_W:
-        T = np.ones(T.shape) * water_temp
-
-    elif shape == TemperatureShape.UNIFORM_I:
-        pass
-
+        u[mask] = liquid_temp
     else:
         raise Exception("Unknown shape")
 
-    return T
+    u = u - reference_temperature
+
+    return u
 
 
 def init_temperature_lake(
     geom: DomainGeometry,
+    thermal_parameters: ThermalParameters,
     lake_data: Tuple[NDArray[np.float64], NDArray[np.float64]],
     water_temp: float,
     ice_temp: float,
@@ -137,6 +162,7 @@ def init_temperature_lake(
     Initialize temperature for a lake profile using preloaded thickness data.
 
     :param geom: Object containing geometry information.
+    :param thermal_parameters: Object containing thermal parameters (phase-transition temperature etc.).
     :param lake_data: Preloaded water and ice thickness grids.
     :param water_temp: Temperature for water.
     :param ice_temp: Temperature for ice.
@@ -160,7 +186,7 @@ def init_temperature_lake(
 
     print(f"Max lake thickness {max(water_th_interp)}")
 
-    T = np.empty((geom.n_y, geom.n_x))
+    u = np.empty((geom.n_y, geom.n_x))
 
     for i in range(geom.n_x):
         x = i * geom.dx
@@ -173,7 +199,12 @@ def init_temperature_lake(
         for j in range(geom.n_y):
             y = geom.height - j * geom.dy
             if water_th_at_x > 0.0 and ice_th_at_x <= y <= ice_th_at_x + water_th_at_x:
-                T[j, i] = water_temp
+                u[j, i] = water_temp
             else:
-                T[j, i] = ice_temp + (j / geom.n_y) * (cfg.T_0 - ice_temp)
-    return T
+                u[j, i] = ice_temp + (j / geom.n_y) * (
+                    thermal_parameters.u_pt - ice_temp
+                )
+
+    u = u - thermal_parameters.u_ref
+
+    return u

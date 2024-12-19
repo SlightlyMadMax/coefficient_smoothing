@@ -1,48 +1,60 @@
+from typing import Tuple
+
 import numpy as np
 import math
 from numpy.typing import NDArray
 
-import src.parameters as cfg
 from src.geometry import DomainGeometry
 
 
-def init_boundary(geom: DomainGeometry):
+def init_crevasse_boundary(geom: DomainGeometry, water_th: float, crev_depth: float):
     """
-    Функция для задания начального положения границы фазового перехода.
-    :param n_x: Число узлов по оси X.
-    :return: Вектор координат границы фазового перехода.
-    """
-    F = np.empty(geom.n_x)
+    Initialize the position of the boundary interface for an ice crevasse filled with water.
 
-    # Трещина-гауссиана
-    F[:] = [
+    :param geom: Object containing geometry information.
+    :param water_th: Thickness of the layer of water covering the crevasse.
+    :param crev_depth: Maximum depth of the crevasse.
+    :return: 1d array of x coordinates.
+    """
+    f = np.empty(geom.n_x)
+
+    f[:] = [
         geom.height
-        - cfg.WATER_H
-        - cfg.CREV_DEPTH * math.exp(-((i * geom.dx - 0.5) ** 2) / 0.005)
+        - water_th
+        - crev_depth * math.exp(-((i * geom.dx - 0.5) ** 2) / 0.005)
         for i in range(geom.n_x)
     ]
 
-    return F
+    return f
 
 
-def get_phase_trans_boundary(T: NDArray[np.float64], geom: DomainGeometry):
-    X = []
-    Y = []
+def get_phase_trans_boundary(
+    geom: DomainGeometry,
+    u: NDArray[np.float64],
+    u_pt: float,
+) -> Tuple[list, list]:
+    """
+    Find the coordinates of the phase-transition boundary.
+
+    :param geom: Object containing geometry information.
+    :param u: A 2D array of temperatures at the current time layer.
+    :param u_pt: The phase transition temperature.
+    :return: 1d arrays for x and y coordinates of the phase-transition boundary interface.
+    """
+    x, y = [], []
     for j in range(1, geom.n_y - 1):
         for i in range(1, geom.n_x - 1):
-            if (T[j, i] - cfg.T_0) * (T[j + 1, i] - cfg.T_0) <= 0.0:
+            if (u[j, i] - u_pt) * (u[j + 1, i] - u_pt) <= 0.0:
                 y_0 = (
-                    j * geom.dy
-                    + ((cfg.T_0 - T[j, i]) / (T[j + 1, i] - T[j, i])) * geom.dy
+                    j * geom.dy + ((u_pt - u[j, i]) / (u[j + 1, i] - u[j, i])) * geom.dy
                 )
-                Y.append(y_0)
-                X.append(i * geom.dx)
-            if (T[j, i] - cfg.T_0) * (T[j, i + 1] - cfg.T_0) <= 0.0:
+                y.append(y_0)
+                x.append(i * geom.dx)
+            if (u[j, i] - u_pt) * (u[j, i + 1] - u_pt) <= 0.0:
                 x_0 = (
-                    i * geom.dx
-                    + ((cfg.T_0 - T[j, i]) / (T[j, i + 1] - T[j, i])) * geom.dx
+                    i * geom.dx + ((u_pt - u[j, i]) / (u[j, i + 1] - u[j, i])) * geom.dx
                 )
-                X.append(x_0)
-                Y.append(j * geom.dy)
+                x.append(x_0)
+                y.append(j * geom.dy)
 
-    return X, Y
+    return x, y

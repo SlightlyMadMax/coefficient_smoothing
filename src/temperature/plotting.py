@@ -14,26 +14,31 @@ from src.geometry import DomainGeometry
 import src.parameters as cfg
 
 
-def _get_temp_in_display_units(
-    T: NDArray[np.float64],
+def _convert_temp_in_display_units(
+    u: NDArray[np.float64],
     actual_temp_units: TemperatureUnit = TemperatureUnit.KELVIN,
     display_temp_units: TemperatureUnit = TemperatureUnit.CELSIUS,
 ) -> NDArray[np.float64]:
     """
-    Перевод температуры в желаемые единицы измерения
+    Convert temperature to the desired units.
 
-    :param T: массив со значениями температур
-    :param actual_temp_units: исходные единица измерения
-    :param display_temp_units: желаемая единица измерения
-    :return: массив температур в желаемых единицах измерения
+    :param u: A 2D array of temperatures.
+    :param actual_temp_units: The original units of measurement.
+    :param display_temp_units: The desired units of measurement.
+    :return: An array of temperatures in the desired units of measurement.
     """
     if actual_temp_units == display_temp_units:
-        return T
-    return T - cfg.T_0 if display_temp_units == TemperatureUnit.CELSIUS else T + cfg.T_0
+        return u
+    return (
+        u + cfg.ABS_ZERO
+        if display_temp_units == TemperatureUnit.CELSIUS
+        else u - cfg.ABS_ZERO
+    )
 
 
 def plot_temperature(
-    T: NDArray[np.float64],
+    u: NDArray[np.float64],
+    u_pt: float,
     geom: DomainGeometry,
     time: float,
     graph_id: int,
@@ -65,26 +70,27 @@ def plot_temperature(
     if show_grid:
         plt.plot(X, Y, marker=".", markersize=0.5, color="k", linestyle="none")
 
-    disp_T = _get_temp_in_display_units(T, actual_temp_units, display_temp_units)
+    disp_u = _convert_temp_in_display_units(u, actual_temp_units, display_temp_units)
     contour = plt.contourf(
         X,
         Y,
-        disp_T,
+        disp_u,
         30,
         cmap="viridis",
         # extend="both",
     )
     cbar = plt.colorbar(contour)
     if not min_temp or not max_temp:
-        min_temp = disp_T.min()
-        max_temp = disp_T.max()
+        min_temp = disp_u.min()
+        max_temp = disp_u.max()
     cbar.set_ticks(np.linspace(min_temp, max_temp, num=7))
-    cbar.set_label("Temperature", rotation=270, labelpad=15)
+    cbar.set_label("Температура", rotation=270, labelpad=15)
 
     if plot_boundary:
         X_b, Y_b = get_phase_trans_boundary(
-            T=T if actual_temp_units == TemperatureUnit.KELVIN else T + cfg.T_0,
+            u=u,
             geom=geom,
+            u_pt=u_pt,
         )
         plt.scatter(X_b, Y_b, s=1, linewidths=0.1, color="r", label="Граница ф.п.")
         ax.legend()
@@ -119,7 +125,8 @@ def plot_temperature(
 
 
 def animate(
-    T_full: List[NDArray[np.float64]],
+    u_full: List[NDArray[np.float64]],
+    u_pt: float,
     geom: DomainGeometry,
     times: List[float],
     t_step: int,
@@ -145,11 +152,12 @@ def animate(
         ax.set_aspect("equal")
 
     B = []
-    for T in T_full:
+    for u in u_full:
         B.append(
             get_phase_trans_boundary(
-                T=T if actual_temp_units == TemperatureUnit.KELVIN else T + cfg.T_0,
+                u=u,
                 geom=geom,
+                u_pt=u_pt,
             )
         )
 
@@ -159,13 +167,15 @@ def animate(
     cont = plt.contourf(
         X,
         Y,
-        _get_temp_in_display_units(T_full[0], actual_temp_units, display_temp_units),
+        _convert_temp_in_display_units(
+            u_full[0], actual_temp_units, display_temp_units
+        ),
         30,
         cmap="viridis",
         vmin=min_temp,
         vmax=max_temp,
     )
-    plt.title("t = 0 min")
+    plt.title("t = 0 мин")
     plt.colorbar()
     plt.clim(min_temp, max_temp)
     plt.scatter(B[0][0], B[0][1], s=1, linewidths=0.1, color="r", label="Граница ф.п.")
@@ -175,8 +185,8 @@ def animate(
         cont = plt.contourf(
             X,
             Y,
-            _get_temp_in_display_units(
-                T_full[i], actual_temp_units, display_temp_units
+            _convert_temp_in_display_units(
+                u_full[i], actual_temp_units, display_temp_units
             ),
             50,
             cmap="viridis",
@@ -184,7 +194,7 @@ def animate(
         plt.scatter(
             B[i][0], B[i][1], s=1, linewidths=0.1, color="r", label="Граница ф.п."
         )
-        plt.title(f"t = {round(i * t_step)} min")
+        plt.title(f"t = {round(i * t_step)} мин")
         return cont
 
     anim = animation.FuncAnimation(
