@@ -23,8 +23,7 @@ class PeacemanRachfordScheme(HeatTransferScheme):
         dx: float,
         dy: float,
         dt: float,
-        u_pt: float,
-        u_ref: float,
+        u_pt_ref: float,
         c_solid: float,
         c_liquid: float,
         l_solid: float,
@@ -54,8 +53,7 @@ class PeacemanRachfordScheme(HeatTransferScheme):
             for i in range(1, n_x - 1):
                 inv_c = 1.0 / c_smoothed(
                     u=iter_u[j, i],
-                    u_pt=u_pt,
-                    u_ref=u_ref,
+                    u_pt_ref=u_pt_ref,
                     c_solid=c_solid,
                     c_liquid=c_liquid,
                     l_solid=l_solid,
@@ -78,8 +76,7 @@ class PeacemanRachfordScheme(HeatTransferScheme):
                         )
                         - k_smoothed(
                             u=0.5 * (iter_u[j, i + 1] + iter_u[j, i]),
-                            u_pt=u_pt,
-                            u_ref=u_ref,
+                            u_pt_ref=u_pt_ref,
                             k_solid=k_solid,
                             k_liquid=k_liquid,
                             delta=delta,
@@ -97,16 +94,14 @@ class PeacemanRachfordScheme(HeatTransferScheme):
                     * (
                         k_smoothed(
                             u=0.5 * (iter_u[j, i + 1] + iter_u[j, i]),
-                            u_pt=u_pt,
-                            u_ref=u_ref,
+                            u_pt_ref=u_pt_ref,
                             k_solid=k_solid,
                             k_liquid=k_liquid,
                             delta=delta,
                         )
                         + k_smoothed(
                             u=0.5 * (iter_u[j, i] + iter_u[j, i - 1]),
-                            u_pt=u_pt,
-                            u_ref=u_ref,
+                            u_pt_ref=u_pt_ref,
                             k_solid=k_solid,
                             k_liquid=k_liquid,
                             delta=delta,
@@ -132,8 +127,7 @@ class PeacemanRachfordScheme(HeatTransferScheme):
                         )
                         + k_smoothed(
                             u=0.5 * (iter_u[j, i] + iter_u[j, i - 1]),
-                            u_pt=u_pt,
-                            u_ref=u_ref,
+                            u_pt_ref=u_pt_ref,
                             k_solid=k_solid,
                             k_liquid=k_liquid,
                             delta=delta,
@@ -149,8 +143,7 @@ class PeacemanRachfordScheme(HeatTransferScheme):
                     * (
                         k_smoothed(
                             u=0.5 * (iter_u[j + 1, i] + iter_u[j, i]),
-                            u_pt=u_pt,
-                            u_ref=u_ref,
+                            u_pt_ref=u_pt_ref,
                             k_solid=k_solid,
                             k_liquid=k_liquid,
                             delta=delta,
@@ -158,8 +151,7 @@ class PeacemanRachfordScheme(HeatTransferScheme):
                         * (u[j + 1, i] - u[j, i])
                         - k_smoothed(
                             u=0.5 * (iter_u[j, i] + iter_u[j - 1, i]),
-                            u_pt=u_pt,
-                            u_ref=u_ref,
+                            u_pt_ref=u_pt_ref,
                             k_solid=k_solid,
                             k_liquid=k_liquid,
                             delta=delta,
@@ -221,8 +213,7 @@ class PeacemanRachfordScheme(HeatTransferScheme):
         dx: float,
         dy: float,
         dt: float,
-        u_pt: float,
-        u_ref: float,
+        u_pt_ref: float,
         c_solid: float,
         c_liquid: float,
         l_solid: float,
@@ -252,8 +243,7 @@ class PeacemanRachfordScheme(HeatTransferScheme):
             for j in range(1, n_y - 1):
                 inv_c = 1.0 / c_smoothed(
                     u=iter_u[j, i],
-                    u_pt=u_pt,
-                    u_ref=u_ref,
+                    u_pt_ref=u_pt_ref,
                     c_solid=c_solid,
                     c_liquid=c_liquid,
                     l_solid=l_solid,
@@ -276,8 +266,7 @@ class PeacemanRachfordScheme(HeatTransferScheme):
                         )
                         - k_smoothed(
                             u=0.5 * (iter_u[j + 1, i] + iter_u[j, i]),
-                            u_pt=u_pt,
-                            u_ref=u_ref,
+                            u_pt_ref=u_pt_ref,
                             k_solid=k_solid,
                             k_liquid=k_liquid,
                             delta=delta,
@@ -295,16 +284,14 @@ class PeacemanRachfordScheme(HeatTransferScheme):
                     * (
                         k_smoothed(
                             u=0.5 * (iter_u[j + 1, i] + iter_u[j, i]),
-                            u_pt=u_pt,
-                            u_ref=u_ref,
+                            u_pt_ref=u_pt_ref,
                             k_solid=k_solid,
                             k_liquid=k_liquid,
                             delta=delta,
                         )
                         + k_smoothed(
                             u=0.5 * (iter_u[j, i] + iter_u[j - 1, i]),
-                            u_pt=u_pt,
-                            u_ref=u_ref,
+                            u_pt_ref=u_pt_ref,
                             k_solid=k_solid,
                             k_liquid=k_liquid,
                             delta=delta,
@@ -330,8 +317,7 @@ class PeacemanRachfordScheme(HeatTransferScheme):
                         )
                         + k_smoothed(
                             u=0.5 * (iter_u[j, i] + iter_u[j - 1, i]),
-                            u_pt=u_pt,
-                            u_ref=u_ref,
+                            u_pt_ref=u_pt_ref,
                             k_solid=k_solid,
                             k_liquid=k_liquid,
                             delta=delta,
@@ -347,8 +333,7 @@ class PeacemanRachfordScheme(HeatTransferScheme):
                     * (
                         k_smoothed(
                             u=0.5 * (iter_u[j, i + 1] + iter_u[j, i]),
-                            u_pt=u_pt,
-                            u_ref=u_ref,
+                            u_pt_ref=u_pt_ref,
                             k_solid=k_solid,
                             k_liquid=k_liquid,
                             delta=delta,
@@ -356,8 +341,7 @@ class PeacemanRachfordScheme(HeatTransferScheme):
                         * (u[j, i + 1] - u[j, i])
                         - k_smoothed(
                             u=0.5 * (iter_u[j, i] + iter_u[j, i - 1]),
-                            u_pt=u_pt,
-                            u_ref=u_ref,
+                            u_pt_ref=u_pt_ref,
                             k_solid=k_solid,
                             k_liquid=k_liquid,
                             delta=delta,
@@ -424,8 +408,7 @@ class PeacemanRachfordScheme(HeatTransferScheme):
                 if self.fixed_delta
                 else get_max_delta(
                     u=self._iter_u,
-                    u_pt=self.parameters.u_pt,
-                    u_ref=self.parameters.u_ref,
+                    u_pt_ref=self.parameters.u_pt_ref,
                 )
             )
             self._compute_sweep_x(
@@ -439,8 +422,7 @@ class PeacemanRachfordScheme(HeatTransferScheme):
                 dx=self.geometry.dx,
                 dy=self.geometry.dy,
                 dt=self.geometry.dt,
-                u_pt=self.parameters.u_pt,
-                u_ref=self.parameters.u_ref,
+                u_pt_ref=self.parameters.u_pt_ref,
                 c_solid=self.parameters.volumetric_heat_capacity_solid,
                 c_liquid=self.parameters.volumetric_heat_capacity_liquid,
                 l_solid=self.parameters.volumetric_latent_heat_solid,
@@ -501,8 +483,7 @@ class PeacemanRachfordScheme(HeatTransferScheme):
                 if self.fixed_delta
                 else get_max_delta(
                     u=self._iter_u,
-                    u_pt=self.parameters.u_pt,
-                    u_ref=self.parameters.u_ref,
+                    u_pt_ref=self.parameters.u_pt_ref,
                 )
             )
             self._compute_sweep_y(
@@ -516,8 +497,7 @@ class PeacemanRachfordScheme(HeatTransferScheme):
                 dx=self.geometry.dx,
                 dy=self.geometry.dy,
                 dt=self.geometry.dt,
-                u_pt=self.parameters.u_pt,
-                u_ref=self.parameters.u_ref,
+                u_pt_ref=self.parameters.u_pt_ref,
                 c_solid=self.parameters.volumetric_heat_capacity_solid,
                 c_liquid=self.parameters.volumetric_heat_capacity_liquid,
                 l_solid=self.parameters.volumetric_latent_heat_solid,
