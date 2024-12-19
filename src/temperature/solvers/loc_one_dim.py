@@ -3,7 +3,6 @@ import numpy as np
 from numpy.typing import NDArray
 
 from src.boundary_conditions import BoundaryConditionType
-import src.constants as cfg
 from src.temperature.coefficient_smoothing.coefficients import c_smoothed, k_smoothed
 from src.temperature.coefficient_smoothing.delta import get_max_delta
 from src.temperature.solvers.base import HeatTransferSolver
@@ -24,6 +23,13 @@ class LocOneDimSolver(HeatTransferSolver):
         dx: float,
         dy: float,
         dt: float,
+        u_pt: float,
+        u_ref: float,
+        c_solid: float,
+        c_liquid: float,
+        l_solid: float,
+        k_solid: float,
+        k_liquid: float,
         delta: float,
         rbc_type: int,
         lbc_type: int,
@@ -43,7 +49,15 @@ class LocOneDimSolver(HeatTransferSolver):
 
         for j in range(1, n_y - 1):
             for i in range(1, n_x - 1):
-                inv_c = 1.0 / c_smoothed(iter_u[j, i], delta)
+                inv_c = 1.0 / c_smoothed(
+                    u=iter_u[j, i],
+                    u_pt=u_pt,
+                    u_ref=u_ref,
+                    c_solid=c_solid,
+                    c_liquid=c_liquid,
+                    l_solid=l_solid,
+                    delta=delta,
+                )
 
                 # Coefficient at T_{i + 1, j}^{n + 1/2}
                 a_x[i] = (
@@ -58,7 +72,14 @@ class LocOneDimSolver(HeatTransferSolver):
                             + sf[j + 1, i + 1]
                             - sf[j - 1, i + 1]
                         )
-                        -k_smoothed(0.5 * (iter_u[j, i + 1] + iter_u[j, i]), delta)
+                        - k_smoothed(
+                            u=0.5 * (iter_u[j, i + 1] + iter_u[j, i]),
+                            u_pt=u_pt,
+                            u_ref=u_ref,
+                            k_solid=k_solid,
+                            k_liquid=k_liquid,
+                            delta=delta,
+                        )
                         * inv_c
                         * inv_dx
                     )
@@ -69,8 +90,22 @@ class LocOneDimSolver(HeatTransferSolver):
                     1.0
                     + dt
                     * (
-                        k_smoothed(0.5 * (iter_u[j, i + 1] + iter_u[j, i]), delta)
-                        + k_smoothed(0.5 * (iter_u[j, i] + iter_u[j, i - 1]), delta)
+                        k_smoothed(
+                            u=0.5 * (iter_u[j, i + 1] + iter_u[j, i]),
+                            u_pt=u_pt,
+                            u_ref=u_ref,
+                            k_solid=k_solid,
+                            k_liquid=k_liquid,
+                            delta=delta,
+                        )
+                        + k_smoothed(
+                            u=0.5 * (iter_u[j, i] + iter_u[j, i - 1]),
+                            u_pt=u_pt,
+                            u_ref=u_ref,
+                            k_solid=k_solid,
+                            k_liquid=k_liquid,
+                            delta=delta,
+                        )
                     )
                     * inv_c
                     * inv_dx2
@@ -88,8 +123,15 @@ class LocOneDimSolver(HeatTransferSolver):
                             - sf[j - 1, i]
                             + sf[j + 1, i - 1]
                             - sf[j - 1, i - 1]
-                        ) +
-                        k_smoothed(0.5 * (iter_u[j, i] + iter_u[j, i - 1]), delta)
+                        )
+                        + k_smoothed(
+                            u=0.5 * (iter_u[j, i] + iter_u[j, i - 1]),
+                            u_pt=u_pt,
+                            u_ref=u_ref,
+                            k_solid=k_solid,
+                            k_liquid=k_liquid,
+                            delta=delta,
+                        )
                         * inv_c
                         * inv_dx
                     )
@@ -128,6 +170,13 @@ class LocOneDimSolver(HeatTransferSolver):
         dx: float,
         dy: float,
         dt: float,
+        u_pt: float,
+        u_ref: float,
+        c_solid: float,
+        c_liquid: float,
+        l_solid: float,
+        k_solid: float,
+        k_liquid: float,
         delta: float,
         tbc_type: int,
         bbc_type: int,
@@ -147,7 +196,15 @@ class LocOneDimSolver(HeatTransferSolver):
 
         for i in range(1, n_x - 1):
             for j in range(1, n_y - 1):
-                inv_c = 1.0 / c_smoothed(iter_u[j, i], delta)
+                inv_c = 1.0 / c_smoothed(
+                    u=iter_u[j, i],
+                    u_pt=u_pt,
+                    u_ref=u_ref,
+                    c_solid=c_solid,
+                    c_liquid=c_liquid,
+                    l_solid=l_solid,
+                    delta=delta,
+                )
 
                 # Coefficient at T_{i, j + 1}^{n + 1}
                 a_y[j] = (
@@ -162,7 +219,14 @@ class LocOneDimSolver(HeatTransferSolver):
                             + sf[j + 1, i - 1]
                             - sf[j + 1, i + 1]
                         )
-                        -k_smoothed(0.5 * (iter_u[j + 1, i] + iter_u[j, i]), delta)
+                        - k_smoothed(
+                            u=0.5 * (iter_u[j + 1, i] + iter_u[j, i]),
+                            u_pt=u_pt,
+                            u_ref=u_ref,
+                            k_solid=k_solid,
+                            k_liquid=k_liquid,
+                            delta=delta,
+                        )
                         * inv_c
                         * inv_dy
                     )
@@ -173,8 +237,22 @@ class LocOneDimSolver(HeatTransferSolver):
                     1.0
                     + dt
                     * (
-                        k_smoothed(0.5 * (iter_u[j + 1, i] + iter_u[j, i]), delta)
-                        + k_smoothed(0.5 * (iter_u[j, i] + iter_u[j - 1, i]), delta)
+                        k_smoothed(
+                            u=0.5 * (iter_u[j + 1, i] + iter_u[j, i]),
+                            u_pt=u_pt,
+                            u_ref=u_ref,
+                            k_solid=k_solid,
+                            k_liquid=k_liquid,
+                            delta=delta,
+                        )
+                        + k_smoothed(
+                            u=0.5 * (iter_u[j, i] + iter_u[j - 1, i]),
+                            u_pt=u_pt,
+                            u_ref=u_ref,
+                            k_solid=k_solid,
+                            k_liquid=k_liquid,
+                            delta=delta,
+                        )
                     )
                     * inv_c
                     * inv_dy2
@@ -192,8 +270,15 @@ class LocOneDimSolver(HeatTransferSolver):
                             - sf[j, i + 1]
                             + sf[j - 1, i - 1]
                             - sf[j - 1, i + 1]
-                        ) +
-                        k_smoothed(0.5 * (iter_u[j, i] + iter_u[j - 1, i]), delta)
+                        )
+                        + k_smoothed(
+                            u=0.5 * (iter_u[j, i] + iter_u[j - 1, i]),
+                            u_pt=u_pt,
+                            u_ref=u_ref,
+                            k_solid=k_solid,
+                            k_liquid=k_liquid,
+                            delta=delta,
+                        )
                         * inv_c
                         * inv_dy
                     )
@@ -232,7 +317,15 @@ class LocOneDimSolver(HeatTransferSolver):
 
         # Run the x-direction sweep iterations
         for i in range(iters):
-            delta = cfg.delta if self.fixed_delta else get_max_delta(self._iter_u)
+            delta = (
+                self.parameters.delta
+                if self.fixed_delta
+                else get_max_delta(
+                    u=self._iter_u,
+                    u_pt=self.parameters.u_pt,
+                    u_ref=self.parameters.u_ref,
+                )
+            )
             self._compute_sweep_x(
                 u=u,
                 iter_u=self._iter_u,
@@ -244,6 +337,13 @@ class LocOneDimSolver(HeatTransferSolver):
                 dx=self.geometry.dx,
                 dy=self.geometry.dy,
                 dt=self.geometry.dt,
+                u_pt=self.parameters.u_pt,
+                u_ref=self.parameters.u_ref,
+                c_solid=self.parameters.volumetric_heat_capacity_solid,
+                c_liquid=self.parameters.volumetric_heat_capacity_liquid,
+                l_solid=self.parameters.volumetric_latent_heat_solid,
+                k_solid=self.parameters.thermal_conductivity_solid,
+                k_liquid=self.parameters.thermal_conductivity_liquid,
                 delta=delta,
                 rbc_type=self.right_bc.boundary_type.value,
                 lbc_type=self.left_bc.boundary_type.value,
@@ -295,7 +395,15 @@ class LocOneDimSolver(HeatTransferSolver):
 
         # Run the y-direction sweep iterations
         for i in range(iters):
-            delta = cfg.delta if self.fixed_delta else get_max_delta(self._iter_u)
+            delta = (
+                self.parameters.delta
+                if self.fixed_delta
+                else get_max_delta(
+                    u=self._iter_u,
+                    u_pt=self.parameters.u_pt,
+                    u_ref=self.parameters.u_ref,
+                )
+            )
             self._compute_sweep_y(
                 u=self._temp_u,
                 iter_u=self._iter_u,
@@ -307,6 +415,13 @@ class LocOneDimSolver(HeatTransferSolver):
                 dx=self.geometry.dx,
                 dy=self.geometry.dy,
                 dt=self.geometry.dt,
+                u_pt=self.parameters.u_pt,
+                u_ref=self.parameters.u_ref,
+                c_solid=self.parameters.volumetric_heat_capacity_solid,
+                c_liquid=self.parameters.volumetric_heat_capacity_liquid,
+                l_solid=self.parameters.volumetric_latent_heat_solid,
+                k_solid=self.parameters.thermal_conductivity_solid,
+                k_liquid=self.parameters.thermal_conductivity_liquid,
                 delta=delta,
                 tbc_type=self.top_bc.boundary_type.value,
                 bbc_type=self.bottom_bc.boundary_type.value,
