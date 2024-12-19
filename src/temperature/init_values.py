@@ -29,13 +29,13 @@ def init_temperature_with_interface(
     """
     Initializes the temperature field based on the given interface f.
 
-    :param geom: Object containing geometry information.
+    :param geom: An object containing geometry information.
     :param thermal_parameters: Object containing thermal parameters (phase-transition temperature etc.).
     :param f: 1D array representing the interface position for the phase transition.
     :param liquid_region_height: Height of the liquid region.
     :param liquid_temp: Temperature of the liquid phase.
     :param solid_temp: Temperature of the solid phase.
-    :return: 2D array of temperatures initialized based on the interface.
+    :return: A 2D array of temperatures (derivations from the reference one) initialized based on the interface.
     """
     u = np.empty((geom.n_y, geom.n_x))
 
@@ -70,7 +70,7 @@ def init_temperature(
     """
     Initializes the temperature field based on a specified domain shape.
 
-    :param geom: Object containing geometry information.
+    :param geom: An object containing geometry information.
     :param reference_temperature: The reference temperature, from which deviations are measured.
     :param shape: The shape of the temperature distribution.
     :param liquid_temp: The temperature assigned to water regions.
@@ -80,7 +80,8 @@ def init_temperature(
     :param square_size: The size of the square region (default: 0.5).
     :param eye_radius: The radius of the eye in the Pacman shape (default: 0.05).
     :param eye_offset: The offset for positioning the eye in the Pacman shape (default: 0.6).
-    :return: A 2D array of temperatures initialized based on the specified shape of the domain.
+    :return: A 2D array of temperatures (derivations from the reference one) initialized based on the specified shape
+    of the domain.
     """
     u = np.full((geom.n_y, geom.n_x), solid_temp)
 
@@ -169,12 +170,12 @@ def init_temperature_lake(
     """
     Initialize temperature for a lake profile using preloaded thickness data.
 
-    :param geom: Object containing geometry information.
-    :param thermal_parameters: Object containing thermal parameters (phase-transition temperature etc.).
+    :param geom: An object containing geometry information.
+    :param thermal_parameters: An object containing thermal parameters (phase transition temperature etc.).
     :param lake_data: Preloaded water and ice thickness grids.
-    :param water_temp: Temperature for water.
-    :param ice_temp: Temperature for ice.
-    :return: 2D temperature field array.
+    :param water_temp: The water temperature.
+    :param ice_temp: The ice temperature.
+    :return: A 2D temperature field array.
     """
     water_th_grid, ice_th_grid = lake_data
 
