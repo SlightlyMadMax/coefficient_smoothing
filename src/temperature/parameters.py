@@ -34,6 +34,13 @@ class ThermalParameters(BaseModel):
     )
 
     @property
+    def u_pt_ref(self) -> float:
+        """
+        Calculate the deviation of phase-transition temperature from the reference temperature.
+        """
+        return self.u_pt - self.u_ref
+
+    @property
     def volumetric_heat_capacity_liquid(self) -> float:
         """
         Calculate the volumetric heat capacity for the liquid phase.
