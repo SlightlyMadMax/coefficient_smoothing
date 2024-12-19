@@ -5,12 +5,14 @@ from numpy.typing import NDArray
 from src.boundary_conditions import BoundaryCondition
 from src.geometry import DomainGeometry
 from src.solver import SweepSolver2D
+from src.temperature.parameters import ThermalParameters
 
 
 class HeatTransferSolver(SweepSolver2D):
     def __init__(
         self,
         geometry: DomainGeometry,
+        parameters: ThermalParameters,
         top_bc: BoundaryCondition,
         right_bc: BoundaryCondition,
         bottom_bc: BoundaryCondition,
@@ -25,6 +27,7 @@ class HeatTransferSolver(SweepSolver2D):
             left_bc=left_bc,
         )
         self.fixed_delta = fixed_delta
+        self.parameters = parameters
         # Pre-allocate arrays
         self._temp_u: NDArray[np.float64] = np.empty(
             (self.geometry.n_y, self.geometry.n_x)
