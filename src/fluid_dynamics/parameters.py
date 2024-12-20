@@ -5,7 +5,9 @@ class FluidParameters(BaseModel):
     u_pt: float = Field(..., gt=0.0, description="Phase transition temperature [K].")
     u_ref: float = Field(..., gte=0.0, description="Reference temperature [K].")
     epsilon: float = Field(
-        ..., gt=0.0, description="Parameter of the indicator function used in the fictitious domain method."
+        ...,
+        gt=0.0,
+        description="Parameter of the indicator function used in the fictitious domain method.",
     )
 
     @property

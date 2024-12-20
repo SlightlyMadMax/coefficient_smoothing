@@ -18,6 +18,23 @@ def get_indicator_function(u: float, u_pt_ref: float, eps: float) -> float:
         return 1.0
     return 1.0 / (eps * eps)
 
+@numba.jit(nopython=True)
+def thermal_expansion_coefficient(u: float, u_ref: float, u_pt_ref: float) -> float:
+    """
+    Calculate the thermal expansion coefficient of water.
+
+    :param u: The temperature value (deviation from the reference temperature).
+    :param u_ref: The reference temperature.
+    :param u_pt_ref: The phase transition temperature (deviation from the reference temperature).
+    :return: The thermal expansion coefficient of water at the temperature u.
+    """
+    if u - u_pt_ref < 0.0:
+        return 0.0
+    return (
+            -9.85e-8 * (u + u_ref) * (u + u_ref)
+            + 1.4872e-5 * (u + u_ref)
+            - 5.2770e-5
+    )
 
 @numba.jit(nopython=True)
 def calculate_velocity_field(sf: NDArray[np.float64], dx: float, dy: float):

@@ -3,21 +3,22 @@ import numpy as np
 from numpy.typing import NDArray
 
 from src.boundary_conditions import BoundaryCondition, BoundaryConditionType
+from src.constants import G
+from src.fluid_dynamics.parameters import FluidParameters
 from src.geometry import DomainGeometry
 from src.solver import SweepScheme2D
 from src.fluid_dynamics.utils import (
-    get_kinematic_visc as visc,
-    get_thermal_expansion_coef as th_exp,
     get_indicator_function as c_ind,
+    thermal_expansion_coefficient as thermal_exp,
 )
 from src.utils import solve_tridiagonal
-from src import constants as cfg
 
 
 class ImplicitNavierStokesSolver(SweepScheme2D):
     def __init__(
         self,
         geometry: DomainGeometry,
+        parameters: FluidParameters,
         top_bc: BoundaryCondition,
         right_bc: BoundaryCondition,
         bottom_bc: BoundaryCondition,
@@ -34,6 +35,7 @@ class ImplicitNavierStokesSolver(SweepScheme2D):
             bottom_bc=bottom_bc,
             left_bc=left_bc,
         )
+        self.parameters = parameters
         self._temp_w: NDArray[np.float64] = np.empty(
             (self.geometry.n_y, self.geometry.n_x)
         )
@@ -59,6 +61,10 @@ class ImplicitNavierStokesSolver(SweepScheme2D):
         dx: float,
         dy: float,
         dt: float,
+        u_ref: float,
+        u_pt_ref: float,
+        visc: float,
+        epsilon: float,
     ) -> NDArray[np.float64]:
         n_y, n_x = w.shape
         inv_dx = 1.0 / dx
@@ -76,11 +82,11 @@ class ImplicitNavierStokesSolver(SweepScheme2D):
                     * inv_dx
                     * (
                         (sf[j + 1, i + 1] - sf[j - 1, i + 1]) * 0.25 * inv_dy
-                        - visc(u[j, i]) * inv_dx
+                        - visc * inv_dx
                     )
                 )
 
-                b_x[i] = 1.0 + visc(u[j, i]) * dt * inv_dx2
+                b_x[i] = 1.0 + visc * dt * inv_dx2
 
                 c_x[i] = (
                     0.5
@@ -88,19 +94,17 @@ class ImplicitNavierStokesSolver(SweepScheme2D):
                     * inv_dx
                     * (
                         (sf[j - 1, i - 1] - sf[j + 1, i - 1]) * 0.25 * inv_dy
-                        - visc(u[j, i]) * inv_dx
+                        - visc * inv_dx
                     )
                 )
 
                 f[i] = w[j, i] + 0.5 * dt * (
-                    -cfg.G
-                    * th_exp(u[j, i])
+                    -G
+                    * thermal_exp(u=u[j, i], u_ref=u_ref, u_pt_ref=u_pt_ref)
                     * 0.5
                     * inv_dx
                     * (u[j, i + 1] - u[j, i - 1])
-                    + visc(u[j, i])
-                    * inv_dy2
-                    * (w[j + 1, i] - 2.0 * w[j, i] + w[j - 1, i])
+                    + visc * inv_dy2 * (w[j + 1, i] - 2.0 * w[j, i] + w[j - 1, i])
                     + 0.25
                     * inv_dy
                     * inv_dx
@@ -111,7 +115,7 @@ class ImplicitNavierStokesSolver(SweepScheme2D):
                     * inv_dx
                     * (sf[j + 1, i + 1] - sf[j + 1, i - 1])
                     * w[j + 1, i]
-                    # + visc(u[j, i]) * c_ind(u[j, i]) * sf[j, i]
+                    # + visc * c_ind(u=u[j, i], u_pt_ref=u_pt_ref, eps=epsilon) * sf[j, i]
                 )
 
             result[j, :] = solve_tridiagonal(
@@ -141,6 +145,10 @@ class ImplicitNavierStokesSolver(SweepScheme2D):
         dx: float,
         dy: float,
         dt: float,
+        u_ref: float,
+        u_pt_ref: float,
+        visc: float,
+        epsilon: float,
     ) -> NDArray[np.float64]:
         n_y, n_x = w.shape
         inv_dx = 1.0 / dx
@@ -158,11 +166,11 @@ class ImplicitNavierStokesSolver(SweepScheme2D):
                     * inv_dy
                     * (
                         (sf[j + 1, i - 1] - sf[j + 1, i + 1]) * 0.25 * inv_dx
-                        - visc(u[j, i]) * inv_dy
+                        - visc * inv_dy
                     )
                 )
 
-                b_y[j] = 1.0 + visc(u[j, i]) * dt * inv_dy2
+                b_y[j] = 1.0 + visc * dt * inv_dy2
 
                 c_y[j] = (
                     0.5
@@ -170,19 +178,17 @@ class ImplicitNavierStokesSolver(SweepScheme2D):
                     * inv_dy
                     * (
                         (sf[j - 1, i + 1] - sf[j - 1, i - 1]) * 0.25 * inv_dx
-                        - visc(u[j, i]) * inv_dy
+                        - visc * inv_dy
                     )
                 )
 
                 f[j] = w[j, i] + 0.5 * dt * (
-                    -cfg.G
-                    * th_exp(u[j, i])
+                    -G
+                    * thermal_exp(u=u[j, i], u_ref=u_ref, u_pt_ref=u_pt_ref)
                     * 0.5
                     * inv_dx
                     * (u[j, i + 1] - u[j, i - 1])
-                    + visc(u[j, i])
-                    * inv_dx2
-                    * (w[j, i + 1] - 2.0 * w[j, i] + w[j, i - 1])
+                    + visc * inv_dx2 * (w[j, i + 1] - 2.0 * w[j, i] + w[j, i - 1])
                     + 0.25
                     * inv_dy
                     * inv_dx
@@ -193,7 +199,7 @@ class ImplicitNavierStokesSolver(SweepScheme2D):
                     * inv_dx
                     * (sf[j - 1, i + 1] - sf[j + 1, i + 1])
                     * w[j, i + 1]
-                    # + visc(u[j, i]) * c_ind(u[j, i]) * sf[j, i]
+                    # + visc * c_ind(u=u[j, i], u_pt_ref=u_pt_ref, eps=epsilon) * sf[j, i]
                 )
 
             result[:, i] = solve_tridiagonal(
@@ -273,6 +279,10 @@ class ImplicitNavierStokesSolver(SweepScheme2D):
                 dx=self.geometry.dx,
                 dy=self.geometry.dy,
                 dt=self.geometry.dt,
+                u_ref=self.parameters.u_ref,
+                u_pt_ref=self.parameters.u_pt_ref,
+                visc=self.parameters.kinematic_viscosity_at_u_ref,
+                epsilon=self.parameters.epsilon,
             )
             self._new_w = np.copy(self._temp_w)
             self._compute_sweep_y(
@@ -286,6 +296,10 @@ class ImplicitNavierStokesSolver(SweepScheme2D):
                 dx=self.geometry.dx,
                 dy=self.geometry.dy,
                 dt=self.geometry.dt,
+                u_ref=self.parameters.u_ref,
+                u_pt_ref=self.parameters.u_pt_ref,
+                visc=self.parameters.kinematic_viscosity_at_u_ref,
+                epsilon=self.parameters.epsilon,
             )
             self._sf = self._compute_stream_function(
                 w=self._new_w,
