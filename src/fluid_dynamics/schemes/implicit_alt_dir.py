@@ -14,7 +14,7 @@ from src.fluid_dynamics.utils import (
 from src.utils import solve_tridiagonal
 
 
-class ImplicitNavierStokesSolver(SweepScheme2D):
+class ImplicitNavierStokesScheme(SweepScheme2D):
     def __init__(
         self,
         geometry: DomainGeometry,
@@ -25,8 +25,8 @@ class ImplicitNavierStokesSolver(SweepScheme2D):
         left_bc: BoundaryCondition,
         sf_max_iters: int = 50,
         sf_stopping_criteria: float = 1e-6,
-        alt_dir_max_iters: int = 5,
-        alt_dir_stopping_criteria: float = 1e-6,
+        implicit_sf_max_iters: int = 5,
+        implicit_sf_stopping_criteria: float = 1e-6,
     ):
         super().__init__(
             geometry=geometry,
@@ -45,8 +45,8 @@ class ImplicitNavierStokesSolver(SweepScheme2D):
         self._sf: NDArray[np.float64] = np.empty((self.geometry.n_y, self.geometry.n_x))
         self.sf_max_iters = sf_max_iters
         self.sf_stopping_criteria = sf_stopping_criteria
-        self.alt_dir_max_iters = alt_dir_max_iters
-        self.alt_dir_stopping_criteria = alt_dir_stopping_criteria
+        self.implicit_sf_max_iters = implicit_sf_max_iters
+        self.implicit_sf_stopping_criteria = implicit_sf_stopping_criteria
 
     @staticmethod
     @numba.jit(nopython=True)
@@ -264,10 +264,10 @@ class ImplicitNavierStokesSolver(SweepScheme2D):
         w: NDArray[np.float64],
         sf: NDArray[np.float64],
         u: NDArray[np.float64],
-        time: float,
+        time: float = 0.0,
     ) -> (NDArray[np.float64], NDArray[np.float64]):
         temp_sf = np.copy(sf)
-        for iteration in range(self.alt_dir_max_iters):
+        for iteration in range(self.implicit_sf_max_iters):
             self._compute_sweep_x(
                 w=w,
                 sf=temp_sf,
@@ -330,7 +330,7 @@ class ImplicitNavierStokesSolver(SweepScheme2D):
                 ),
             )
             diff = np.linalg.norm(temp_sf - self._sf)
-            if diff < self.alt_dir_stopping_criteria:
+            if diff < self.implicit_sf_stopping_criteria:
                 break
             # temp_sf = 0.5 * (temp_sf + self._sf)
             temp_sf = np.copy(self._sf)

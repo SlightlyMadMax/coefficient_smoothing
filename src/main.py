@@ -7,8 +7,7 @@ from src.constants import ABS_ZERO
 from src.fluid_dynamics.parameters import FluidParameters
 from src.fluid_dynamics.plotting import plot_velocity_field
 from src.fluid_dynamics.utils import calculate_velocity_field
-# from src.fluid_dynamics.schemes.explicit import ExplicitNavierStokesScheme
-from src.fluid_dynamics.schemes.implicit_alt_dir import ImplicitNavierStokesSolver
+from src.fluid_dynamics.schemes.solver import NavierStokesSolver, NavierStokesSchemes
 from src.fluid_dynamics.init_values import (
     initialize_stream_function,
     initialize_vorticity,
@@ -68,6 +67,8 @@ if __name__ == "__main__":
         shape=DomainShape.UNIFORM_LIQUID,
         liquid_temp=min_temp,
     )
+
+    u[:, geometry.n_x - 1] = (max_temp - thermal_params.u_ref) * np.ones(geometry.n_y)
 
     print(
         f"Delta for the initial temperature distribution: {
@@ -142,11 +143,10 @@ if __name__ == "__main__":
     )
 
     sf = initialize_stream_function(geom=geometry)
-    # sf = np.load("../data/sf_test.npz")["sf"]
     w = initialize_vorticity(geom=geometry)
 
     heat_transfer_solver = HeatTransferSolver(
-        scheme=HeatTransferSchemes.LOC_ONE_DIM,
+        scheme=HeatTransferSchemes.PEACEMAN_RACHFORD,
         geometry=geometry,
         parameters=thermal_params,
         top_bc=u_top_bc,
@@ -155,15 +155,16 @@ if __name__ == "__main__":
         left_bc=u_left_bc,
         fixed_delta=False,
     )
-    navier_solver = ImplicitNavierStokesSolver(
+    navier_solver = NavierStokesSolver(
+        scheme=NavierStokesSchemes.DOUGLAS_RACHFORD,
         geometry=geometry,
         parameters=fluid_params,
         top_bc=sf_top_bc,
         right_bc=sf_right_bc,
         bottom_bc=sf_bottom_bc,
         left_bc=sf_left_bc,
-        alt_dir_max_iters=20,
-        alt_dir_stopping_criteria=1e-6,
+        implicit_sf_max_iters=20,
+        implicit_sf_stopping_criteria=1e-6,
         sf_max_iters=50,
         sf_stopping_criteria=1e-6,
     )
@@ -199,7 +200,7 @@ if __name__ == "__main__":
             #     show_graph=True,
             # )
             print(
-                f"Modelling Time: {n} s, Execution Time: {time.process_time() - start_time} s.\n"
+                f"Modelling Time: {n * geometry.dt} s, Execution Time: {time.process_time() - start_time} s.\n"
             )
             print(
                 f"Maximum temperature value: {round(np.max(u + thermal_params.u_ref + ABS_ZERO), 2)} C"
