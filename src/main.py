@@ -3,9 +3,11 @@ import time
 import numpy as np
 
 from src.boundary_conditions import BoundaryCondition, BoundaryConditionType
+from src.constants import ABS_ZERO
+from src.fluid_dynamics.parameters import FluidParameters
 from src.fluid_dynamics.plotting import plot_velocity_field
 from src.fluid_dynamics.utils import calculate_velocity_field
-from src.fluid_dynamics.schemes.explicit import ExplicitNavierStokesScheme
+# from src.fluid_dynamics.schemes.explicit import ExplicitNavierStokesScheme
 from src.fluid_dynamics.schemes.implicit_alt_dir import ImplicitNavierStokesSolver
 from src.fluid_dynamics.init_values import (
     initialize_stream_function,
@@ -25,8 +27,8 @@ if __name__ == "__main__":
         width=1.0,
         height=1.0,
         end_time=60.0 * 60.0 * 24.0 * 7.0,
-        n_x=501,
-        n_y=501,
+        n_x=101,
+        n_y=101,
         n_t=60 * 60 * 24 * 70,
     )
 
@@ -35,6 +37,7 @@ if __name__ == "__main__":
     min_temp = 274.15
     max_temp = 283.15
     reference_temperature = 0.5 * (min_temp + max_temp)
+    # reference_temperature = max_temp
 
     thermal_params = ThermalParameters(
         u_pt=273.15,
@@ -51,6 +54,14 @@ if __name__ == "__main__":
 
     print(thermal_params)
 
+    fluid_params = FluidParameters(
+        u_pt=273.15,
+        u_ref=reference_temperature,
+        epsilon=100000.0,
+    )
+
+    print(fluid_params)
+
     u = init_temperature(
         geom=geometry,
         reference_temperature=reference_temperature,
@@ -62,8 +73,7 @@ if __name__ == "__main__":
         f"Delta for the initial temperature distribution: {
             get_max_delta(
                 u, 
-                u_pt=thermal_params.u_pt, 
-                u_ref=thermal_params.u_ref
+                u_pt_ref=thermal_params.u_pt_ref,
             )
         }"
     )
@@ -76,8 +86,8 @@ if __name__ == "__main__":
         graph_id=0,
         plot_boundary=False,
         show_graph=True,
-        min_temp=min_temp,
-        max_temp=max_temp,
+        min_temp=min_temp + ABS_ZERO,
+        max_temp=max_temp + ABS_ZERO,
         invert_yaxis=False,
         actual_temp_units=TemperatureUnit.KELVIN,
         display_temp_units=TemperatureUnit.CELSIUS,
@@ -136,7 +146,7 @@ if __name__ == "__main__":
     w = initialize_vorticity(geom=geometry)
 
     heat_transfer_solver = HeatTransferSolver(
-        scheme=HeatTransferSchemes.DOUGLAS_RACHFORD,
+        scheme=HeatTransferSchemes.LOC_ONE_DIM,
         geometry=geometry,
         parameters=thermal_params,
         top_bc=u_top_bc,
@@ -147,6 +157,7 @@ if __name__ == "__main__":
     )
     navier_solver = ImplicitNavierStokesSolver(
         geometry=geometry,
+        parameters=fluid_params,
         top_bc=sf_top_bc,
         right_bc=sf_right_bc,
         bottom_bc=sf_bottom_bc,
@@ -173,8 +184,8 @@ if __name__ == "__main__":
                 graph_id=n,
                 plot_boundary=True,
                 show_graph=True,
-                min_temp=min_temp,
-                max_temp=max_temp,
+                min_temp=min_temp + ABS_ZERO,
+                max_temp=max_temp + ABS_ZERO,
                 invert_yaxis=False,
                 actual_temp_units=TemperatureUnit.KELVIN,
                 display_temp_units=TemperatureUnit.CELSIUS,
@@ -191,10 +202,10 @@ if __name__ == "__main__":
                 f"Modelling Time: {n} s, Execution Time: {time.process_time() - start_time} s.\n"
             )
             print(
-                f"Maximum temperature value: {round(np.max(u + thermal_params.u_ref), 2)} K"
+                f"Maximum temperature value: {round(np.max(u + thermal_params.u_ref + ABS_ZERO), 2)} C"
             )
             print(
-                f"Minimum temperature value: {round(np.min(u  + thermal_params.u_ref), 2)} K"
+                f"Minimum temperature value: {round(np.min(u  + thermal_params.u_ref + ABS_ZERO), 2)} C"
             )
             # print(f"Maximum stream function value: {round(np.max(sf), 6)}")
             # print(f"Minimum stream function value: {round(np.min(sf), 6)}")

@@ -1,5 +1,7 @@
 from pydantic import BaseModel, Field, validator
 
+from src.constants import ABS_ZERO
+
 
 class FluidParameters(BaseModel):
     u_pt: float = Field(..., gt=0.0, description="Phase transition temperature [K].")
@@ -15,7 +17,15 @@ class FluidParameters(BaseModel):
         """
         Calculate the kinematic viscosity coefficient at the reference temperature.
         """
-        return 5.56e-10 * self.u_ref * self.u_ref - 4.95e-8 * self.u_ref + 1.767e-6
+        return (
+            -2.74319393e-12
+            * (self.u_ref + ABS_ZERO)
+            * (self.u_ref + ABS_ZERO)
+            * (self.u_ref + ABS_ZERO)
+            + 6.03737170e-10 * (self.u_ref + ABS_ZERO) * (self.u_ref + ABS_ZERO)
+            - 4.77142009e-08 * (self.u_ref + ABS_ZERO)
+            + 1.75308187e-06
+        )
 
     @property
     def u_pt_ref(self) -> float:
