@@ -156,14 +156,14 @@ if __name__ == "__main__":
         fixed_delta=False,
     )
     navier_solver = NavierStokesSolver(
-        scheme=NavierStokesSchemes.DOUGLAS_RACHFORD,
+        scheme=NavierStokesSchemes.EXPLICIT_UPWIND,
         geometry=geometry,
         parameters=fluid_params,
         top_bc=sf_top_bc,
         right_bc=sf_right_bc,
         bottom_bc=sf_bottom_bc,
         left_bc=sf_left_bc,
-        implicit_sf_max_iters=20,
+        implicit_sf_max_iters=1,
         implicit_sf_stopping_criteria=1e-6,
         sf_max_iters=50,
         sf_stopping_criteria=1e-6,

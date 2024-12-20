@@ -13,7 +13,7 @@ from src.fluid_dynamics.utils import (
 from src import constants as cfg
 
 
-class ExplicitNavierStokesScheme(BaseScheme):
+class ExpUpwindNavierStokesScheme(BaseScheme):
     def __init__(
         self,
         geometry: DomainGeometry,
@@ -65,10 +65,6 @@ class ExplicitNavierStokesScheme(BaseScheme):
         inv_dy = 1.0 / dy
         inv_dy2 = 1.0 / (dy * dy)
 
-        # result[0, :] = -0.5 * inv_dy2 * (8.0 * sf[1, :] - sf[2, :])
-        # result[n_y - 1, :] = -0.5 * inv_dy2 * (8.0 * sf[n_y - 2, :] - sf[n_y - 3, :])
-        # result[:, 0] = -0.5 * inv_dx2 * (8.0 * sf[:, 1] - sf[:, 2])
-        # result[:, n_x - 1] = -0.5 * inv_dx2 * (8.0 * sf[:, n_x - 2] - sf[:, n_x - 3])
         result[0, :] = -2.0 * inv_dy2 * sf[1, :]
         result[n_y - 1, :] = -2.0 * inv_dy2 * sf[n_y - 2, :]
         result[:, 0] = -2.0 * inv_dx2 * sf[:, 1]
@@ -76,6 +72,21 @@ class ExplicitNavierStokesScheme(BaseScheme):
 
         for j in range(1, n_y - 1):
             for i in range(1, n_x - 1):
+                v_x = (sf[i, j + 1] - sf[i, j - 1]) * 0.5 * inv_dy
+                v_y = -(sf[i + 1, j] - sf[i - 1, j]) * 0.5 * inv_dx
+
+                if v_x > 0:
+                    advection_x = (w[i, j] * v_x - w[i - 1, j] * v_x) * inv_dx
+                else:
+                    advection_x = (w[i + 1, j] * v_x - w[i, j] * v_x) * inv_dx
+
+                if v_y > 0:
+                    advection_y = (w[i, j] * v_y - w[i, j - 1] * v_y) * inv_dy
+                else:
+                    advection_y = (w[i, j + 1] * v_y - w[i, j] * v_y) * inv_dy
+
+                advection = advection_y + advection_x
+
                 result[j, i] = w[j, i] + dt * (
                     -cfg.G
                     * thermal_exp(u=u[j, i], u_ref=u_ref, u_pt_ref=u_pt_ref)
@@ -84,26 +95,7 @@ class ExplicitNavierStokesScheme(BaseScheme):
                     * (u[j, i + 1] - u[j, i - 1])
                     + visc * inv_dx2 * (w[j, i + 1] - 2.0 * w[j, i] + w[j, i - 1])
                     + visc * inv_dy2 * (w[j + 1, i] - 2.0 * w[j, i] + w[j - 1, i])
-                    + 0.25
-                    * inv_dy
-                    * inv_dx
-                    * (sf[j + 1, i - 1] - sf[j - 1, i - 1])
-                    * w[j, i - 1]
-                    + 0.25
-                    * inv_dy
-                    * inv_dx
-                    * (sf[j - 1, i + 1] - sf[j + 1, i + 1])
-                    * w[j, i + 1]
-                    + 0.25
-                    * inv_dy
-                    * inv_dx
-                    * (sf[j - 1, i - 1] - sf[j - 1, i + 1])
-                    * w[j - 1, i]
-                    + 0.25
-                    * inv_dy
-                    * inv_dx
-                    * (sf[j + 1, i + 1] - sf[j + 1, i - 1])
-                    * w[j + 1, i]
+                    - advection
                     # + visc * c_ind(u=u[j, i], u_pt_ref=u_pt_ref, eps=epsilon) * sf[j, i]
                 )
 
@@ -205,6 +197,7 @@ class ExplicitNavierStokesScheme(BaseScheme):
             diff = np.linalg.norm(temp_sf - self._sf)
             if diff < self.implicit_sf_stopping_criteria:
                 break
-            temp_sf = 0.5 * (temp_sf + self._sf)
+            # temp_sf = 0.5 * (temp_sf + self._sf)
+            temp_sf = np.copy(self._sf)
 
         return self._sf, self._new_w

@@ -7,14 +7,16 @@ from src.boundary_conditions import BoundaryCondition
 from src.fluid_dynamics.parameters import FluidParameters
 from src.geometry import DomainGeometry
 from src.fluid_dynamics.schemes.douglas_rachford import DRNavierStokesScheme
-from src.fluid_dynamics.schemes.explicit import ExplicitNavierStokesScheme
-from src.fluid_dynamics.schemes.implicit_alt_dir import ImplicitNavierStokesScheme
+from src.fluid_dynamics.schemes.explicit_central import ExpCentralNavierStokesScheme
+from src.fluid_dynamics.schemes.explicit_upwind import ExpUpwindNavierStokesScheme
+from src.fluid_dynamics.schemes.peaceman_rachford import PRNavierStokesScheme
 
 
 class NavierStokesSchemes(Enum):
-    EXPLICIT = 1, "Explicit"
-    DOUGLAS_RACHFORD = 2, "Douglas-Rachford"
-    PEACEMAN_RACHFORD = 3, "Peaceman-Rachford"
+    EXPLICIT_CENTRAL = 1, "Explicit central differences"
+    EXPLICIT_UPWIND = 2, "Explicit upwind"
+    DOUGLAS_RACHFORD = 3, "Douglas-Rachford"
+    PEACEMAN_RACHFORD = 4, "Peaceman-Rachford"
 
 
 class NavierStokesSolver:
@@ -48,12 +50,14 @@ class NavierStokesSolver:
         )
 
     def get_scheme_class(self) -> typing.Type:
-        if self.scheme == NavierStokesSchemes.EXPLICIT:
-            return ExplicitNavierStokesScheme
+        if self.scheme == NavierStokesSchemes.EXPLICIT_CENTRAL:
+            return ExpCentralNavierStokesScheme
+        elif self.scheme == NavierStokesSchemes.EXPLICIT_UPWIND:
+            return ExpUpwindNavierStokesScheme
         elif self.scheme == NavierStokesSchemes.DOUGLAS_RACHFORD:
             return DRNavierStokesScheme
         elif self.scheme == NavierStokesSchemes.PEACEMAN_RACHFORD:
-            return ImplicitNavierStokesScheme
+            return PRNavierStokesScheme
         else:
             raise NotImplemented()
 
