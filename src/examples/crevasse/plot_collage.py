@@ -9,18 +9,20 @@ from src.core.constants import ABS_ZERO
 # ── Matplotlib style ──────────────────────────────────────────────────────────
 mpl.rcParams.update(
     {
-        "font.size": 14,
-        "axes.labelsize": 14,
-        "axes.titlesize": 14,
-        "xtick.labelsize": 14,
-        "ytick.labelsize": 14,
-        "legend.fontsize": 14,
+        "font.size": 9,
+        "axes.labelsize": 9,
+        "axes.titlesize": 9,
+        "xtick.labelsize": 9,
+        "ytick.labelsize": 9,
+        "legend.fontsize": 9,
         "font.family": "serif",
         "font.serif": ["Times New Roman"],
         "mathtext.fontset": "custom",
         "mathtext.rm": "Times New Roman",
         "mathtext.it": "Times New Roman:italic",
         "mathtext.bf": "Times New Roman:bold",
+        "lines.linewidth": 0.8,
+        "figure.dpi": 300,
     }
 )
 
@@ -36,7 +38,7 @@ CASES = {
     },
     "Convection": {
         "cfg": cfg_conv,
-        "folder": "./data/convection/colder_bottom",
+        "folder": "./data/convection/48_hrs",
         "checkpoints": [12000, 288000, 720000, 1728000],
     },
 }
@@ -69,7 +71,7 @@ vmin, vmax = find_clim(*all_arrays)
 fig, axes = plt.subplots(
     nrows=2,
     ncols=4,
-    figsize=(16, 7),
+    figsize=(6.3, 3),
     constrained_layout=True,
 )
 cmap = "Blues"
@@ -93,12 +95,12 @@ for row_idx, (label, cfg_case) in enumerate(CASES.items()):
         )
 
         # Изотерма T = 0 °C
-        ax.contour(X, Y, arr, levels=[0.0], colors="black", linewidths=0.8)
+        ax.contour(X, Y, arr, levels=[0.0], colors="black")
 
         if col_idx > 0:
             ax.set_yticklabels([])
 
-        axis_ticks = [0.00, 0.05, 0.10, 0.15, 0.20]
+        axis_ticks = [0.0, 0.05, 0.10, 0.15, 0.20]
         ax.xaxis.set_major_locator(ticker.FixedLocator(axis_ticks))
         ax.yaxis.set_major_locator(ticker.FixedLocator(axis_ticks))
 
@@ -115,8 +117,6 @@ for row_idx, (label, cfg_case) in enumerate(CASES.items()):
             time_val = int(round(t_sec))
             time_str = rf"$t = {time_val}$ s"
 
-        ax.set_title(time_str, fontsize=13, pad=6)
-
 cbar_ticks = np.linspace(vmin, vmax, 6)
 cbar = fig.colorbar(
     im,
@@ -129,5 +129,5 @@ cbar = fig.colorbar(
 )
 cbar.ax.yaxis.set_major_formatter(ticker.FormatStrFormatter("%.1f"))
 
-fig.savefig("./graphs/collage.jpg", dpi=300, bbox_inches="tight")
+fig.savefig("./graphs/collage.jpg", bbox_inches="tight")
 plt.show()
