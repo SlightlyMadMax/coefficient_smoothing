@@ -12,18 +12,20 @@ from src.parameters.config import ExperimentConfig
 
 mpl.rcParams.update(
     {
-        "font.size": 14,
-        "axes.labelsize": 14,
-        "axes.titlesize": 14,
-        "xtick.labelsize": 14,
-        "ytick.labelsize": 14,
-        "legend.fontsize": 14,
+        "font.size": 12,
+        "axes.labelsize": 12,
+        "axes.titlesize": 12,
+        "xtick.labelsize": 12,
+        "ytick.labelsize": 12,
+        "legend.fontsize": 12,
         "font.family": "serif",
         "font.serif": ["Times New Roman"],
         "mathtext.fontset": "custom",
         "mathtext.rm": "Times New Roman",
         "mathtext.it": "Times New Roman:italic",
         "mathtext.bf": "Times New Roman:bold",
+        "lines.linewidth": 1.5,
+        "figure.dpi": 300,
     }
 )
 
@@ -77,50 +79,49 @@ x_danaila_1575, y_danaila_1575 = load_and_sort("./data/other_authors/danaila_157
 x_okada_1575, y_okada_1575 = load_and_sort("./data/other_authors/okada_1575.npz")
 x_wang_1575, y_wang_1575 = load_and_sort("./data/other_authors/wang_1575.npz")
 
-fig, ax = plt.subplots(figsize=(8, 8))
+fig, ax = plt.subplots(figsize=(5.0, 5.0))
 
+boundaries = []
 for file_path in paths:
     data = np.load(file_path)
     u = data["u"]
     X_b, Y_b = get_phase_trans_boundary(cfg=cfg, u=u * cfg.delta_u + cfg.u_ref)
-    x_b = np.asarray(X_b)
-    y_b = np.asarray(Y_b)
-    ax.plot(x_b / cfg.l, y_b / cfg.l, linestyle="--", color="red", linewidth=2.5)
+    x_b = np.asarray(X_b) / cfg.l
+    y_b = np.asarray(Y_b) / cfg.l
+    ax.plot(x_b, y_b, linestyle="--", color="C0")
+    boundaries.append((x_b, y_b))
 
-ax.plot(x_danaila_800, y_danaila_800, linestyle="-", color="blue", linewidth=2.5)
-ax.plot(x_danaila_1575, y_danaila_1575, linestyle="-", color="blue", linewidth=2.5)
-ax.plot(x_okada_800, y_okada_800, linestyle="-", color="green", linewidth=2.5)
-ax.plot(x_okada_1575, y_okada_1575, linestyle="-", color="green", linewidth=2.5)
-ax.plot(x_wang_1575, y_wang_1575, linestyle="-", color="purple", linewidth=2.5)
+ax.plot(x_danaila_800, y_danaila_800, linestyle="-", color="C1")
+ax.plot(x_danaila_1575, y_danaila_1575, linestyle="-", color="C1")
+ax.plot(x_okada_800, y_okada_800, linestyle="-", color="C2")
+ax.plot(x_okada_1575, y_okada_1575, linestyle="-", color="C2")
+ax.plot(x_wang_1575, y_wang_1575, linestyle="-", color="C3")
+
+for i, label in zip([0, -1], [r"$\tilde{t} = 0.032$", r"$\tilde{t} = 0.063$"]):
+    x_b, y_b = boundaries[i]
+    ax.text(x_b.max() - 0.05, y_b[np.argmax(x_b)] - 0.2, label, va="center", rotation=60)
 
 legend_elements = [
-    mlines.Line2D(
-        [], [], linestyle="--", color="red", linewidth=2.5, label="Present work"
-    ),
+    mlines.Line2D([], [], linestyle="--", color="C0", label="Present work"),
     mlines.Line2D(
         [],
         [],
         linestyle="-",
-        color="blue",
-        linewidth=2.5,
-        label="Danaila et al. (2019)",
+        color="C1",
+        label="Rakotondrandisa et al. (2019)",
     ),
-    mlines.Line2D(
-        [], [], linestyle="-", color="green", linewidth=2.5, label="Okada (1984)"
-    ),
-    mlines.Line2D(
-        [], [], linestyle="-", color="purple", linewidth=2.5, label="Wang et al. (2010)"
-    ),
+    mlines.Line2D([], [], linestyle="-", color="C2", label="Okada (1984)"),
+    mlines.Line2D([], [], linestyle="-", color="C3", label="Wang et al. (2010)"),
 ]
 
-ax.legend(handles=legend_elements, fontsize=12)
+ax.legend(handles=legend_elements, loc="best", fontsize=11)
 
-ax.set_xlabel("X", fontsize=14)
-ax.set_ylabel("Y", fontsize=14)
+ax.set_xlabel("X")
+ax.set_ylabel("Y")
 
 ax.set_xlim(0, 1)
 ax.set_ylim(0, 1)
 ax.set_aspect("equal")
 
 plt.tight_layout()
-plt.savefig("./graphs/compared.png", dpi=300)
+plt.savefig("./graphs/compared.png")

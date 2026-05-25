@@ -1,8 +1,29 @@
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 
 from src.examples.octadecane.nusselt_correlation import nusselt_correlation
 from src.parameters.config import ExperimentConfig
+
+
+mpl.rcParams.update(
+    {
+        "font.size": 12,
+        "axes.labelsize": 12,
+        "axes.titlesize": 12,
+        "xtick.labelsize": 12,
+        "ytick.labelsize": 12,
+        "legend.fontsize": 12,
+        "font.family": "serif",
+        "font.serif": ["Times New Roman"],
+        "mathtext.fontset": "custom",
+        "mathtext.rm": "Times New Roman",
+        "mathtext.it": "Times New Roman:italic",
+        "mathtext.bf": "Times New Roman:bold",
+        "lines.linewidth": 1.5,
+        "figure.dpi": 300,
+    }
+)
 
 cfg: ExperimentConfig = ExperimentConfig.load_from_file("./config.json")
 nu_history = np.load("./data/nusselt.npz")["nu"]
@@ -19,28 +40,28 @@ mask = exp_data["x"] <= dim_times[-1]
 exp_x = exp_data["x"][mask]
 exp_y = exp_data["y"][mask]
 
-plt.figure(figsize=(8, 5))
-plt.plot(dim_times[1000:], nu_values[1000:], linewidth=2.5, label="Present work")
+plt.figure(figsize=(6.3, 3.9))
+plt.plot(
+    dim_times[1000:],
+    nu_values[1000:],
+    color="C0",
+    linestyle="--",
+    label="Present work",
+)
 plt.plot(
     dim_times[1000:],
     nu_pred[1000:],
-    linewidth=2.5,
-    linestyle="--",
+    color="C1",
+    linestyle="-",
     label="Jany & Bejan (1988)",
 )
 plt.plot(
-    exp_x,
-    exp_y,
-    linestyle="-",
-    color="black",
-    linewidth=1.5,
-    label="Exp. of Okada (1984)",
+    exp_x, exp_y, color="C2", linestyle="-", label="Okada (1984), exp."
 )
 
-plt.xlabel(r"Dimensionless time $\tau = Fo \cdot Ste$")
+plt.xlabel(r"$\tilde{t}$")
 plt.ylabel(r"$Nu$")
-plt.grid(True, alpha=0.3)
 plt.legend()
 plt.ylim(5, 9)
 plt.tight_layout()
-plt.savefig("./graphs/nusselt_evolution_2.png", dpi=300)
+plt.savefig("./graphs/nusselt_evolution_2.png")
