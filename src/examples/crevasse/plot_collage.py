@@ -9,18 +9,20 @@ from src.core.constants import ABS_ZERO
 # ── Matplotlib style ──────────────────────────────────────────────────────────
 mpl.rcParams.update(
     {
-        "font.size": 14,
-        "axes.labelsize": 14,
-        "axes.titlesize": 14,
-        "xtick.labelsize": 14,
-        "ytick.labelsize": 14,
-        "legend.fontsize": 14,
+        "font.size": 10,
+        "axes.labelsize": 10,
+        "axes.titlesize": 10,
+        "xtick.labelsize": 9,
+        "ytick.labelsize": 9,
+        "legend.fontsize": 10,
         "font.family": "serif",
         "font.serif": ["Times New Roman"],
         "mathtext.fontset": "custom",
         "mathtext.rm": "Times New Roman",
         "mathtext.it": "Times New Roman:italic",
         "mathtext.bf": "Times New Roman:bold",
+        "lines.linewidth": 0.8,
+        "figure.dpi": 300,
     }
 )
 
@@ -36,7 +38,7 @@ CASES = {
     },
     "Convection": {
         "cfg": cfg_conv,
-        "folder": "./data/convection/colder_bottom",
+        "folder": "./data/convection/48_hrs",
         "checkpoints": [12000, 288000, 720000, 1728000],
     },
 }
@@ -69,10 +71,12 @@ vmin, vmax = find_clim(*all_arrays)
 fig, axes = plt.subplots(
     nrows=2,
     ncols=4,
-    figsize=(16, 7),
+    figsize=(6.3, 3.1),
     constrained_layout=True,
 )
 cmap = "Blues"
+axis_ticks = [0.0, 0.05, 0.10, 0.15, 0.20]
+row_labels = ["a", "b"]
 
 for row_idx, (label, cfg_case) in enumerate(CASES.items()):
     cfg = cfg_case["cfg"]
@@ -95,16 +99,26 @@ for row_idx, (label, cfg_case) in enumerate(CASES.items()):
         # Изотерма T = 0 °C
         ax.contour(X, Y, arr, levels=[0.0], colors="black", linewidths=0.8)
 
-        if col_idx > 0:
-            ax.set_yticklabels([])
+        ax.set_box_aspect(1)
 
-        axis_ticks = [0.00, 0.05, 0.10, 0.15, 0.20]
+        axis_ticks = [0.0, 0.1, 0.2]
         ax.xaxis.set_major_locator(ticker.FixedLocator(axis_ticks))
         ax.yaxis.set_major_locator(ticker.FixedLocator(axis_ticks))
 
-        # ── Формирование подписи времени ──
-        t_sec = cfg.geometry.dt * step  # Физическое время в секундах
+        # Только левый столбец: подписи Y
+        if col_idx == 0:
+            ax.tick_params(labelleft=True)
+        else:
+            ax.tick_params(labelleft=False)
 
+        # Только нижний ряд: подписи X
+        if row_idx == 1:
+            ax.tick_params(labelbottom=True)
+        else:
+            ax.tick_params(labelbottom=False)
+
+        # ── Формирование подписи времени ──
+        t_sec = cfg.geometry.dt * step
         if t_sec >= 3600:
             time_val = int(round(t_sec / 3600))
             time_str = rf"$t = {time_val}$ h"
@@ -115,8 +129,29 @@ for row_idx, (label, cfg_case) in enumerate(CASES.items()):
             time_val = int(round(t_sec))
             time_str = rf"$t = {time_val}$ s"
 
-        ax.set_title(time_str, fontsize=13, pad=6)
+        ax.text(
+            0.98,
+            0.025,
+            time_str,
+            transform=ax.transAxes,
+            fontsize=9,
+            va="bottom",
+            ha="right",
+        )
 
+    left_ax = axes[row_idx, 0]
+    left_ax.text(
+        -0.3,
+        0.5,
+        row_labels[row_idx],
+        transform=left_ax.transAxes,
+        fontweight="bold",
+        va="center",
+        ha="right",
+        clip_on=False,
+    )
+
+# Цветовая шкала
 cbar_ticks = np.linspace(vmin, vmax, 6)
 cbar = fig.colorbar(
     im,
@@ -129,5 +164,5 @@ cbar = fig.colorbar(
 )
 cbar.ax.yaxis.set_major_formatter(ticker.FormatStrFormatter("%.1f"))
 
-fig.savefig("./graphs/collage.jpg", dpi=300, bbox_inches="tight")
+fig.savefig("./graphs/collage.png", bbox_inches="tight", dpi=300)
 plt.show()
