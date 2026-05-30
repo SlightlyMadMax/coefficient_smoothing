@@ -164,5 +164,5 @@ cbar = fig.colorbar(
 )
 cbar.ax.yaxis.set_major_formatter(ticker.FormatStrFormatter("%.1f"))
 
-fig.savefig("./graphs/collage.png", bbox_inches="tight", dpi=300)
+fig.savefig("./graphs/collage.tiff", bbox_inches="tight", dpi=300)
 plt.show()

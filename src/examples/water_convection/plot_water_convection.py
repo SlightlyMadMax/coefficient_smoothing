@@ -30,26 +30,17 @@ mpl.rcParams.update(
 # helper for subfigure labels
 # -----------------------------
 def add_subfigure_label(ax, label):
-    circle = patches.Circle(
-        (0.06, 0.94),
-        0.035,
-        transform=ax.transAxes,
-        facecolor="white",
-        edgecolor="black",
-        linewidth=1.2,
-        zorder=10,
-    )
-    ax.add_patch(circle)
-
+    """Add subfigure label (a), (b), etc. centered above the axes."""
     ax.text(
-        0.06,
-        0.94,
-        label,
+        0.5,
+        1.05,
+        f"{label}",
         transform=ax.transAxes,
         ha="center",
-        va="center",
-        fontsize=14,
-        zorder=11,
+        va="bottom",
+        fontsize=12,
+        fontweight="bold",
+        zorder=10,
     )
 
 
@@ -119,7 +110,7 @@ L = 0.08
 i1 = int(0.05 * (n_x - 1))
 x1, y1 = x[i1], u_true[i1] - 0.02
 ax1.plot([x1 + 0.01, x1 + 0.01 + L], [y1, y1], linewidth=0.8, color="black")
-ax1.text(x1 + 0.01 + L + 0.01, y1, "1", va="center")
+ax1.text(x1 + 0.01 + L + 0.01, y1, "1", va="center", fontsize=10)
 
 target_x = 0.5
 base_idx = int(target_x * (n_x - 1))
@@ -127,7 +118,7 @@ marker_idx = (base_idx // MARKER_STEP) * MARKER_STEP
 
 x2, y2 = x[marker_idx], u_mid[marker_idx]
 ax1.plot([x2, x2], [y2 + 0.01, y2 + 0.01 + L], linewidth=0.8, color="black")
-ax1.text(x2, y2 + 0.01 + L + 0.01, "2", ha="center")
+ax1.text(x2, y2 + 0.01 + L + 0.01, "2", ha="center", fontsize=10)
 
 ax1.set_xlim(0, 1)
 ax1.set_ylim(0, 1)
@@ -138,5 +129,5 @@ ax1.set_aspect("equal", adjustable="box")
 add_subfigure_label(ax1, "b")
 
 # -----------------------------
-plt.savefig("./graphs/compared.png", dpi=300)
+plt.savefig("./graphs/compared.tiff", dpi=300)
 # plt.show()

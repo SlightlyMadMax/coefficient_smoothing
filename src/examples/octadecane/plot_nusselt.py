@@ -9,10 +9,10 @@ from src.parameters.config import ExperimentConfig
 mpl.rcParams.update(
     {
         "font.size": 12,
-        "axes.labelsize": 12,
-        "axes.titlesize": 12,
-        "xtick.labelsize": 12,
-        "ytick.labelsize": 12,
+        "axes.labelsize": 10,
+        "axes.titlesize": 10,
+        "xtick.labelsize": 10,
+        "ytick.labelsize": 10,
         "legend.fontsize": 12,
         "font.family": "serif",
         "font.serif": ["Times New Roman"],
@@ -64,4 +64,4 @@ plt.ylabel(r"$Nu$")
 plt.legend()
 plt.ylim(5, 9)
 plt.tight_layout()
-plt.savefig("./graphs/nusselt_evolution_2.png")
+plt.savefig("./graphs/nusselt_evolution_2.tiff")

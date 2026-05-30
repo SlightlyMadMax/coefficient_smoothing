@@ -10,10 +10,10 @@ from src.parameters.config import ExperimentConfig
 mpl.rcParams.update(
     {
         "font.size": 12,
-        "axes.labelsize": 12,
-        "axes.titlesize": 12,
-        "xtick.labelsize": 12,
-        "ytick.labelsize": 12,
+        "axes.labelsize": 10,
+        "axes.titlesize": 10,
+        "xtick.labelsize": 10,
+        "ytick.labelsize": 10,
         "legend.fontsize": 12,
         "font.family": "serif",
         "font.serif": ["Times New Roman"],
@@ -78,7 +78,7 @@ x_cond, y_cond = times_cond[idx_cond], s_f_cond[idx_cond]
 dx_conv = (max(times_conv) - min(times_conv)) * 0.03
 dx_cond = (max(times_cond) - min(times_cond)) * 0.03
 dy = 0.025
-text_offset = 0.015
+text_offset = 0.01
 
 ax.plot([x_conv, x_conv - dx_conv], [y_conv, y_conv - dy], color="black", linewidth=0.8)
 ax.text(
@@ -103,5 +103,5 @@ ax.text(
 )
 
 plt.tight_layout()
-fig.savefig("./graphs/ice_fraction.png", dpi=300, bbox_inches="tight")
+fig.savefig("./graphs/ice_fraction.tiff", dpi=300, bbox_inches="tight")
 plt.show()

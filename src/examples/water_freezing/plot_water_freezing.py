@@ -1,6 +1,5 @@
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import matplotlib.patches as patches
 import numpy as np
 
 from src.core.constants import ABS_ZERO
@@ -12,18 +11,20 @@ from src.parameters.config import ExperimentConfig
 
 mpl.rcParams.update(
     {
-        "font.size": 14,
-        "axes.labelsize": 14,
-        "axes.titlesize": 14,
-        "xtick.labelsize": 14,
-        "ytick.labelsize": 14,
-        "legend.fontsize": 14,
+        "font.size": 12,
+        "axes.labelsize": 10,
+        "axes.titlesize": 10,
+        "xtick.labelsize": 10,
+        "ytick.labelsize": 10,
+        "legend.fontsize": 12,
         "font.family": "serif",
         "font.serif": ["Times New Roman"],
         "mathtext.fontset": "custom",
         "mathtext.rm": "Times New Roman",
         "mathtext.it": "Times New Roman:italic",
         "mathtext.bf": "Times New Roman:bold",
+        "lines.linewidth": 1.5,
+        "figure.dpi": 300,
     }
 )
 
@@ -32,26 +33,17 @@ mpl.rcParams.update(
 # helper for subfigure labels
 # -----------------------------
 def add_subfigure_label(ax, label):
-    circle = patches.Circle(
-        (0.06, 0.94),
-        0.035,
-        transform=ax.transAxes,
-        facecolor="white",
-        edgecolor="black",
-        linewidth=1.2,
-        zorder=10,
-    )
-    ax.add_patch(circle)
-
+    """Add subfigure label (a), (b), etc. centered above the axes."""
     ax.text(
-        0.06,
-        0.94,
-        label,
+        0.5,
+        1.05,
+        f"{label}",
         transform=ax.transAxes,
         ha="center",
-        va="center",
-        fontsize=14,
-        zorder=11,
+        va="bottom",
+        fontsize=12,
+        fontweight="bold",
+        zorder=10,
     )
 
 
@@ -77,18 +69,18 @@ X, Y = np.meshgrid(x, y)
 # -----------------------------
 # figure
 # -----------------------------
-fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(12, 6), constrained_layout=True)
+fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(6.3, 3.15), constrained_layout=True)
 
 # -------- (а) field ----------
 ax0.imshow(img, extent=[0, geometry.width, 0, geometry.height])
 X_b, Y_b = get_phase_trans_boundary(cfg=cfg, u=u_dim)
 ax0.plot(X_b, Y_b, linestyle="--", color="red", linewidth=2, label="Численное решение")
 
-ax0.set_xlabel(r"$x$, м")
-ax0.set_ylabel(r"$y$, м")
+ax0.set_xlabel(r"$x$, m")
+ax0.set_ylabel(r"$y$, m")
 ax0.set_aspect("equal", adjustable="box")
 
-add_subfigure_label(ax0, "а")
+add_subfigure_label(ax0, "a")
 
 # -------- (б) profile --------
 stride = 8
@@ -105,8 +97,8 @@ ax1.quiver(
 
 ax1.plot(X_b, Y_b, linestyle="--", color="k", linewidth=1.5)
 
-ax1.set_xlabel(r"$x$, м")
-ax1.set_ylabel(r"$y$, м")
+ax1.set_xlabel(r"$x$, m")
+ax1.set_ylabel(r"$y$, m")
 ax1.set_aspect("equal", adjustable="box")
 
 L = 0.003
@@ -120,10 +112,10 @@ dy_label = -0.0005
 
 cbar = fig.colorbar(contour, ax=ax1, fraction=0.046, pad=0.04)
 cbar.set_ticks(np.linspace(-10, 10, 9))
-cbar.set_label(r"Температура, $^{\circ}\mathrm{C}$", rotation=270, labelpad=15)
+cbar.set_label(r"Temperature, $^{\circ}\mathrm{C}$", rotation=270, labelpad=15)
 
-add_subfigure_label(ax1, "б")
+add_subfigure_label(ax1, "b")
 
 # -----------------------------
-plt.savefig("./graphs/water_freezing_upd.tif", dpi=300)
+plt.savefig("./graphs/water_freezing_upd.tiff", dpi=300)
 plt.show()

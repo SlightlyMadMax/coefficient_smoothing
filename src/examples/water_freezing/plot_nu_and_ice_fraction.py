@@ -3,7 +3,6 @@ import glob
 import re
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.patches as patches
 
 from src.parameters.config import ExperimentConfig
 from src.utils.nusselt import calculate_nusselt
@@ -11,38 +10,36 @@ from src.utils.nusselt import calculate_nusselt
 
 mpl.rcParams.update(
     {
-        "font.size": 14,
-        "axes.labelsize": 14,
-        "axes.titlesize": 14,
-        "xtick.labelsize": 14,
-        "ytick.labelsize": 14,
-        "legend.fontsize": 14,
+        "font.size": 12,
+        "axes.labelsize": 10,
+        "axes.titlesize": 10,
+        "xtick.labelsize": 10,
+        "ytick.labelsize": 10,
+        "legend.fontsize": 12,
         "font.family": "serif",
         "font.serif": ["Times New Roman"],
         "mathtext.fontset": "custom",
         "mathtext.rm": "Times New Roman",
         "mathtext.it": "Times New Roman:italic",
         "mathtext.bf": "Times New Roman:bold",
+        "lines.linewidth": 1.5,
+        "figure.dpi": 300,
     }
 )
 
 
 def add_subfigure_label(ax, label):
+    """Add subfigure label (a), (b), etc. centered above the axes."""
     ax.text(
-        0.06,
-        0.94,
-        label,
+        0.5,
+        1.05,
+        f"{label}",
         transform=ax.transAxes,
         ha="center",
-        va="center",
-        fontsize=14,
+        va="bottom",
+        fontsize=12,
+        fontweight="bold",
         zorder=10,
-        bbox=dict(
-            boxstyle="circle,pad=0.35",
-            facecolor="white",
-            edgecolor="black",
-            linewidth=1.2,
-        ),
     )
 
 
@@ -107,44 +104,44 @@ t_warm_ice, ice_fraction_warm = load_ice_fraction_data(
     "data/warm_start_full/checkpoint_*.npz"
 )
 
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 4.5))
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(6.3, 3.15))
 
 ax1.plot(t_cold_nu, nu_cold, linewidth=1.5, color="tab:blue")
 ax1.plot(t_warm_nu, nu_warm, linewidth=1.5, color="tab:orange")
-ax1.set_xlabel(r"Время, с")
-ax1.set_ylabel(r"Среднее число Нуссельта")
+ax1.set_xlabel(r"Time, s")
+ax1.set_ylabel(r"Nu")
 
 L = 0.5
 i1 = int(0.2 * (len(t_cold_nu) - 1))
 x1, y1 = t_cold_nu[i1], nu_cold[i1]
-ax1.plot([x1, x1], [y1, y1 + L], color="black")
-ax1.text(x1 - 30.0, y1 + L + 0.2, "1", va="center", fontsize=14)
+ax1.plot([x1, x1], [y1, y1 + L], color="black", linewidth=0.8)
+ax1.text(x1 - 30.0, y1 + L + 0.2, "1", va="center", fontsize=10)
 
 L = 0.5
 i1 = int(0.2 * (len(t_cold_nu) - 1))
 x1, y1 = t_cold_nu[i1], nu_warm[i1]
-ax1.plot([x1, x1 + 100], [y1, y1 - 0.4], color="black")
-ax1.text(x1 + 100, y1 - 0.6, "2", va="center", fontsize=14)
+ax1.plot([x1, x1 + 100], [y1, y1 - 0.4], color="black", linewidth=0.8)
+ax1.text(x1 + 100, y1 - 0.6, "2", va="center", fontsize=10)
 
-add_subfigure_label(ax1, "а")
+add_subfigure_label(ax1, "a")
 
 ax2.plot(t_cold_ice, ice_fraction_cold, linewidth=1.5, color="tab:blue")
 ax2.plot(t_warm_ice, ice_fraction_warm, linewidth=1.5, color="tab:orange")
-ax2.set_xlabel(r"Время, с")
-ax2.set_ylabel(r"Доля льда")
+ax2.set_xlabel(r"Time, s")
+ax2.set_ylabel(r"Ice fraction")
 
 i1 = int(0.15 * (len(t_cold_ice) - 1))
 x1, y1 = t_cold_ice[i1], ice_fraction_cold[i1]
-ax2.plot([x1, x1 - 50.0], [y1, y1 + 0.04], color="black")
-ax2.text(x1 - 130.0, y1 + 0.05, "1", va="center", fontsize=14)
+ax2.plot([x1, x1 - 50.0], [y1, y1 + 0.04], color="black", linewidth=0.8)
+ax2.text(x1 - 130.0, y1 + 0.05, "1", va="center", fontsize=10)
 
 i1 = int(0.2 * (len(t_cold_ice) - 1))
 x1, y1 = t_cold_ice[i1], ice_fraction_warm[i1]
-ax2.plot([x1, x1 + 100], [y1, y1 - 0.04], color="black")
-ax2.text(x1 + 50, y1 - 0.055, "2", va="center", fontsize=14)
+ax2.plot([x1, x1 + 100], [y1, y1 - 0.04], color="black", linewidth=0.8)
+ax2.text(x1 + 50, y1 - 0.055, "2", va="center", fontsize=10)
 
-add_subfigure_label(ax2, "б")
+add_subfigure_label(ax2, "b")
 
 plt.tight_layout()
-plt.savefig("./graphs/nu_ice_f_combined_v2.tif", dpi=300, bbox_inches="tight")
+plt.savefig("./graphs/nu_ice_f_combined_v2.tiff", dpi=300, bbox_inches="tight")
 plt.show()
