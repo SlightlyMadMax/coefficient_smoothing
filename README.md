@@ -1,8 +1,18 @@
-# 2D Stefan Problem Solver with Convection
+# 2D Melting & Solidification Solver with Natural Convection
 
-Numerical solver for 2D melting/solidification problems with natural convection.
-Combines the stream function–vorticity formulation of the incompressible Navier–Stokes
-equations with the effective heat capacity method for phase-change heat transfer.
+**English** | [Русский](README.ru.md)
+
+Numerical solver for 2D melting/solidification problems with natural convection in the
+melt. Combines the stream function–vorticity formulation of the incompressible
+Navier–Stokes equations with the effective heat capacity method for phase-change heat
+transfer.
+
+The code is written entirely in Python with a modular architecture: the physical model,
+discretisation schemes, linear solvers and experiment orchestration are decoupled and
+interchangeable. Performance-critical kernels are accelerated with
+[Numba](https://numba.pydata.org/) JIT compilation, and the remaining array operations
+are vectorised with NumPy. The sparse elliptic problems are solved with SciPy / PyAMG
+(with an optional CuPy GPU backend).
 
 ## Physical model
 
@@ -17,7 +27,7 @@ temperature $\theta = (T - T_\text{ref})/\Delta T$.
 
 $$\frac{\partial \omega}{\partial t} + \frac{\partial}{\partial x}\left(\omega \frac{\partial \psi}{\partial y}\right) - \frac{\partial}{\partial y}\left(\omega \frac{\partial \psi}{\partial x}\right) = \frac{1}{Re}\nabla^2\omega + \frac{Gr}{Re^2}\frac{\partial\theta}{\partial x} - \nabla \cdot (S \nabla\psi)$$
 
-- **Stream function Poisson equation**:
+- **Stream function–vorticity relation**:
 
 $$\nabla^2\psi = -\omega$$
 
@@ -34,65 +44,57 @@ solid–liquid interface over a mushy zone of half-width $\Delta$ (in dimensionl
 temperature units). The penalty $S$ is a smooth function of $\theta$ that drives the
 velocity to zero in the solid phase.
 
-## Project structure
+## Numerical method
 
+Everything is discretised by finite differences on a uniform rectangular grid. Each time
+step advances the temperature first, then the flow:
+
+1. **Heat transfer** — update $\theta$, and with it the phase field, penalty and buoyancy coefficients.
+2. **Fluid flow** — update $\omega$ and $\psi$ using the new temperature.
+
+### Heat transfer
+
+Phase change is captured with the effective heat capacity method: the latent heat is
+folded into $c_\text{eff}$ through a smoothed delta function over the mushy zone (see
+[Physical model](#physical-model)). The smoothing shapes for the step and delta functions
+are interchangeable (`StepScheme`, `DeltaScheme`), as is the rule for the face
+conductivities $k_\text{eff}$ — arithmetic mean, harmonic mean, or evaluation at the face
+temperature (`KFaceMethod`). The convective term is discretised by a selectable scheme
+(`ConvectiveTermForm`), from central differences through upwind to a deferred-correction
+(TVD) form. The energy equation is integrated with an alternating-direction-implicit (ADI)
+splitting — Peaceman–Rachford, Douglas–Rachford or locally one-dimensional — with fully
+implicit and explicit solvers also available.
+
+### Fluid flow
+
+The solid phase is handled by a fictitious-domain (penalty) method: the term $S$ becomes
+large in the solid so that the velocity is driven to zero there; its shape is selectable
+(`PenaltyTermForm`). Two Navier–Stokes solvers are provided:
+
+- **`BCCorrectionNVSolver`** (default, used for all examples) avoids inner iterations
+  between the vorticity and stream-function equations. It uses the boundary-condition
+  correction scheme of Samarskii & Vabishchevich, where the vorticity boundary condition
+  is folded into a fourth-order equation for $\psi$, advanced by a Douglas–Rachford
+  predictor–corrector split. This allows a much larger stable time step, which matters at
+  the high Rayleigh numbers typical of ice melting. Its corrector step solves a *modified*
+  elliptic equation rather than the plain Poisson equation, so it requires the `AMG`,
+  `CG` or `CG_GPU` stream-function solver.
+
+- **`IterativeNavierStokesSolver`** is the classical scheme: solve vorticity transport,
+  solve $\nabla^2\psi = -\omega$, iterate to convergence. The `SOR` and `MATRIX_SWEEP`
+  stream-function solvers work only with this one.
+
+## Installation
+
+Requires Python 3.11 or 3.12.
+
+```bash
+pip install -r requirements.txt
+# or, with Poetry:
+poetry install
 ```
-src/
-├── main.py                          # Example entry point
-├── examples/
-│   ├── stefan/                      # Pure conduction Stefan problem
-│   ├── gallium/                     # Gallium melting with convection
-│   ├── octadecane/                  # n-Octadecane in a differentially heated cavity
-│   ├── water_convection/            # Natural convection in liquid water
-│   ├── water_freezing/              # Water freezing with convection
-│   ├── horizontal_layer/            # Horizontal layer melting
-│   ├── icicle/                      # Icicle growth
-│   ├── crevasse/                    # Crevasse melting
-│   └── air/                         # Air convection reference case
-├── parameters/
-│   ├── config.py                    # ExperimentConfig (Pydantic model, JSON-loadable)
-│   └── material_properties.py       # MaterialProperties (Pydantic model)
-├── core/
-│   ├── geometry.py                  # DomainGeometry
-│   ├── boundary_conditions.py       # BoundaryCondition, BoundaryConditions
-│   ├── runner.py                    # SimulationState, ExperimentRunner
-│   └── solvers/
-│       ├── tridiagonal_solver.py    # Numba-JIT Thomas algorithm
-│       └── mixins/adi.py            # ADIMixin (shared ADI sweep infrastructure)
-├── convective_operators/
-│   ├── sf_based.py                  # Velocity-field convective operators
-│   └── vorticity_based.py           # Jacobian (Arakawa-type) convective operator
-├── fluid_dynamics/
-│   ├── utils.py                     # Vorticity/velocity helpers, BC mixin
-│   └── solvers/
-│       ├── bc_correction_solver_factory.py       # BCCorrectionNVSolver (coupled ψ–ω)
-│       ├── stream_function_solvers/
-│       │   ├── amg.py               # Algebraic multigrid (PyAMG)
-│       │   ├── cg.py                # Conjugate gradient (CPU)
-│       │   ├── cg_gpu.py            # Conjugate gradient (GPU / CuPy)
-│       │   ├── sor.py               # Successive over-relaxation (classical Poisson only)
-│       │   └── matrix_sweep.py      # Direct tridiagonal sweep (classical Poisson only)
-│       └── vorticity_solvers/
-│           ├── peaceman_rachford.py  # Peaceman–Rachford ADI
-│           ├── douglas_rachford.py   # Douglas–Rachford ADI
-│           ├── loc_one_dim.py        # Locally one-dimensional (LOD)
-│           ├── vabishchevich.py      # Vabishchevich splitting
-│           ├── explicit.py           # Explicit (forward Euler)
-│           └── vab_fully_implicit.py # Vabishchevich fully implicit
-├── heat_transfer/
-│   ├── coefficient_smoothing/
-│   │   ├── coefficients.py          # Step/delta function schemes (erf, tanh, linear…)
-│   │   └── mushy_zone.py            # Adaptive Δ estimation from grid
-│   └── solvers/heat_transfer_solvers/
-│       ├── peaceman_rachford.py      # PR ADI heat solver
-│       ├── douglas_rachford.py       # DR ADI heat solver
-│       ├── loc_one_dim.py            # LOD heat solver
-│       ├── fully_implicit.py         # Fully implicit heat solver
-│       └── explicit.py              # Explicit heat solver
-└── utils/
-    ├── boundary_conditions.py        # Dirichlet/Neumann BC factories
-    └── nusselt.py                    # Nusselt number calculation
-```
+
+> **GPU support** requires CuPy with a CUDA 12.x runtime.
 
 ## Examples
 
@@ -113,18 +115,6 @@ with a `config.json` and a `run.py` entry point:
 
 Each `run.py` shows the full solver setup for that material and geometry and can be
 used as a template for new cases.
-
-## Installation
-
-Requires Python 3.11 or 3.12.
-
-```bash
-pip install -r requirements.txt
-# or, with Poetry:
-poetry install
-```
-
-> **GPU support** requires CuPy with a CUDA 12.x runtime.
 
 ## Configuration
 
@@ -307,6 +297,67 @@ runner.run()
 ### Thermal conductivity at faces (`KFaceMethod`)
 
 `ARITHMETIC`, `HARMONIC`, `FROM_TEMP` (evaluates step function at the face temperature).
+
+## Project structure
+
+```
+src/
+├── main.py                          # Example entry point
+├── examples/
+│   ├── stefan/                      # Pure conduction Stefan problem
+│   ├── gallium/                     # Gallium melting with convection
+│   ├── octadecane/                  # n-Octadecane in a differentially heated cavity
+│   ├── water_convection/            # Natural convection in liquid water
+│   ├── water_freezing/              # Water freezing with convection
+│   ├── horizontal_layer/            # Horizontal layer melting
+│   ├── icicle/                      # Icicle growth
+│   ├── crevasse/                    # Crevasse melting
+│   └── air/                         # Air convection reference case
+├── parameters/
+│   ├── config.py                    # ExperimentConfig (Pydantic model, JSON-loadable)
+│   └── material_properties.py       # MaterialProperties (Pydantic model)
+├── core/
+│   ├── geometry.py                  # DomainGeometry
+│   ├── boundary_conditions.py       # BoundaryCondition, BoundaryConditions
+│   ├── runner.py                    # SimulationState, ExperimentRunner
+│   └── solvers/
+│       ├── tridiagonal_solver.py    # Numba-JIT Thomas algorithm
+│       └── mixins/adi.py            # ADIMixin (shared ADI sweep infrastructure)
+├── convective_operators/
+│   ├── sf_based.py                  # Velocity-field convective operators
+│   └── vorticity_based.py           # Jacobian (Arakawa-type) convective operator
+├── fluid_dynamics/
+│   ├── utils.py                     # Vorticity/velocity helpers, BC mixin
+│   └── solvers/
+│       ├── solver_factory.py                     # IterativeNavierStokesSolver (classical iterative scheme)
+│       ├── bc_correction_solver_factory.py       # BCCorrectionNVSolver (BC-correction scheme, used for all experiments)
+│       ├── stream_function_solvers/
+│       │   ├── amg.py               # Algebraic multigrid (PyAMG)
+│       │   ├── cg.py                # Conjugate gradient (CPU)
+│       │   ├── cg_gpu.py            # Conjugate gradient (GPU / CuPy)
+│       │   ├── sor.py               # Successive over-relaxation (classical Poisson only)
+│       │   └── matrix_sweep.py      # Direct tridiagonal sweep (classical Poisson only)
+│       └── vorticity_solvers/
+│           ├── peaceman_rachford.py  # Peaceman–Rachford ADI
+│           ├── douglas_rachford.py   # Douglas–Rachford ADI
+│           ├── loc_one_dim.py        # Locally one-dimensional (LOD)
+│           ├── vabishchevich.py      # Vabishchevich splitting
+│           ├── explicit.py           # Explicit (forward Euler)
+│           └── vab_fully_implicit.py # Vabishchevich fully implicit
+├── heat_transfer/
+│   ├── coefficient_smoothing/
+│   │   ├── coefficients.py          # Step/delta function schemes (erf, tanh, linear…)
+│   │   └── mushy_zone.py            # Adaptive Δ estimation from grid
+│   └── solvers/heat_transfer_solvers/
+│       ├── peaceman_rachford.py      # PR ADI heat solver
+│       ├── douglas_rachford.py       # DR ADI heat solver
+│       ├── loc_one_dim.py            # LOD heat solver
+│       ├── fully_implicit.py         # Fully implicit heat solver
+│       └── explicit.py              # Explicit heat solver
+└── utils/
+    ├── boundary_conditions.py        # Dirichlet/Neumann BC factories
+    └── nusselt.py                    # Nusselt number calculation
+```
 
 ## Running tests
 
