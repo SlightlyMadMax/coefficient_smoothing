@@ -60,8 +60,7 @@ folded into $c_\text{eff}$ through a smoothed delta function over the mushy zone
 are interchangeable (`StepScheme`, `DeltaScheme`), as is the rule for the face
 conductivities $k_\text{eff}$ — arithmetic mean, harmonic mean, or evaluation at the face
 temperature (`KFaceMethod`). The convective term is discretised by a selectable scheme
-(`ConvectiveTermForm`), from central differences through upwind to a deferred-correction
-(TVD) form. The energy equation is integrated with an alternating-direction-implicit (ADI)
+(`ConvectiveTermForm`), from central differences through upwind to a deferred-correction form. The energy equation is integrated with an alternating-direction-implicit (ADI)
 splitting — Peaceman–Rachford, Douglas–Rachford or locally one-dimensional — with fully
 implicit and explicit solvers also available.
 
@@ -101,17 +100,17 @@ poetry install
 Ready-to-run simulations are provided in `src/examples/`, each in its own subdirectory
 with a `config.json` and a `run.py` entry point:
 
-| Directory | Problem |
-|---|---|
-| `stefan/` | Pure conduction Stefan problem (no flow) |
-| `gallium/` | Melting of gallium with natural convection |
+| Directory | Problem                                                   |
+|---|-----------------------------------------------------------|
+| `stefan/` | Pure conduction Stefan problem (no flow)                  |
+| `gallium/` | Melting of gallium with natural convection                |
 | `octadecane/` | Melting of n-octadecane in a differentially heated cavity |
-| `water_convection/` | Natural convection in liquid water |
-| `water_freezing/` | Freezing of water with convection |
-| `horizontal_layer/` | Horizontal layer melting |
-| `icicle/` | Icicle growth |
-| `crevasse/` | Crevasse melting |
-| `air/` | Air convection reference case |
+| `water_convection/` | Natural convection in liquid water                        |
+| `water_freezing/` | Freezing of water with convection                         |
+| `horizontal_layer/` | Horizontal layer melting                                  |
+| `icicle/` | Iсe rod melting                                           |
+| `crevasse/` | Crevasse healing                                          |
+| `air/` | Air convection reference case                             |
 
 Each `run.py` shows the full solver setup for that material and geometry and can be
 used as a template for new cases.
