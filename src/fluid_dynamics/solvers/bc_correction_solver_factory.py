@@ -36,6 +36,7 @@ class BCCorrectionNVSolver:
         vorticity_solver_name: VorticitySolverName = VorticitySolverName.PEACEMAN_RACHFORD,
         stream_function_solver_name: StreamFunctionSolverName = StreamFunctionSolverName.AMG,
         vorticity_bc_order: int = 1,
+        sf_solver_kwargs: dict | None = None,
     ):
         self.cfg = cfg
         self.vorticity_bc_order = vorticity_bc_order
@@ -62,6 +63,7 @@ class BCCorrectionNVSolver:
             bcs=sf_bcs,
             max_iters=sf_max_iters,
             stopping_criteria=sf_tolerance,
+            **(sf_solver_kwargs or {}),
         )
 
         self._vorticity: NDArray[np.float64] = np.empty((n_y, n_x))
