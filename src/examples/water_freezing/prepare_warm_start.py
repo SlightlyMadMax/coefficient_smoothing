@@ -104,6 +104,7 @@ def build_config(args: argparse.Namespace) -> ExperimentConfig:
     n_t = int(round(args.max_time / args.dt))
     geom["end_time"] = n_t * args.dt
     geom["n_t"] = n_t
+    data["material_props"]["specific_latent_heat"] = 1e-16
     return ExperimentConfig.model_validate(data)
 
 
@@ -171,8 +172,9 @@ def main(argv=None) -> None:
     u = init_temperature(
         cfg=cfg,
         bcs=u_bcs,
-        shape=DomainShape.UNIFORM_LIQUID,
-        liquid_temp=args.init_temp - ABS_ZERO,
+        shape=DomainShape.LINEAR,
+        solid_temp=T_COLD_PRECURSOR,
+        liquid_temp=T_HOT,
     )
     sf = initialize_stream_function(geometry=geometry, bcs=sf_bcs)
     w = initialize_vorticity(geometry=geometry)
@@ -186,10 +188,7 @@ def main(argv=None) -> None:
         tolerance=1e-6,
         urf=1.0,
         solver_name=HeatTransferSolverName.PEACEMAN_RACHFORD,
-        convective_term_form=ConvectiveTermForm.DEFERRED_CORRECTION,
-        step_scheme=StepScheme.ERF,
-        delta_scheme=DeltaScheme.GAUSS,
-        k_face_method=KFaceMethod.FROM_TEMP,
+        convective_term_form=ConvectiveTermForm.DIVERGENT_CENTRAL,
     )
     navier_solver = BCCorrectionNVSolver(
         cfg=cfg,
@@ -200,8 +199,9 @@ def main(argv=None) -> None:
         penalty_term_form=PenaltyTermForm.QUADRATIC,
         vorticity_solver_name=VorticitySolverName.PEACEMAN_RACHFORD,
         stream_function_solver_name=StreamFunctionSolverName.AMG,
-        vorticity_bc_order=2,
+        vorticity_bc_order=1,
     )
+    navier_solver.vorticity_solver._calculate_penalty_term_coeff = lambda u, delta: None
 
     monitor = SteadyStateMonitor(tol=args.steady_tol, dt=dt)
     stride = max(1, int(round(args.log_interval / dt)))
