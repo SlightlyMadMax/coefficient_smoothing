@@ -26,6 +26,7 @@ class AlgebraicMultigridSolver(BaseSolver):
         max_iters: int = 10000,
         stopping_criteria: float = 1e-6,
         rebuild_every: int = 1,
+        rebuild_iter_factor: float = 1.5,
     ):
         """
         Initialize the ConjugateGradientSolver with domain geometry and boundary conditions.
@@ -34,19 +35,28 @@ class AlgebraicMultigridSolver(BaseSolver):
         :param bcs: An object containing boundary conditions.
         :param max_iters: Maximum number of iterations for convergence. Default is 10000.
         :param stopping_criteria: Convergence criteria for the solver. Default is 1e-6.
-        :param rebuild_every: Rebuild the AMG hierarchy every N calls; in between, only
-            the fine-level operator is refreshed (see `_get_hierarchy`). 1 rebuilds on
-            every call, reproducing the original behaviour.
+        :param rebuild_every: Upper bound on the age of a reused AMG hierarchy, in
+            calls. 1 rebuilds on every call, reproducing the original behaviour.
+        :param rebuild_iter_factor: Rebuild early once a reused hierarchy needs more
+            than this many times the iterations a fresh one needed. This is what
+            actually paces the reuse: how fast the hierarchy goes stale depends on how
+            far the penalty field moves per step, hence on the time step, so a fixed
+            call count is the wrong knob. Set to 0 to disable and rely on
+            `rebuild_every` alone.
         """
         super().__init__(cfg=cfg, bcs=bcs)
         self.geometry: DomainGeometry = cfg.geometry
         self.max_iters = max_iters
         self.stopping_criteria = stopping_criteria
         self.rebuild_every = max(1, int(rebuild_every))
+        self.rebuild_iter_factor = float(rebuild_iter_factor)
 
         # Cached AMG hierarchy, reused between rebuilds
         self._ml: MultilevelSolver | None = None
         self._calls_since_rebuild: int = 0
+        self._fresh_iters: int | None = None
+        self._rebuild_count: int = 0
+        self._solve_count: int = 0
 
         # Pre-allocate some arrays that will be used in the calculations
         self._result: np.ndarray = np.empty((self.geometry.n_y, self.geometry.n_x))
@@ -72,10 +82,42 @@ class AlgebraicMultigridSolver(BaseSolver):
         if stale:
             self._ml = pyamg.ruge_stuben_solver(A, strength="symmetric")
             self._calls_since_rebuild = 0
+            self._fresh_iters = None
+            self._rebuild_count += 1
         else:
             self._ml.levels[0].A = A
         self._calls_since_rebuild += 1
         return self._ml
+
+    def _note_iterations(self, iters: int) -> None:
+        """
+        Record the cost of the last solve and retire a hierarchy that has gone stale.
+
+        A hierarchy is worth reusing only while it still preconditions well. Rather than
+        guessing how many steps that lasts — which depends on the time step, since the
+        matrix drifts with the penalty field — measure it: remember how many iterations
+        a freshly built hierarchy needed and force a rebuild once a reused one costs
+        noticeably more.
+        """
+        if self._calls_since_rebuild == 1:
+            self._fresh_iters = iters
+            return
+        if self.rebuild_iter_factor <= 0 or self._fresh_iters is None:
+            return
+        budget = max(self._fresh_iters * self.rebuild_iter_factor, self._fresh_iters + 1)
+        if iters > budget:
+            self._ml = None  # rebuild on the next call
+
+    @property
+    def rebuild_stats(self) -> dict:
+        """Diagnostics: how often the hierarchy actually had to be rebuilt."""
+        return {
+            "solves": self._solve_count,
+            "rebuilds": self._rebuild_count,
+            "mean_reuse": (
+                self._solve_count / self._rebuild_count if self._rebuild_count else 0.0
+            ),
+        }
 
     def solve(
         self,
@@ -96,10 +138,27 @@ class AlgebraicMultigridSolver(BaseSolver):
         # Initial guess interior flattened
         x0 = initial_guess[inner_slice].ravel()
 
+        # A diverged run turns the matrix into NaNs; pyamg then fails to coarsen and
+        # falls back to a dense pseudo-inverse on the "coarse" level, which can burn
+        # minutes before raising. Fail fast and clearly instead.
+        if not np.isfinite(A.data).all() or not np.isfinite(b_flat).all():
+            raise FloatingPointError(
+                "Stream-function system contains NaN or Inf; the solution has diverged "
+                "before this solve. Reduce the time step, or check the penalty and "
+                "boundary conditions."
+            )
+
         ml: MultilevelSolver = self._get_hierarchy(A)
+        residuals: list[float] = []
         solution_inner_flat = ml.solve(
-            b_flat, x0=x0, tol=self.stopping_criteria, maxiter=self.max_iters
+            b_flat,
+            x0=x0,
+            tol=self.stopping_criteria,
+            maxiter=self.max_iters,
+            residuals=residuals,
         )  # type: ignore
+        self._solve_count += 1
+        self._note_iterations(max(len(residuals) - 1, 1))
 
         self._result[inner_slice] = solution_inner_flat.reshape((inner_n_y, inner_n_x))  # type: ignore
 

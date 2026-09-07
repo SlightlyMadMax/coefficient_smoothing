@@ -279,7 +279,167 @@ class BCCorrectionNVSolver:
 
         return b_int.ravel()
 
+    def _init_matrix_structure(self) -> None:
+        """
+        Precompute everything about the stream-function matrix that never changes.
+
+        Only the penalty term varies from one step to the next, and it enters through
+        four neighbour coefficients. The sparsity pattern, the Laplacian part, the
+        vorticity boundary-condition correction and the second-order boundary terms are
+        all fixed, so they are assembled once here. `_construct_matrix` then only has to
+        refresh the varying part and scatter it into the CSR value array, which avoids
+        rebuilding the sparse structure on every time step.
+        """
+        geometry: DomainGeometry = self.cfg.geometry
+        n_y, n_x = geometry.n_y, geometry.n_x
+        dx, dy, tau = self.cfg.scaled_grid_steps
+        inv_re = 1.0 / self.cfg.reynolds_number
+
+        inner_n_y, inner_n_x = n_y - 2, n_x - 2
+        if inner_n_x < 2 or inner_n_y < 2:
+            raise ValueError(
+                f"Grid {n_x}x{n_y} leaves fewer than 2 interior nodes per direction"
+            )
+        size = inner_n_x * inner_n_y
+
+        inv_dx2 = 1.0 / (dx * dx)
+        inv_dy2 = 1.0 / (dy * dy)
+        tau_half = 0.5 * tau
+
+        self._m_inner = (inner_n_y, inner_n_x)
+        self._m_size = size
+        self._m_tau_half = tau_half
+        self._m_inv_dx2 = inv_dx2
+        self._m_inv_dy2 = inv_dy2
+
+        # Constants are kept separate rather than folded together so that the per-step
+        # arithmetic can be performed in exactly the same order as a from-scratch
+        # assembly. Folding them would reassociate the sums and shift the result by one
+        # ULP, which is harmless but makes bit-for-bit comparison with earlier runs
+        # impossible; the folding saved nothing measurable anyway.
+        self._m_lam = -2.0 * inv_dx2 - 2.0 * inv_dy2
+        self._m_rho_flat = (tau_half * inv_re * self.rho[1:-1, 1:-1]).ravel()
+
+        # The last entry of every row block of the +/-1 diagonals must stay zero:
+        # column inner_n_x-1 of row r is not a neighbour of column 0 of row r+1.
+        side_mask = np.ones(size - 1, dtype=bool)
+        side_mask[inner_n_x - 1 :: inner_n_x] = False
+        self._m_side_mask = side_mask
+
+        self._m_bc = None
+        if self.vorticity_bc_order != 1:
+            rows = np.arange(inner_n_y)
+            cols = np.arange(inner_n_x)
+            self._m_bc = {
+                "left": rows * inner_n_x,
+                "right": rows * inner_n_x + (inner_n_x - 1),
+                "top": cols,
+                "bottom": (inner_n_y - 1) * inner_n_x + cols,
+                "diag_x": tau_half * inv_re * (2.0 / (dx**4)),
+                "off_x": tau_half * inv_re * (1.0 / (2.0 * dx**4)),
+                "diag_y": tau_half * inv_re * (2.0 / (dy**4)),
+                "off_y": tau_half * inv_re * (1.0 / (2.0 * dy**4)),
+            }
+
+        # --- sparsity pattern and the diagonal -> CSR value permutation ----------
+        lengths = [size, size - 1, size - 1, size - inner_n_x, size - inner_n_x]
+        offsets = [0, -1, 1, -inner_n_x, inner_n_x]
+        total = int(sum(lengths))
+
+        # Tag every slot with its index in the concatenated-diagonal ordering, then read
+        # the tags back in CSR order to obtain the gather permutation. Tags start at 1 so
+        # that a real slot is never mistaken for a structural zero. The gaps between row
+        # blocks of the +/-1 diagonals are tagged 0 on purpose: they carry no coupling
+        # and are dropped here, which keeps the pattern identical to a from-scratch
+        # assembly instead of storing explicit zeros.
+        tags, start = [], 0
+        for k, length in enumerate(lengths):
+            tag = np.arange(start, start + length, dtype=np.float64) + 1.0
+            if offsets[k] in (-1, 1):
+                tag[~side_mask] = 0.0
+            tags.append(tag)
+            start += length
+        tag_m = sparse.diags(tags, offsets, shape=(size, size), format="csr")
+
+        n_gaps = int((~side_mask).sum())
+        expected = total - 2 * n_gaps
+        if tag_m.nnz != expected:
+            raise RuntimeError(
+                f"Sparsity pattern mismatch: {tag_m.nnz} stored vs {expected} expected"
+            )
+
+        self._m_order = tag_m.data.astype(np.int64) - 1
+        self._m_slices = []
+        start = 0
+        for length in lengths:
+            self._m_slices.append(slice(start, start + length))
+            start += length
+        self._m_concat = np.empty(total)
+
+        tag_m.data[:] = 0.0
+        self._m_csr = tag_m
+
     def _construct_matrix(self, px_half: np.ndarray, py_half: np.ndarray):
+        """
+        Refresh the stream-function matrix in place.
+
+        The returned CSR object is reused between calls, so callers must not assume it
+        stays constant after the next call. This is deliberate: the AMG solver aliases
+        it as its fine-level operator, which is exactly the operator that has to follow
+        the current penalty field.
+        """
+        if getattr(self, "_m_csr", None) is None:
+            self._init_matrix_structure()
+
+        inner_n_y, inner_n_x = self._m_inner
+        tau_half = self._m_tau_half
+        inv_dx2, inv_dy2 = self._m_inv_dx2, self._m_inv_dy2
+
+        a_e = px_half[1:-1, 1:] * inv_dx2
+        a_w = px_half[1:-1, :-1] * inv_dx2
+        a_n = py_half[1:, 1:-1] * inv_dy2
+        a_s = py_half[:-1, 1:-1] * inv_dy2
+
+        # Same operation order as the reference assembly, so the values agree bit for
+        # bit: Laplacian, then the penalty sum, then the vorticity-BC correction, then
+        # the second-order boundary terms in the order left, right, top, bottom.
+        main = np.full(self._m_size, self._m_lam)
+        main -= (tau_half * (a_e + a_w + a_n + a_s)).ravel()
+        main -= self._m_rho_flat
+
+        side = np.zeros(self._m_size - 1)
+        side[self._m_side_mask] = (inv_dx2 + tau_half * a_e[:, :-1]).ravel()
+        ud = (inv_dy2 + tau_half * a_n[:-1, :]).ravel()
+
+        bc = self._m_bc
+        if bc is None:
+            lower_side = upper_side = side
+            lower_ud = upper_ud = ud
+        else:
+            main[bc["left"]] -= bc["diag_x"]
+            main[bc["right"]] -= bc["diag_x"]
+            main[bc["top"]] -= bc["diag_y"]
+            main[bc["bottom"]] -= bc["diag_y"]
+
+            lower_side, upper_side = side.copy(), side.copy()
+            lower_ud, upper_ud = ud.copy(), ud.copy()
+            upper_side[bc["left"]] += bc["off_x"]
+            lower_side[bc["right"] - 1] += bc["off_x"]
+            upper_ud[bc["top"]] += bc["off_y"]
+            lower_ud[bc["bottom"] - inner_n_x] += bc["off_y"]
+
+        concat, sl = self._m_concat, self._m_slices
+        concat[sl[0]] = main
+        concat[sl[1]] = lower_side
+        concat[sl[2]] = upper_side
+        concat[sl[3]] = lower_ud
+        concat[sl[4]] = upper_ud
+
+        np.take(concat, self._m_order, out=self._m_csr.data)
+        return self._m_csr
+
+    def _construct_matrix_reference(self, px_half: np.ndarray, py_half: np.ndarray):
+        """Original from-scratch assembly, kept as the reference for verification."""
         geometry: DomainGeometry = self.cfg.geometry
         n_y, n_x = geometry.n_y, geometry.n_x
         dx, dy, tau = self.cfg.scaled_grid_steps

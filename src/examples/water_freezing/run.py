@@ -58,6 +58,7 @@ from src.parameters.config import ExperimentConfig
 from src.utils.boundary_conditions import (
     const_neumann_condition,
     const_dirichlet_condition,
+    linear_dirichlet_ramp,
 )
 from src.utils.nusselt import calculate_nusselt
 
@@ -110,6 +111,13 @@ def parse_args(argv=None) -> argparse.Namespace:
         help="penalty coefficient C [1/s]; stored in the config as epsilon = 1/sqrt(C)",
     )
     phys.add_argument(
+        "--vorticity-bc-order",
+        type=int,
+        choices=(1, 2),
+        default=2,
+        help="order of the wall vorticity condition: 1 = Thom, 2 = Woods/Jensen",
+    )
+    phys.add_argument(
         "--penalty-form",
         choices=[f.name.lower() for f in PenaltyTermForm],
         default="quadratic",
@@ -142,6 +150,15 @@ def parse_args(argv=None) -> argparse.Namespace:
         help="permit bilinear interpolation of the precursor field onto a "
         "different grid (contaminates a grid-convergence measurement)",
     )
+    ic.add_argument(
+        "--cold-wall-ramp",
+        type=float,
+        default=0.0,
+        help="drive the cold wall from its precursor value down to T_COLD linearly "
+        "over this many seconds instead of stepping it instantaneously. 0 keeps the "
+        "instantaneous step. A short ramp removes the start-up instability that an "
+        "instantaneous 10 K step triggers on fine grids",
+    )
 
     out = p.add_argument_group("output")
     out.add_argument(
@@ -173,7 +190,18 @@ def parse_args(argv=None) -> argparse.Namespace:
         "--summary-csv",
         type=Path,
         default=None,
-        help="CSV to append the run summary to",
+        help="CSV to append the run summary to. Opt-in on purpose: a shared default "
+        "collects every throwaway probe alongside the production runs, and telling "
+        "them apart afterwards is guesswork. The per-run summary.json is always "
+        "written to the output directory regardless",
+    )
+
+    num = p.add_argument_group("linear solver")
+    num.add_argument(
+        "--sf-tolerance",
+        type=float,
+        default=1e-6,
+        help="convergence tolerance of the stream-function elliptic solve",
     )
 
     perf = p.add_argument_group("performance")
@@ -248,6 +276,11 @@ def build_config(args: argparse.Namespace) -> ExperimentConfig:
     return ExperimentConfig.model_validate(data)
 
 
+def _amg_stats(navier_solver) -> dict:
+    """Hierarchy reuse diagnostics, when the stream-function solver reports them."""
+    return getattr(navier_solver.stream_function_solver, "rebuild_stats", {}) or {}
+
+
 def penalty_c_of(cfg: ExperimentConfig) -> float:
     """Dimensional penalty coefficient C [1/s] implied by cfg.epsilon."""
     return 1.0 / cfg.epsilon**2
@@ -263,6 +296,7 @@ def auto_outdir(args: argparse.Namespace, cfg: ExperimentConfig) -> Path:
         f"dt{g.dt:g}",
         f"epsT{cfg.delta:g}",
         f"C{penalty_c_of(cfg):.0e}",
+        f"bc{args.vorticity_bc_order}",
     ]
     if args.tag:
         parts.append(args.tag)
@@ -474,9 +508,22 @@ def run(args: argparse.Namespace) -> dict:
 
     delta_u, u_ref = cfg.delta_u, cfg.u_ref
 
+    cold_nd = (T_COLD - u_ref) / delta_u
+    if args.cold_wall_ramp > 0.0:
+        # Precursor cold wall sits at the phase-change temperature.
+        right_bc = linear_dirichlet_ramp(
+            n_y,
+            start_value=(cfg.material_props.u_pt - u_ref) / delta_u,
+            end_value=cold_nd,
+            duration=args.cold_wall_ramp,
+        )
+        logger.info("Cold wall ramped to %.1f K over %g s", T_COLD, args.cold_wall_ramp)
+    else:
+        right_bc = const_dirichlet_condition(n_y, value=cold_nd)
+
     u_bcs = BoundaryConditions(
         top=const_neumann_condition(n_x, value=0.0),
-        right=const_dirichlet_condition(n_y, value=(T_COLD - u_ref) / delta_u),
+        right=right_bc,
         bottom=const_neumann_condition(n_x, value=0.0),
         left=const_dirichlet_condition(n_y, value=(T_HOT - u_ref) / delta_u),
     )
@@ -506,12 +553,12 @@ def run(args: argparse.Namespace) -> dict:
         cfg=cfg,
         sf_bcs=sf_bcs,
         sf_max_iters=(n_y - 2) * (n_x - 2),
-        sf_tolerance=1e-6,
+        sf_tolerance=args.sf_tolerance,
         convective_term_form=ConvectiveTermForm.DIVERGENT_CENTRAL,
         penalty_term_form=PenaltyTermForm[args.penalty_form.upper()],
         vorticity_solver_name=VorticitySolverName.PEACEMAN_RACHFORD,
         stream_function_solver_name=StreamFunctionSolverName.AMG,
-        vorticity_bc_order=2,
+        vorticity_bc_order=args.vorticity_bc_order,
         sf_solver_kwargs={"rebuild_every": args.amg_rebuild_every},
     )
 
@@ -552,6 +599,8 @@ def run(args: argparse.Namespace) -> dict:
         "eps_flow": cfg.delta_flow,
         "penalty_C": penalty_c_of(cfg),
         "penalty_form": args.penalty_form,
+        "vorticity_bc_order": args.vorticity_bc_order,
+        "sf_tolerance": args.sf_tolerance,
         "Ra": cfg.rayleigh_number,
         "Pr": cfg.prandtl_number,
         "Ste": cfg.stefan_number,
@@ -560,7 +609,10 @@ def run(args: argparse.Namespace) -> dict:
         "Nu_hot": calculate_nusselt(u=state.u, cfg=cfg, wall="left"),
         "Nu_cold": calculate_nusselt(u=state.u, cfg=cfg, wall="right"),
         "max_speed_in_solid": max_speed_in_solid(state, cfg),
+        "cold_wall_ramp": args.cold_wall_ramp,
         "amg_rebuild_every": args.amg_rebuild_every,
+        "amg_rebuilds": _amg_stats(navier_solver).get("rebuilds"),
+        "amg_mean_reuse": _amg_stats(navier_solver).get("mean_reuse"),
         "wall_clock_s": wall,
         "s_per_step": wall / n_t,
         "outdir": str(outdir),
@@ -569,14 +621,17 @@ def run(args: argparse.Namespace) -> dict:
     with open(outdir / "summary.json", "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2, ensure_ascii=False)
 
-    csv_path = args.summary_csv or (HERE / "data" / "refinement" / "summary.csv")
-    csv_path.parent.mkdir(parents=True, exist_ok=True)
-    write_header = not csv_path.exists()
-    with open(csv_path, "a", newline="", encoding="utf-8") as f:
-        wr = csv.DictWriter(f, fieldnames=list(summary))
-        if write_header:
-            wr.writeheader()
-        wr.writerow(summary)
+    if args.summary_csv is not None:
+        csv_path = args.summary_csv
+        csv_path.parent.mkdir(parents=True, exist_ok=True)
+        write_header = not csv_path.exists()
+        with open(csv_path, "a", newline="", encoding="utf-8") as f:
+            wr = csv.DictWriter(f, fieldnames=list(summary))
+            if write_header:
+                wr.writeheader()
+            wr.writerow(summary)
+    else:
+        csv_path = None
 
     logger.info(
         "Done in %.1f s (%.4g s/step). ice_fraction=%.6f mean_interface_x=%.6f m "
@@ -588,7 +643,10 @@ def run(args: argparse.Namespace) -> dict:
         summary["Nu_hot"],
         summary["max_speed_in_solid"],
     )
-    logger.info("Summary appended to %s", csv_path)
+    if csv_path is not None:
+        logger.info("Summary appended to %s", csv_path)
+    else:
+        logger.info("Summary written to %s", outdir / "summary.json")
     return summary
 
 

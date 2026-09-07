@@ -66,6 +66,13 @@ def parse_args(argv=None) -> argparse.Namespace:
         "with it to ~1e-7 relative",
     )
     p.add_argument(
+        "--cold-wall-ramp",
+        type=float,
+        default=0.0,
+        help="ramp the cold wall down over this many seconds instead of stepping it; "
+        "a short ramp removes the start-up instability seen on fine grids",
+    )
+    p.add_argument(
         "--precursor-dt", type=float, default=0.5, help="time step for the warm-start run"
     )
     p.add_argument(
@@ -193,6 +200,8 @@ def main(argv=None) -> None:
             cmd += ["--eps-t", str(eps_t)]
         if pc is not None:
             cmd += ["--penalty-c", str(pc)]
+        if args.cold_wall_ramp > 0.0:
+            cmd += ["--cold-wall-ramp", str(args.cold_wall_ramp)]
         if args.tag:
             cmd += ["--tag", args.tag]
 

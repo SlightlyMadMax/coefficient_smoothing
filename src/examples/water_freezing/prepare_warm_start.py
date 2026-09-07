@@ -85,6 +85,15 @@ def parse_args(argv=None) -> argparse.Namespace:
         default=5.0,
         help="uniform initial temperature [degC]",
     )
+    p.add_argument(
+        "--keep-phase-change",
+        action="store_true",
+        help="keep latent heat and the penalty term active. By default both are "
+        "switched off: the cold wall of the precursor sits exactly at T_m, where the "
+        "regularised delta function peaks and the liquid fraction is 0.5, so an active "
+        "phase-change model would freeze and brake the wall layer in a state that the "
+        "benchmark does not intend",
+    )
     p.add_argument("--config", type=Path, default=HERE / "config.json")
     p.add_argument("--out", type=Path, default=None, help="output npz path")
     p.add_argument("--log-interval", type=float, default=300.0, help="log every N s")
@@ -104,7 +113,10 @@ def build_config(args: argparse.Namespace) -> ExperimentConfig:
     n_t = int(round(args.max_time / args.dt))
     geom["end_time"] = n_t * args.dt
     geom["n_t"] = n_t
-    data["material_props"]["specific_latent_heat"] = 1e-16
+
+    if not args.keep_phase_change:
+        data["material_props"]["specific_latent_heat"] = 1e-16
+
     return ExperimentConfig.model_validate(data)
 
 
@@ -201,7 +213,10 @@ def main(argv=None) -> None:
         stream_function_solver_name=StreamFunctionSolverName.AMG,
         vorticity_bc_order=1,
     )
-    navier_solver.vorticity_solver._calculate_penalty_term_coeff = lambda u, delta: None
+    if not args.keep_phase_change:
+        navier_solver.vorticity_solver._calculate_penalty_term_coeff = (
+            lambda u, delta: None
+        )
 
     monitor = SteadyStateMonitor(tol=args.steady_tol, dt=dt)
     stride = max(1, int(round(args.log_interval / dt)))
