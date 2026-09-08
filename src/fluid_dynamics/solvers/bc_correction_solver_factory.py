@@ -37,9 +37,20 @@ class BCCorrectionNVSolver:
         stream_function_solver_name: StreamFunctionSolverName = StreamFunctionSolverName.AMG,
         vorticity_bc_order: int = 1,
         sf_solver_kwargs: dict | None = None,
+        penalty_time_scheme: str = "cn",
+        penalty_ramp: float = 0.0,
     ):
         self.cfg = cfg
         self.vorticity_bc_order = vorticity_bc_order
+        if penalty_time_scheme not in ("cn", "implicit", "dr"):
+            raise ValueError(
+                f"penalty_time_scheme must be 'cn', 'dr' or 'implicit', got "
+                f"{penalty_time_scheme!r}"
+            )
+        self.penalty_time_scheme = penalty_time_scheme
+        _, _, tau = cfg.scaled_grid_steps
+        self._sigma = 1.0 if penalty_time_scheme == "dr" else 0.5
+        self._sigma_tau = self._sigma * tau
         self.convective_operator = StreamFunctionBasedConvectiveOperator(
             cfg=cfg, form=convective_term_form
         )
@@ -65,6 +76,9 @@ class BCCorrectionNVSolver:
             stopping_criteria=sf_tolerance,
             **(sf_solver_kwargs or {}),
         )
+
+        self.vorticity_solver.penalty_in_predictor = penalty_time_scheme != "implicit"
+        self.vorticity_solver.penalty_ramp = penalty_ramp
 
         self._vorticity: NDArray[np.float64] = np.empty((n_y, n_x))
         self._stream_function: NDArray[np.float64] = np.empty((n_y, n_x))
@@ -215,8 +229,8 @@ class BCCorrectionNVSolver:
         b = self._construct_rhs(
             vorticity=vorticity,
             sf_old=sf_old,
-            px_half=self.vorticity_solver.px_half,
-            py_half=self.vorticity_solver.py_half,
+            px_half=self.vorticity_solver.px_pred,
+            py_half=self.vorticity_solver.py_pred,
         )
         A = self._construct_matrix(
             px_half=self.vorticity_solver.px_half,
@@ -275,7 +289,7 @@ class BCCorrectionNVSolver:
 
         c_inner = -inv_dx2 * term_x - inv_dy2 * term_y
 
-        b_int = -w - 0.5 * tau * (c_inner + inv_re * r)
+        b_int = -w - self._sigma_tau * (c_inner + inv_re * r)
 
         return b_int.ravel()
 
@@ -309,6 +323,9 @@ class BCCorrectionNVSolver:
         self._m_inner = (inner_n_y, inner_n_x)
         self._m_size = size
         self._m_tau_half = tau_half
+        self._m_penalty_tau = (
+            tau if self.penalty_time_scheme == "implicit" else self._sigma_tau
+        )
         self._m_inv_dx2 = inv_dx2
         self._m_inv_dy2 = inv_dy2
 
@@ -318,7 +335,7 @@ class BCCorrectionNVSolver:
         # ULP, which is harmless but makes bit-for-bit comparison with earlier runs
         # impossible; the folding saved nothing measurable anyway.
         self._m_lam = -2.0 * inv_dx2 - 2.0 * inv_dy2
-        self._m_rho_flat = (tau_half * inv_re * self.rho[1:-1, 1:-1]).ravel()
+        self._m_rho_flat = (self._sigma_tau * inv_re * self.rho[1:-1, 1:-1]).ravel()
 
         # The last entry of every row block of the +/-1 diagonals must stay zero:
         # column inner_n_x-1 of row r is not a neighbour of column 0 of row r+1.
@@ -335,10 +352,10 @@ class BCCorrectionNVSolver:
                 "right": rows * inner_n_x + (inner_n_x - 1),
                 "top": cols,
                 "bottom": (inner_n_y - 1) * inner_n_x + cols,
-                "diag_x": tau_half * inv_re * (2.0 / (dx**4)),
-                "off_x": tau_half * inv_re * (1.0 / (2.0 * dx**4)),
-                "diag_y": tau_half * inv_re * (2.0 / (dy**4)),
-                "off_y": tau_half * inv_re * (1.0 / (2.0 * dy**4)),
+                "diag_x": self._sigma_tau * inv_re * (2.0 / (dx**4)),
+                "off_x": self._sigma_tau * inv_re * (1.0 / (2.0 * dx**4)),
+                "diag_y": self._sigma_tau * inv_re * (2.0 / (dy**4)),
+                "off_y": self._sigma_tau * inv_re * (1.0 / (2.0 * dy**4)),
             }
 
         # --- sparsity pattern and the diagonal -> CSR value permutation ----------
@@ -392,7 +409,7 @@ class BCCorrectionNVSolver:
             self._init_matrix_structure()
 
         inner_n_y, inner_n_x = self._m_inner
-        tau_half = self._m_tau_half
+        tau_half = self._m_penalty_tau
         inv_dx2, inv_dy2 = self._m_inv_dx2, self._m_inv_dy2
 
         a_e = px_half[1:-1, 1:] * inv_dx2

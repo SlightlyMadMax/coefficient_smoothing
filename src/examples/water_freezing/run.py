@@ -123,6 +123,22 @@ def parse_args(argv=None) -> argparse.Namespace:
         default="quadratic",
         help="functional form of the penalty term",
     )
+    phys.add_argument(
+        "--penalty-ramp",
+        type=float,
+        default=0.0,
+        help="bring the penalty up to full strength linearly over this many seconds "
+        "of physical time; 0 applies it at full strength from the first step",
+    )
+    phys.add_argument(
+        "--penalty-time-scheme",
+        choices=("cn", "dr", "implicit"),
+        default="cn",
+        help="time discretisation of the penalty term. 'cn' is the published scheme: "
+        "explicit on psi^n in the vorticity predictor, implicit with tau/2 in the "
+        "stream-function operator. 'implicit' drops the explicit half and gives the "
+        "elliptic operator the full tau, i.e. backward Euler on the drag",
+    )
 
     ic = p.add_argument_group("initial condition")
     ic.add_argument(
@@ -560,6 +576,8 @@ def run(args: argparse.Namespace) -> dict:
         stream_function_solver_name=StreamFunctionSolverName.AMG,
         vorticity_bc_order=args.vorticity_bc_order,
         sf_solver_kwargs={"rebuild_every": args.amg_rebuild_every},
+        penalty_time_scheme=args.penalty_time_scheme,
+        penalty_ramp=args.penalty_ramp,
     )
 
     runner = ExperimentRunner(
@@ -599,6 +617,8 @@ def run(args: argparse.Namespace) -> dict:
         "eps_flow": cfg.delta_flow,
         "penalty_C": penalty_c_of(cfg),
         "penalty_form": args.penalty_form,
+        "penalty_time_scheme": args.penalty_time_scheme,
+        "penalty_ramp": args.penalty_ramp,
         "vorticity_bc_order": args.vorticity_bc_order,
         "sf_tolerance": args.sf_tolerance,
         "Ra": cfg.rayleigh_number,

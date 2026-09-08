@@ -53,6 +53,19 @@ class BaseVorticitySolver(BaseSolver, VorticityBCMixin, ABC):
         self.py_half: np.ndarray = np.zeros((n_y - 1, n_x))
         self.buoyancy_term: np.ndarray = np.zeros((n_y, n_x))
 
+        self.penalty_in_predictor: bool = True
+        self.penalty_ramp: float = 0.0
+        self._px_zero: np.ndarray = np.zeros((n_y, n_x - 1))
+        self._py_zero: np.ndarray = np.zeros((n_y - 1, n_x))
+
+    @property
+    def px_pred(self) -> np.ndarray:
+        return self.px_half if self.penalty_in_predictor else self._px_zero
+
+    @property
+    def py_pred(self) -> np.ndarray:
+        return self.py_half if self.penalty_in_predictor else self._py_zero
+
     def _calculate_buoyancy_term(self, u: np.ndarray):
         dx_scaled, _, _ = self.cfg.scaled_grid_steps
         inv_re2 = 1.0 / self.cfg.reynolds_number**2
@@ -78,10 +91,14 @@ class BaseVorticitySolver(BaseSolver, VorticityBCMixin, ABC):
             drhodx = drhodu[interior] * dudx
             self.buoyancy_term[interior] = gr * inv_re2 * drhodx / (beta * rho_ref)
 
-    def _calculate_penalty_term_coeff(self, u: np.ndarray, delta: float) -> None:
+    def _calculate_penalty_term_coeff(
+        self, u: np.ndarray, delta: float, time: float = 0.0
+    ) -> None:
         u_pt = self.cfg.u_pt_nd
         eps = self.cfg.epsilon
         c = self.cfg.l / (eps * eps * self.cfg.v)
+        if self.penalty_ramp > 0.0:
+            c *= min(1.0, time / self.penalty_ramp)
         diff_u = u - u_pt
 
         if self.penalty_term_form == PenaltyTermForm.JUMP:
@@ -112,6 +129,7 @@ class BaseVorticitySolver(BaseSolver, VorticityBCMixin, ABC):
         u: np.ndarray,
         conv_w: Optional[np.ndarray] = None,
         delta: Optional[float] = None,
+        time: float = 0.0,
     ):
         dx_scaled, dy_scaled, _ = self.cfg.scaled_grid_steps
 
@@ -121,7 +139,9 @@ class BaseVorticitySolver(BaseSolver, VorticityBCMixin, ABC):
             assert conv_w is not None
             self.convective_operator(conv_x=self._conv_x, conv_y=self._conv_y, w=conv_w)
 
-        self._calculate_penalty_term_coeff(u=u, delta=delta or self.cfg.delta_nd)
+        self._calculate_penalty_term_coeff(
+            u=u, delta=delta or self.cfg.delta_nd, time=time
+        )
 
         self._calculate_penalty_term_at_faces()
 
@@ -158,7 +178,7 @@ class ADIVorticitySolver(BaseVorticitySolver, ADIMixin, ABC):
         delta: Optional[float] = None,
         time: float = 0.0,
     ) -> np.ndarray:
-        self._prepare(sf=sf, u=u, conv_w=conv_w, delta=delta)
+        self._prepare(sf=sf, u=u, conv_w=conv_w, delta=delta, time=time)
 
         self._w_new[:, :] = w
 

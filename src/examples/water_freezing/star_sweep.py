@@ -66,6 +66,18 @@ def parse_args(argv=None) -> argparse.Namespace:
     run.add_argument("--vorticity-bc-order", type=int, choices=(1, 2), default=2)
     run.add_argument("--timeout", type=float, default=None, help="per run [s]")
     run.add_argument("--dry-run", action="store_true")
+    run.add_argument(
+        "--penalty-time-scheme", choices=("cn", "dr", "implicit"), default="cn",
+        help="time discretisation of the penalty term, passed to run.py",
+    )
+    run.add_argument(
+        "--warm-start-file", type=Path, default=None,
+        help="precursor field for --start warm; run.py resolves it by grid otherwise",
+    )
+    run.add_argument(
+        "--out-root", type=Path, default=OUT_ROOT,
+        help="directory for the run subdirectories and the merged summary",
+    )
     return p.parse_args(argv)
 
 
@@ -124,6 +136,10 @@ def run_case(c: dict, a: argparse.Namespace) -> dict:
     ]
     if a.cold_wall_ramp > 0:
         cmd += ["--cold-wall-ramp", str(a.cold_wall_ramp)]
+    if a.penalty_time_scheme != "cn":
+        cmd += ["--penalty-time-scheme", a.penalty_time_scheme]
+    if a.warm_start_file is not None:
+        cmd += ["--warm-start-file", str(a.warm_start_file)]
 
     label = (f"{c['axis']:<10} {c['grid']}x{c['grid']} dt={c['dt']:<6g} "
              f"eps={c['eps']:<5g}/{c['eps_flow']:<5g} C={c['c']:.0e}")
@@ -171,7 +187,9 @@ def collect(cases: list[dict]) -> None:
 
 
 def main(argv=None) -> None:
+    global OUT_ROOT
     a = parse_args(argv)
+    OUT_ROOT = a.out_root
     OUT_ROOT.mkdir(parents=True, exist_ok=True)
     cases = build_cases(a)
 
