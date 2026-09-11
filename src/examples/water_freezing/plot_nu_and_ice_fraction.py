@@ -91,17 +91,17 @@ def load_ice_fraction_data(data_mask: str, max_checkpoints: int = None):
 
 
 t_cold_nu, nu_cold = load_nusselt_data(
-    "data/cold_start_full/checkpoint_*.npz", max_checkpoints=39
+    "data/manuscript_v1/cold_start/checkpoint_*.npz", max_checkpoints=39
 )
 t_warm_nu, nu_warm = load_nusselt_data(
-    "data/warm_start_full/checkpoint_*.npz", max_checkpoints=39
+    "data/manuscript_v1/warm_start/checkpoint_*.npz", max_checkpoints=39
 )
 
 t_cold_ice, ice_fraction_cold = load_ice_fraction_data(
-    "data/cold_start_full/checkpoint_*.npz"
+    "data/manuscript_v1/cold_start/checkpoint_*.npz"
 )
 t_warm_ice, ice_fraction_warm = load_ice_fraction_data(
-    "data/warm_start_full/checkpoint_*.npz"
+    "data/manuscript_v1/warm_start/checkpoint_*.npz"
 )
 
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(6.3, 3.15))
@@ -143,5 +143,5 @@ ax2.text(x1 + 50, y1 - 0.055, "2", va="center", fontsize=10)
 add_subfigure_label(ax2, "b")
 
 plt.tight_layout()
-plt.savefig("./graphs/nu_ice_f_combined_v2.tiff", dpi=300, bbox_inches="tight")
+plt.savefig("./graphs/manuscript_v1/nu_ice_f_combined_v2.tiff", dpi=300, bbox_inches="tight")
 plt.show()

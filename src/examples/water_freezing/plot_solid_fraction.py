@@ -14,13 +14,13 @@ s_f_cold_start = []
 s_f_warm_start = []
 times = []
 
-cold_start_mask = "data/cold_start_full/checkpoint_*.npz"
+cold_start_mask = "data/manuscript_v1/cold_start/checkpoint_*.npz"
 cold_start_paths = sorted(
     glob.glob(cold_start_mask),
     key=lambda f: int(re.search(r"checkpoint_(\d+)", f).group(1)),
 )
 
-warm_start_mask = "data/warm_start_full/checkpoint_*.npz"
+warm_start_mask = "data/manuscript_v1/warm_start/checkpoint_*.npz"
 warm_start_paths = sorted(
     glob.glob(warm_start_mask),
     key=lambda f: int(re.search(r"checkpoint_(\d+)", f).group(1)),
@@ -49,5 +49,5 @@ plt.xlabel(r"Время, с")
 plt.ylabel(r"Доля льда")
 plt.legend()
 plt.tight_layout()
-plt.savefig("./graphs/ice_fraction/cold_start_vs_warm_start.png", dpi=300)
+plt.savefig("./graphs/manuscript_v1/ice_fraction/cold_start_vs_warm_start.png", dpi=300)
 plt.show()

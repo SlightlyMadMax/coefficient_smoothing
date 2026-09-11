@@ -165,7 +165,7 @@ def parse_args(argv=None) -> argparse.Namespace:
         type=Path,
         default=None,
         help="npz with the precursor field; defaults to the grid-matched file "
-        "under data/warm_start/, then data/initial_distribution.npz",
+        "under data/precursors/, then data/precursors/initial_distribution.npz",
     )
     ic.add_argument(
         "--allow-warm-start-interp",
@@ -188,7 +188,7 @@ def parse_args(argv=None) -> argparse.Namespace:
         "--outdir",
         type=Path,
         default=None,
-        help="output directory; auto-named under data/refinement/ when omitted",
+        help="output directory; auto-named under data/scratch/ when omitted",
     )
     out.add_argument("--tag", type=str, default=None, help="extra label for the outdir")
     out.add_argument(
@@ -331,7 +331,7 @@ def auto_outdir(args: argparse.Namespace, cfg: ExperimentConfig) -> Path:
     ]
     if args.tag:
         parts.append(args.tag)
-    return HERE / "data" / "refinement" / "_".join(parts)
+    return HERE / "data" / "scratch" / "_".join(parts)
 
 
 # ----------------------------------------------------------------------------
@@ -368,8 +368,8 @@ def resolve_warm_start_file(args: argparse.Namespace, cfg: ExperimentConfig) -> 
         return args.warm_start_file
     g = cfg.geometry
     candidates = [
-        HERE / "data" / "warm_start" / f"steady_{g.n_x}x{g.n_y}.npz",
-        HERE / "data" / "initial_distribution.npz",
+        HERE / "data" / "precursors" / f"steady_{g.n_x}x{g.n_y}.npz",
+        HERE / "data" / "precursors" / "initial_distribution.npz",
     ]
     for c in candidates:
         if c.exists():

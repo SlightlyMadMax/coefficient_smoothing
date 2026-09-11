@@ -15,7 +15,7 @@ Example
 -------
     python -m src.examples.water_freezing.compare_fvm \
         --fvm C:/Users/ZZZ/Desktop/water_freezing_data/151x151_test \
-        --baseline data/star/151x151_dt0.02_e0.1_ef0.1_C1e+06
+        --baseline data/cold_start/parametric/151x151_dt0.02_e0.1_ef0.1_C1e+06
 """
 
 import argparse
@@ -46,12 +46,13 @@ def parse_args(argv=None) -> argparse.Namespace:
     p.add_argument("--fvm", type=Path, required=True,
                    help="FVM run directory holding manifest.json, mesh.npz and a checkpoint")
     p.add_argument("--baseline", type=Path,
-                   default=HERE / "data" / "star" / "151x151_dt0.02_e0.1_ef0.1_C1e+06",
+                   default=HERE / "data" / "cold_start" / "parametric"
+                   / "151x151_dt0.02_e0.1_ef0.1_C1e+06",
                    help="run directory of this code to compare against")
-    p.add_argument("--piv", type=Path, default=HERE / "data" / "kowalewski.png",
+    p.add_argument("--piv", type=Path, default=HERE / "data" / "inputs" / "kowalewski.png",
                    help="PIV frame to use as background; pass 'none' to omit it")
     p.add_argument("--width", type=float, default=0.038, help="cavity width [m]")
-    p.add_argument("--out", type=Path, default=HERE / "graphs" / "interface_fvm_vs_sfw.png")
+    p.add_argument("--out", type=Path, default=HERE / "graphs" / "fvm" / "interface_fvm_vs_sfw.png")
     p.add_argument("--show", action="store_true")
     p.add_argument("--no-flip-y", action="store_true",
                    help="keep the FVM y axis as stored instead of matching orientations "

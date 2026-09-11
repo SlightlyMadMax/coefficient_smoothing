@@ -59,7 +59,8 @@ def parse_args(argv=None) -> argparse.Namespace:
     )
     p.add_argument(
         "--run", type=Path,
-        default=HERE / "data" / "star" / "151x151_dt0.02_e0.1_ef0.1_C1e+06",
+        default=HERE / "data" / "cold_start" / "parametric"
+        / "151x151_dt0.02_e0.1_ef0.1_C1e+06",
     )
     p.add_argument(
         "--zoom-at", type=float, nargs=2, default=[0.20, 0.90],
@@ -72,7 +73,8 @@ def parse_args(argv=None) -> argparse.Namespace:
         help="the damped band reaches out to where the speed is this fraction of the "
         "local maximum along the front",
     )
-    p.add_argument("--out", type=Path, default=HERE / "graphs" / "mushy_zone.png")
+    p.add_argument("--out", type=Path,
+                   default=HERE / "graphs" / "cold_start" / "mushy_zone.png")
     p.add_argument("--show", action="store_true")
     return p.parse_args(argv)
 

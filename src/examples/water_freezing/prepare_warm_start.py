@@ -16,7 +16,7 @@ Examples
     python -m src.examples.water_freezing.prepare_warm_start --nx 101 --ny 101
     python -m src.examples.water_freezing.prepare_warm_start --nx 201 --ny 201 --dt 0.25
 
-Output goes to data/warm_start/steady_<nx>x<ny>.npz, which is exactly where
+Output goes to data/precursors/steady_<nx>x<ny>.npz, which is exactly where
 run.py --start warm looks for it.
 """
 
@@ -151,7 +151,7 @@ def main(argv=None) -> None:
     n_x, n_y, n_t, dt = geometry.n_x, geometry.n_y, geometry.n_t, geometry.dt
     delta_u, u_ref = cfg.delta_u, cfg.u_ref
 
-    out = args.out or (HERE / "data" / "warm_start" / f"steady_{n_x}x{n_y}.npz")
+    out = args.out or (HERE / "data" / "precursors" / f"steady_{n_x}x{n_y}.npz")
     out.parent.mkdir(parents=True, exist_ok=True)
 
     logger.info(

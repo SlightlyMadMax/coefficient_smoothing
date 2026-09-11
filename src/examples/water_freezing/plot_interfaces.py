@@ -18,8 +18,9 @@ Every axis found in the star-sweep output:
 One axis only, shown on screen:
     python -m src.examples.water_freezing.plot_interfaces --axis grid --show
 
-The runs that already exist from the earlier sweep:
-    python -m src.examples.water_freezing.plot_interfaces --data-dir data/refinement
+The warm-start runs from the earlier sweep:
+    python -m src.examples.water_freezing.plot_interfaces \
+        --data-dir data/warm_start/refinement_dt0.01
 
 The grid axis splits into two figures, because the very coarse grids and the converged
 family answer different questions and cannot share one pair of axes: the inset is only
@@ -88,14 +89,14 @@ def parse_args(argv=None) -> argparse.Namespace:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     p.add_argument(
-        "--data-dir", type=Path, default=HERE / "data" / "star",
+        "--data-dir", type=Path, default=HERE / "data" / "cold_start" / "parametric",
         help="directory holding the run subdirectories",
     )
     p.add_argument(
         "--axis", choices=sorted(AXES) + ["eps_split", "auto"], default="auto",
         help="which axis to plot; 'auto' plots every axis that has 2+ values",
     )
-    p.add_argument("--outdir", type=Path, default=HERE / "graphs")
+    p.add_argument("--outdir", type=Path, default=HERE / "graphs" / "cold_start")
     p.add_argument("--show", action="store_true")
     p.add_argument(
         "--format", default="png", choices=["png", "tiff", "pdf", "svg"],
@@ -141,7 +142,8 @@ def parse_args(argv=None) -> argparse.Namespace:
     p.add_argument(
         "--piv-background", type=Path, default=None,
         help="overlay the curves on the experimental PIV frame, e.g. "
-        "data/kowalewski.png. Off by default: these are verification figures and the "
+        "data/inputs/kowalewski.png. Off by default: these are verification figures "
+        "and the "
         "differences between converged curves are sub-millimetre, so a photographic "
         "background hides exactly what the figure is meant to show",
     )

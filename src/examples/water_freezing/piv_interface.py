@@ -16,7 +16,7 @@ Examples
 --------
     python -m src.examples.water_freezing.piv_interface --check
     python -m src.examples.water_freezing.piv_interface --compare \
-        data/refinement/warm_151x151_dt0.01_epsT0.1_C1e+06
+        data/warm_start/refinement_dt0.01/warm_151x151_dt0.01_epsT0.1_C1e+06
 """
 
 import argparse
@@ -44,7 +44,8 @@ def parse_args(argv=None) -> argparse.Namespace:
         description="Digitise the ice edge from the PIV frame.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    p.add_argument("--image", type=Path, default=HERE / "data" / "kowalewski.png")
+    p.add_argument("--image", type=Path,
+                   default=HERE / "data" / "inputs" / "kowalewski.png")
     p.add_argument("--width", type=float, default=0.038, help="cavity width [m]")
     p.add_argument("--height", type=float, default=0.038, help="cavity height [m]")
     p.add_argument(
@@ -70,12 +71,13 @@ def parse_args(argv=None) -> argparse.Namespace:
         help="reject an edge point deviating from the local trend by more than this "
         "many millimetres; removes the printed 'ICE' label and border artefacts",
     )
-    p.add_argument("--out", type=Path, default=HERE / "data" / "piv_interface.npz")
+    p.add_argument("--out", type=Path,
+                   default=HERE / "data" / "inputs" / "piv_interface.npz")
     p.add_argument("--check", action="store_true",
                    help="write a diagnostic overlay so the extraction can be verified")
     p.add_argument("--compare", type=Path, default=None,
                    help="run directory whose computed interface to compare against")
-    p.add_argument("--outdir", type=Path, default=HERE / "graphs")
+    p.add_argument("--outdir", type=Path, default=HERE / "graphs" / "piv")
     p.add_argument("--show", action="store_true")
     return p.parse_args(argv)
 

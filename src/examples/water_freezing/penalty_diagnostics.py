@@ -46,13 +46,14 @@ def parse_args(argv=None) -> argparse.Namespace:
         description="Residual motion in the solid and damping leakage into the liquid.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    p.add_argument("--data-dir", type=Path, default=HERE / "data" / "star")
+    p.add_argument("--data-dir", type=Path,
+                   default=HERE / "data" / "cold_start" / "parametric")
     p.add_argument(
         "--pattern", default="151x151_dt0.02_e0.1_ef0.1_C*",
         help="glob selecting the runs of the penalty axis",
     )
     p.add_argument("--out", type=Path, default=None,
-                   help="output path; defaults to graphs/penalty_<panel>.png")
+                   help="output path; defaults to graphs/cold_start/penalty_<panel>.png")
     p.add_argument(
         "--panel", choices=["a", "b", "both"], default="both",
         help="a = residual speed in the solid, b = circulation and Nusselt number, "
@@ -151,7 +152,7 @@ def main(argv=None) -> None:
         (draw_solid if a.panel == "a" else draw_liquid)(ax, None)
         default_name = f"penalty_panel_{a.panel}.png"
 
-    out = a.out or (HERE / "graphs" / default_name)
+    out = a.out or (HERE / "graphs" / "cold_start" / default_name)
     out.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out, dpi=300, bbox_inches="tight")
     print(f"\nwrote {out}")

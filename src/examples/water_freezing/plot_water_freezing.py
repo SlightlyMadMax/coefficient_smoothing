@@ -52,8 +52,8 @@ def add_subfigure_label(ax, label):
 # -----------------------------
 cfg: ExperimentConfig = ExperimentConfig.load_from_file("./config.json")
 geometry: DomainGeometry = cfg.geometry
-img = plt.imread("./data/kowalewski.png")
-data = np.load("data/old_data/after_freezing_151x151.npz")
+img = plt.imread("./data/inputs/kowalewski.png")
+data = np.load("data/archive/old_data/after_freezing_151x151.npz")
 u = data["u"]
 sf = data["sf"]
 w = data["w"]

@@ -30,7 +30,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[2]
-OUT_ROOT = HERE / "data" / "star"
+OUT_ROOT = HERE / "data" / "cold_start" / "parametric"
 
 
 def parse_args(argv=None) -> argparse.Namespace:

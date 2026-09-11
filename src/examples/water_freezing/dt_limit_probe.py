@@ -66,9 +66,9 @@ def try_case(nx, dt, bc, c, args, sf_tol: float = 1e-6) -> tuple[bool, str]:
         "--sf-tolerance", str(sf_tol),
         "--amg-rebuild-every", "10",
         "--quiet", "--no-save-final",
-        "--outdir", str(HERE / "data" / "dt_probe"
+        "--outdir", str(HERE / "data" / "cold_start" / "dt_probe"
                         / f"n{nx}_bc{bc}_C{c:.0e}_tol{sf_tol:.0e}_dt{dt:g}"),
-        "--summary-csv", str(HERE / "data" / "dt_probe" / "summary.csv"),
+        "--summary-csv", str(HERE / "data" / "cold_start" / "dt_probe" / "summary.csv"),
     ]
     if args.cold_wall_ramp > 0:
         cmd += ["--cold-wall-ramp", str(args.cold_wall_ramp)]
@@ -93,7 +93,7 @@ def try_case(nx, dt, bc, c, args, sf_tol: float = 1e-6) -> tuple[bool, str]:
 
 def main(argv=None) -> None:
     args = parse_args(argv)
-    (HERE / "data" / "dt_probe").mkdir(parents=True, exist_ok=True)
+    (HERE / "data" / "cold_start" / "dt_probe").mkdir(parents=True, exist_ok=True)
     dts = sorted(args.dts, reverse=True)
 
     print(f"grid {args.nx}x{args.nx}, start={args.start}, horizon={args.horizon:g} s, "
