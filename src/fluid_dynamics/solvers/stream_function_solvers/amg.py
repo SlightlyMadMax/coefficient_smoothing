@@ -27,6 +27,7 @@ class AlgebraicMultigridSolver(BaseSolver):
         stopping_criteria: float = 1e-6,
         rebuild_every: int = 1,
         rebuild_iter_factor: float = 1.5,
+        warmup_solves: int = 0,
     ):
         """
         Initialize the ConjugateGradientSolver with domain geometry and boundary conditions.
@@ -43,6 +44,12 @@ class AlgebraicMultigridSolver(BaseSolver):
             far the penalty field moves per step, hence on the time step, so a fixed
             call count is the wrong knob. Set to 0 to disable and rely on
             `rebuild_every` alone.
+        :param warmup_solves: Rebuild on every one of the first this many solves,
+            whatever `rebuild_every` says. The penalty field moves fastest while the
+            solid is first taking shape, and a hierarchy built one step earlier is
+            already useless there; `rebuild_iter_factor` cannot cover this because it
+            reacts only after a solve has already come out badly, which with a stiff
+            penalty is one step too late.
         """
         super().__init__(cfg=cfg, bcs=bcs)
         self.geometry: DomainGeometry = cfg.geometry
@@ -50,6 +57,7 @@ class AlgebraicMultigridSolver(BaseSolver):
         self.stopping_criteria = stopping_criteria
         self.rebuild_every = max(1, int(rebuild_every))
         self.rebuild_iter_factor = float(rebuild_iter_factor)
+        self.warmup_solves = max(0, int(warmup_solves))
 
         # Cached AMG hierarchy, reused between rebuilds
         self._ml: MultilevelSolver | None = None
@@ -76,6 +84,7 @@ class AlgebraicMultigridSolver(BaseSolver):
         """
         stale = (
             self._ml is None
+            or self._solve_count < self.warmup_solves
             or self._calls_since_rebuild >= self.rebuild_every
             or self._ml.levels[0].A.shape != A.shape
         )

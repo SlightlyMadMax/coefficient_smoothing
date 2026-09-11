@@ -39,6 +39,7 @@ class BCCorrectionNVSolver:
         sf_solver_kwargs: dict | None = None,
         penalty_time_scheme: str = "cn",
         penalty_ramp: float = 0.0,
+        penalty_ramp_mode: str = "linear",
     ):
         self.cfg = cfg
         self.vorticity_bc_order = vorticity_bc_order
@@ -79,6 +80,7 @@ class BCCorrectionNVSolver:
 
         self.vorticity_solver.penalty_in_predictor = penalty_time_scheme != "implicit"
         self.vorticity_solver.penalty_ramp = penalty_ramp
+        self.vorticity_solver.penalty_ramp_mode = penalty_ramp_mode
 
         self._vorticity: NDArray[np.float64] = np.empty((n_y, n_x))
         self._stream_function: NDArray[np.float64] = np.empty((n_y, n_x))

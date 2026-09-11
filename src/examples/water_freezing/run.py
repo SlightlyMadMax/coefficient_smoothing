@@ -131,6 +131,13 @@ def parse_args(argv=None) -> argparse.Namespace:
         "of physical time; 0 applies it at full strength from the first step",
     )
     phys.add_argument(
+        "--penalty-ramp-mode",
+        choices=("linear", "geom"),
+        default="linear",
+        help="how C grows during --penalty-ramp: proportionally to time, or "
+        "geometrically from 1 to its nominal value (equal time per decade)",
+    )
+    phys.add_argument(
         "--penalty-time-scheme",
         choices=("cn", "dr", "implicit"),
         default="cn",
@@ -221,6 +228,14 @@ def parse_args(argv=None) -> argparse.Namespace:
     )
 
     perf = p.add_argument_group("performance")
+    perf.add_argument(
+        "--amg-rebuild-warmup",
+        type=int,
+        default=0,
+        help="rebuild the AMG hierarchy on every one of the first N steps regardless "
+        "of --amg-rebuild-every; the penalty field moves fastest while the solid is "
+        "first taking shape, and a hierarchy one step old is already useless there",
+    )
     perf.add_argument(
         "--amg-rebuild-every",
         type=int,
@@ -575,9 +590,13 @@ def run(args: argparse.Namespace) -> dict:
         vorticity_solver_name=VorticitySolverName.PEACEMAN_RACHFORD,
         stream_function_solver_name=StreamFunctionSolverName.AMG,
         vorticity_bc_order=args.vorticity_bc_order,
-        sf_solver_kwargs={"rebuild_every": args.amg_rebuild_every},
+        sf_solver_kwargs={
+            "rebuild_every": args.amg_rebuild_every,
+            "warmup_solves": args.amg_rebuild_warmup,
+        },
         penalty_time_scheme=args.penalty_time_scheme,
         penalty_ramp=args.penalty_ramp,
+        penalty_ramp_mode=args.penalty_ramp_mode,
     )
 
     runner = ExperimentRunner(
@@ -619,6 +638,7 @@ def run(args: argparse.Namespace) -> dict:
         "penalty_form": args.penalty_form,
         "penalty_time_scheme": args.penalty_time_scheme,
         "penalty_ramp": args.penalty_ramp,
+        "penalty_ramp_mode": args.penalty_ramp_mode,
         "vorticity_bc_order": args.vorticity_bc_order,
         "sf_tolerance": args.sf_tolerance,
         "Ra": cfg.rayleigh_number,
@@ -631,6 +651,7 @@ def run(args: argparse.Namespace) -> dict:
         "max_speed_in_solid": max_speed_in_solid(state, cfg),
         "cold_wall_ramp": args.cold_wall_ramp,
         "amg_rebuild_every": args.amg_rebuild_every,
+        "amg_rebuild_warmup": args.amg_rebuild_warmup,
         "amg_rebuilds": _amg_stats(navier_solver).get("rebuilds"),
         "amg_mean_reuse": _amg_stats(navier_solver).get("mean_reuse"),
         "wall_clock_s": wall,

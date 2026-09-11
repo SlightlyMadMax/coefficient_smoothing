@@ -55,6 +55,7 @@ class BaseVorticitySolver(BaseSolver, VorticityBCMixin, ABC):
 
         self.penalty_in_predictor: bool = True
         self.penalty_ramp: float = 0.0
+        self.penalty_ramp_mode: str = "linear"
         self._px_zero: np.ndarray = np.zeros((n_y, n_x - 1))
         self._py_zero: np.ndarray = np.zeros((n_y - 1, n_x))
 
@@ -98,7 +99,8 @@ class BaseVorticitySolver(BaseSolver, VorticityBCMixin, ABC):
         eps = self.cfg.epsilon
         c = self.cfg.l / (eps * eps * self.cfg.v)
         if self.penalty_ramp > 0.0:
-            c *= min(1.0, time / self.penalty_ramp)
+            f = min(1.0, time / self.penalty_ramp)
+            c = c**f if self.penalty_ramp_mode == "geom" else c * f
         diff_u = u - u_pt
 
         if self.penalty_term_form == PenaltyTermForm.JUMP:

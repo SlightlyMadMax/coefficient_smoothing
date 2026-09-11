@@ -55,7 +55,7 @@ def parse_args(argv=None) -> argparse.Namespace:
     ax.add_argument("--penalty-values", type=float, nargs="*",
                     default=[1e4, 1e5, 1e6])
     ax.add_argument(
-        "--split-eps", action="store_true", default=True,
+        "--split-eps", action=argparse.BooleanOptionalAction, default=True,
         help="add two off-diagonal points that separate the heat-equation "
         "smoothing from the penalty smoothing",
     )
@@ -66,6 +66,10 @@ def parse_args(argv=None) -> argparse.Namespace:
     run.add_argument("--vorticity-bc-order", type=int, choices=(1, 2), default=2)
     run.add_argument("--timeout", type=float, default=None, help="per run [s]")
     run.add_argument("--dry-run", action="store_true")
+    run.add_argument(
+        "--amg-rebuild-warmup", type=int, default=0,
+        help="rebuild the AMG hierarchy on every one of the first N steps of each run",
+    )
     run.add_argument(
         "--penalty-time-scheme", choices=("cn", "dr", "implicit"), default="cn",
         help="time discretisation of the penalty term, passed to run.py",
@@ -138,6 +142,8 @@ def run_case(c: dict, a: argparse.Namespace) -> dict:
         cmd += ["--cold-wall-ramp", str(a.cold_wall_ramp)]
     if a.penalty_time_scheme != "cn":
         cmd += ["--penalty-time-scheme", a.penalty_time_scheme]
+    if a.amg_rebuild_warmup > 0:
+        cmd += ["--amg-rebuild-warmup", str(a.amg_rebuild_warmup)]
     if a.warm_start_file is not None:
         cmd += ["--warm-start-file", str(a.warm_start_file)]
 
